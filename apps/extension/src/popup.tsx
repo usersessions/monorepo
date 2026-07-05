@@ -27,7 +27,8 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   }, [])
 
   const launch = () =>
-    chrome.runtime.sendMessage({ type: 'START_CAMPAIGN', simulated: true }, () => refresh())
+    // Request live mode; the background enforces simulation until every adapter is live-verified (M6 gate).
+    chrome.runtime.sendMessage({ type: 'START_CAMPAIGN', simulated: false }, () => refresh())
   const reset = () => chrome.runtime.sendMessage({ type: 'RESET_CAMPAIGN' }, () => refresh())
 
   const running = run?.status === 'running' || run?.status === 'paused'
@@ -41,7 +42,7 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
           disabled={!connected || !ready}
           title={!ready ? 'Approve your copy first' : 'Runs in simulation until adapters are live-verified'}
         >
-          Launch campaign (simulation)
+          Launch campaign
         </button>
       )}
 

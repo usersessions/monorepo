@@ -198,6 +198,12 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   void (async () => {
     switch (msg?.type) {
+      case 'SET_TOKEN': {
+        // From the token-bridge content script — works without a stable extension ID.
+        if (typeof msg.token === 'string') await chrome.storage.local.set({ accessToken: msg.token })
+        sendResponse({ ok: true })
+        break
+      }
       case 'GET_STATE': {
         const { accessToken } = await chrome.storage.local.get('accessToken')
         sendResponse({ state: await getState(), connected: Boolean(accessToken) })
