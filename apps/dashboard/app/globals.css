@@ -1,0 +1,13 @@
+/* Design tokens: single source in packages/shared (BUILD_SPEC §14). Never redefine locally. */
+@import '@usersessions/shared/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-sans);
+}
