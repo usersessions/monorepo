@@ -5,22 +5,32 @@ const STEPS = ['Install', 'Launch', 'Watch'] as const // verbatim StoryBrand pla
 export default async function OverviewPage() {
   const supabase = await createClient()
 
-  const [{ count: campaignCount }, { count: submissionCount }, { data: latestScore }, { data: recent }] =
-    await Promise.all([
-      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-      supabase.from('submissions').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('distribution_scores')
-        .select('score, computed_at')
-        .order('computed_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('submissions')
-        .select('platform_id, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10),
-    ])
+  const [
+    { count: campaignCount },
+    { count: submissionCount },
+    { data: latestScore },
+    { data: recent },
+    { data: notifications },
+  ] = await Promise.all([
+    supabase.from('campaigns').select('*', { count: 'exact', head: true }),
+    supabase.from('submissions').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('distribution_scores')
+      .select('score, computed_at')
+      .order('computed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('submissions')
+      .select('platform_id, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('notifications')
+      .select('id, kind, title, body, read, created_at')
+      .order('created_at', { ascending: false })
+      .limit(8),
+  ])
 
   const doneByStep = [Boolean(campaignCount), Boolean(campaignCount), Boolean(submissionCount)]
 
@@ -61,6 +71,27 @@ export default async function OverviewPage() {
           <p className="font-sans-body">Tracking begins after your first launch.</p>
         </div>
       </div>
+
+      {(notifications ?? []).length > 0 && (
+        <div className="card card--dense">
+          <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>
+            Notifications
+          </p>
+          {(notifications ?? []).map((n) => (
+            <div
+              key={n.id}
+              style={{
+                opacity: n.read ? 0.5 : 1,
+                borderTop: '1px solid var(--border)',
+                padding: 'var(--space-sm) 0',
+              }}
+            >
+              <p className="font-sans-label">{n.title}</p>
+              {n.body && <p className="font-mono-micro">{n.body}</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="card card--dense">
         <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>
