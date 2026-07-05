@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Public: marketing, auth flow, shareable reports, pricing. /api routes self-authenticate (Bearer, cron secret, or webhook signature).
-const PUBLIC_PREFIXES = ['/home', '/login', '/auth', '/reports', '/pricing', '/api']
+const PUBLIC_PREFIXES = ['/home', '/login', '/signup', '/auth', '/reports', '/pricing', '/api']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
