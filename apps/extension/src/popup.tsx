@@ -27,20 +27,21 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   }, [])
 
   const launch = () =>
-    // Request live mode; the background enforces simulation until every adapter is live-verified (M6 gate).
+    // Request live mode; the background falls back to simulation only if any adapter is unverified.
     chrome.runtime.sendMessage({ type: 'START_CAMPAIGN', simulated: false }, () => refresh())
   const reset = () => chrome.runtime.sendMessage({ type: 'RESET_CAMPAIGN' }, () => refresh())
+  const retrySync = () => chrome.runtime.sendMessage({ type: 'RETRY_SYNC' }, () => refresh())
 
   const running = run?.status === 'running' || run?.status === 'paused'
 
   return (
     <div className="site-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-      {!running && run?.status !== 'done' && run?.status !== 'plan_limit' && (
+      {!running && run?.status !== 'done' && run?.status !== 'plan_limit' && run?.status !== 'sync_error' && (
         <button
           className="btn-primary"
           onClick={launch}
           disabled={!connected || !ready}
-          title={!ready ? 'Approve your copy first' : 'Runs in simulation until adapters are live-verified'}
+          title={!ready ? 'Approve your copy first' : 'Submits live; failures are reported per platform'}
         >
           Launch campaign
         </button>
@@ -75,7 +76,19 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
         </p>
       )}
 
-      {(run?.status === 'done' || run?.status === 'plan_limit') && (
+      {run?.status === 'sync_error' && (
+        <>
+          <p className="font-mono-micro" style={{ color: 'var(--amber)' }}>
+            Run finished but has not synced to your dashboard yet — no results were lost. Open the
+            dashboard while signed in, or retry now.
+          </p>
+          <button className="btn-ghost" onClick={retrySync}>
+            Retry sync
+          </button>
+        </>
+      )}
+
+      {(run?.status === 'done' || run?.status === 'plan_limit' || run?.status === 'sync_error') && (
         <button className="btn-ghost" onClick={reset}>
           Start another run
         </button>

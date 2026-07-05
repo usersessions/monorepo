@@ -15,7 +15,10 @@ import type { AdapterOutcome, RunContext } from './adapters/types'
 chrome.runtime.onMessageExternal.addListener(
   (message: BridgeMessage, _sender, sendResponse) => {
     if (message?.type === 'SET_TOKEN' && typeof message.token === 'string') {
-      void chrome.storage.local.set({ accessToken: message.token }).then(() => sendResponse({ ok: true }))
+      void chrome.storage.local.set({ accessToken: message.token }).then(() => {
+        void retrySync() // a fresh token may unblock a run stuck in sync_error
+        sendResponse({ ok: true })
+      })
       return true
     }
     return false
@@ -24,7 +27,7 @@ chrome.runtime.onMessageExternal.addListener(
 
 // ---------- Campaign state ----------
 export interface CampaignRunState {
-  status: 'idle' | 'running' | 'paused' | 'awaiting_captcha' | 'done' | 'plan_limit'
+  status: 'idle' | 'running' | 'paused' | 'awaiting_captcha' | 'done' | 'plan_limit' | 'sync_error'
   campaignId?: string
   productId?: string
   startedAt?: string
@@ -36,6 +39,7 @@ export interface CampaignRunState {
 
 const STATE_KEY = 'campaignState'
 const ALARM_NEXT = 'campaign-next'
+const ALARM_SYNC = 'campaign-sync-retry'
 const IDLE: CampaignRunState = { status: 'idle', simulated: true, queue: [], results: [] }
 
 async function getState(): Promise<CampaignRunState> {
@@ -119,26 +123,47 @@ function toResult(platformId: string, outcome: AdapterOutcome, simulated: boolea
   }
 }
 
+/**
+ * Posts the finished run to the dashboard. A failed sync NEVER drops results:
+ * the run enters 'sync_error', keeps everything in storage, and retries on an
+ * alarm, on demand (RETRY_SYNC), and whenever a fresh token arrives.
+ */
+async function syncCampaign(state: CampaignRunState): Promise<void> {
+  const { siteData } = await chrome.storage.local.get('siteData')
+  const site = siteData as SiteData | undefined
+  const res = await postCampaign({
+    campaignId: state.campaignId!,
+    productId: state.productId!,
+    productName: site?.title ?? 'Untitled product',
+    productUrl: site?.url ?? '',
+    startedAt: state.startedAt!,
+    finishedAt: new Date().toISOString(),
+    results: state.results,
+  })
+  if (res.ok) {
+    state.status = 'done'
+  } else if (res.error === 'PLAN_LIMIT_EXCEEDED') {
+    state.status = 'plan_limit'
+  } else {
+    state.status = 'sync_error'
+    chrome.alarms.create(ALARM_SYNC, { when: Date.now() + 30_000 })
+  }
+  state.currentPlatform = undefined
+  await setState(state)
+}
+
+async function retrySync(): Promise<void> {
+  const state = await getState()
+  if (state.status === 'sync_error') await syncCampaign(state)
+}
+
 async function processNext(): Promise<void> {
   const state = await getState()
   if (state.status !== 'running') return
 
   // Queue drained → finalize: post to the dashboard (the M7 heartbeat).
   if (state.queue.length === 0) {
-    const { siteData } = await chrome.storage.local.get('siteData')
-    const site = siteData as SiteData
-    const res = await postCampaign({
-      campaignId: state.campaignId!,
-      productId: state.productId!,
-      productName: site?.title ?? 'Untitled product',
-      productUrl: site?.url ?? '',
-      startedAt: state.startedAt!,
-      finishedAt: new Date().toISOString(),
-      results: state.results,
-    })
-    state.status = res.ok ? 'done' : res.error === 'PLAN_LIMIT_EXCEEDED' ? 'plan_limit' : 'done'
-    state.currentPlatform = undefined
-    await setState(state)
+    await syncCampaign(state)
     return
   }
 
@@ -192,6 +217,7 @@ async function processNext(): Promise<void> {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NEXT) void processNext()
+  if (alarm.name === ALARM_SYNC) void retrySync()
 })
 
 // ---------- Popup ↔ background messaging ----------
@@ -201,6 +227,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       case 'SET_TOKEN': {
         // From the token-bridge content script — works without a stable extension ID.
         if (typeof msg.token === 'string') await chrome.storage.local.set({ accessToken: msg.token })
+        void retrySync() // a fresh token may unblock a run stuck in sync_error
         sendResponse({ ok: true })
         break
       }
@@ -238,9 +265,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ state: await getState() })
         break
       }
+      case 'RETRY_SYNC': {
+        await retrySync()
+        sendResponse({ state: await getState() })
+        break
+      }
       case 'RESET_CAMPAIGN': {
         await setState({ ...IDLE })
         await chrome.alarms.clear(ALARM_NEXT)
+        await chrome.alarms.clear(ALARM_SYNC)
         sendResponse({ state: await getState() })
         break
       }

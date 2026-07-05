@@ -6,12 +6,15 @@ const ADMIN_EMAIL = 'info@usersessions.io'
 /**
  * Handles both magic link and Google OAuth callbacks.
  * NON-NEGOTIABLE (BUILD_SPEC §6): a profiles row is ensured on every sign-in.
- * Google OAuth is the admin's door ONLY: any other Google sign-in is rejected
- * server-side (signed out immediately), never merely hidden client-side.
+ * Google OAuth is the admin's door ONLY (entered at /rx): any other Google sign-in is
+ * rejected server-side (signed out immediately), never merely hidden client-side.
+ * Supports a sanitized internal ?next= redirect (used by /rx to land on /admin).
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const nextParam = searchParams.get('next')
+  const next = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/'
 
   if (code) {
     const supabase = await createClient()
@@ -23,7 +26,7 @@ export async function GET(request: Request) {
 
       if (provider === 'google' && email !== ADMIN_EMAIL) {
         await supabase.auth.signOut()
-        return NextResponse.redirect(`${origin}/login?error=google_admin_only`)
+        return NextResponse.redirect(`${origin}/rx?error=google_admin_only`)
       }
 
       await supabase
@@ -44,7 +47,7 @@ export async function GET(request: Request) {
         await db.from('profiles').update({ role: 'admin' }).eq('id', data.user.id).neq('role', 'admin')
       }
 
-      return NextResponse.redirect(`${origin}/`)
+      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 

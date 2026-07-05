@@ -9,6 +9,7 @@ const NAV: { label: string; href: string }[] = [
   { label: 'Listings', href: '/listings' },
   { label: 'Platforms', href: '/platforms' },
   { label: 'Analytics', href: '/analytics' },
+  { label: 'Settings', href: '/settings' },
 ]
 
 export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {

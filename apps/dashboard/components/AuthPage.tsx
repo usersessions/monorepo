@@ -41,9 +41,7 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
 
   useEffect(() => {
     const err = new URLSearchParams(window.location.search).get('error')
-    if (err === 'google_admin_only')
-      setError('Google sign-in is reserved for the admin account. Use your email magic link instead.')
-    else if (err === 'auth') setError('Sign-in failed — request a fresh link and try again.')
+    if (err === 'auth') setError('Sign-in failed — request a fresh link and try again.')
   }, [])
 
   useEffect(() => {
@@ -72,16 +70,6 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
       setSent(true)
       setCooldown(30)
     }
-  }
-
-  async function signInWithGoogle() {
-    setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) setError(error.message)
   }
 
   function switchMode(next: Mode) {
@@ -243,16 +231,6 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
                 </button>
               </form>
             )}
-
-            <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              <span className="font-mono-micro">or</span>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            </div>
-
-            <button className="btn-ghost" type="button" onClick={signInWithGoogle}>
-              Admin · Continue with Google
-            </button>
 
             {error && (
               <p className="font-mono-data" role="alert" style={{ color: 'var(--red)' }}>

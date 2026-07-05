@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
+import { RealtimeRefresh } from '@/components/RealtimeRefresh'
 import { SidebarNav } from '@/components/SidebarNav'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen">
       <ExtensionBridge />
+      <RealtimeRefresh userId={user.id} />
 
       <aside
         className="flex flex-col shrink-0"
