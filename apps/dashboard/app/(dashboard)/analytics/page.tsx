@@ -25,7 +25,6 @@ export default async function AnalyticsPage() {
       .order('checked_at', { ascending: false })
       .limit(200),
   ])
-  void _unused
 
   const platformName = new Map((platforms ?? []).map((p) => [p.id, p.name]))
   const real = (subs ?? []).filter((s) => !s.simulated)
