@@ -102,3 +102,35 @@
 }
 .input-field::placeholder { color: var(--muted-2); }
 .input-field:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* App-shell navigation — dashboard sidebar links */
+.nav-link {
+  font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.01em;
+  display: block; color: var(--muted); text-decoration: none;
+  border-radius: var(--rounded-sm);
+  padding: var(--space-sm) var(--space-md);
+  transition: color 150ms ease, background 150ms ease;
+}
+.nav-link:hover { color: var(--paper); background: var(--primary-dim); }
+.nav-link--active { color: var(--paper); background: var(--primary-dim); box-shadow: inset 2px 0 0 var(--primary); }
+
+/* Segmented tab switch — auth screens and mode toggles */
+.tab-switch {
+  display: flex; gap: 2px; padding: 2px;
+  background: var(--ink); border: 1px solid var(--border); border-radius: var(--rounded-sm);
+}
+.tab-switch button {
+  flex: 1;
+  font-family: var(--font-sans); font-weight: 600; font-size: 0.8125rem;
+  background: transparent; color: var(--muted);
+  border: none; border-radius: var(--rounded-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer; transition: color 150ms ease, background 150ms ease;
+}
+.tab-switch button:hover { color: var(--paper); }
+.tab-switch button.is-active { background: var(--ink-2); color: var(--paper); box-shadow: 0 0 0 1px var(--border); }
+
+/* Meter — compact score bar (cyan = computed signal, muted = editorial estimate) */
+.meter { height: 4px; width: 100%; background: var(--border); border-radius: var(--rounded-sm); overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--cyan); }
+.meter > span.meter--estimate { background: var(--muted-2); }

@@ -2,14 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
-
-const NAV: { label: string; href: string }[] = [
-  { label: 'Overview', href: '/' },
-  { label: 'Campaigns', href: '/campaigns' },
-  { label: 'Listings', href: '/listings' },
-  { label: 'Platforms', href: '/platforms' },
-  { label: 'Analytics', href: '/analytics' },
-]
+import { SidebarNav } from '@/components/SidebarNav'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -24,6 +17,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('id', user.id)
     .single()
 
+  const displayName = profile?.full_name ?? profile?.email ?? user.email ?? ''
+  const initial = displayName.trim().charAt(0).toUpperCase() || '·'
+
   return (
     <div className="flex min-h-screen">
       <ExtensionBridge />
@@ -31,49 +27,55 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside
         className="flex flex-col shrink-0"
         style={{
-          width: 224,
+          width: 240,
           background: 'var(--ink-2)',
           borderRight: '1px solid var(--border)',
           padding: 'var(--space-lg) var(--space-md)',
           gap: 'var(--space-lg)',
         }}
       >
-        <span className="italic" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem' }}>
+        <Link
+          href="/"
+          className="italic"
+          style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--paper)', textDecoration: 'none' }}
+        >
           usersessions
-        </span>
+        </Link>
 
-        <nav className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="font-sans-label"
+        <SidebarNav isAdmin={profile?.role === 'admin'} />
+
+        <div className="flex flex-col" style={{ marginTop: 'auto', gap: 'var(--space-sm)' }}>
+          <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
+            <span
+              className="flex items-center justify-center shrink-0"
               style={{
-                color: 'var(--paper)',
-                borderRadius: 'var(--rounded-sm)',
-                padding: 'var(--space-sm) var(--space-md)',
-                textDecoration: 'none',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: 'var(--primary-dim)',
+                border: '1px solid var(--border)',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '1rem',
               }}
             >
-              {item.label}
-            </Link>
-          ))}
-          {profile?.role === 'admin' && (
-            <Link
-              href="/admin"
-              className="font-sans-label"
-              style={{ color: 'var(--amber)', padding: 'var(--space-sm) var(--space-md)', textDecoration: 'none' }}
+              {initial}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <p className="font-mono-micro truncate" style={{ color: 'var(--paper)' }}>
+                {profile?.email ?? user.email}
+              </p>
+              <p className="font-mono-micro">plan: {profile?.plan ?? 'free'}</p>
+            </div>
+          </div>
+          <form action="/auth/signout" method="post">
+            <button
+              className="btn-ghost w-full"
+              type="submit"
+              style={{ padding: 'var(--space-xs) var(--space-md)', fontSize: '0.75rem' }}
             >
-              Admin
-            </Link>
-          )}
-        </nav>
-
-        <div style={{ marginTop: 'auto' }}>
-          <p className="font-mono-micro">{profile?.email ?? user.email}</p>
-          <p className="font-mono-micro" style={{ color: 'var(--muted)' }}>
-            plan: {profile?.plan ?? 'free'}
-          </p>
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
 
