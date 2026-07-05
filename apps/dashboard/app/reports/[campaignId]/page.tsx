@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import type { PlanId } from '@usersessions/shared'
 
 /**
  * PUBLIC white-label distribution report (BUILD_SPEC §8): shareable without auth,
@@ -18,7 +19,7 @@ export default async function ReportPage({
   const db = createServiceClient()
   const { data: campaign } = await db
     .from('campaigns')
-    .select('id, status, started_at, completed_at, product_id, products(name, url)')
+    .select('id, status, started_at, completed_at, product_id, products(name, url), profiles!inner(plan)')
     .eq('id', campaignId)
     .maybeSingle()
   if (!campaign) notFound()
@@ -45,6 +46,8 @@ export default async function ReportPage({
 
   const platformById = new Map((platforms ?? []).map((p) => [p.id, p]))
   const product = (campaign.products as { name?: string; url?: string } | null)
+  const profile = (campaign.profiles as { plan?: PlanId } | null)
+  const isAgency = profile?.plan === 'agency'
 
   const badge = (status: string) =>
     ['live', 'indexed'].includes(status) ? 'status-live' : ['failed', 'removed'].includes(status) ? 'status-dead' : 'status-pending'
@@ -55,7 +58,7 @@ export default async function ReportPage({
       <style>{`@media print { html, body { background: #fff !important; color: #000 !important; } .card, .card--dense { border: 1px solid #ccc !important; background: #fff !important; } a { color: #000 !important; } }`}</style>
 
       <header>
-        <span className="italic" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem' }}>usersessions</span>
+        {!isAgency && <span className="italic" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem' }}>usersessions</span>}
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', marginTop: 'var(--space-md)' }}>
           Distribution report — {product?.name ?? 'Untitled product'}
         </h1>
@@ -64,7 +67,6 @@ export default async function ReportPage({
           campaign {campaign.id.slice(0, 8)} · {new Date(campaign.started_at).toISOString().slice(0, 10)} · generated{' '}
           {new Date().toISOString().slice(0, 10)}
         </p>
-        {/* Agency branding plumbing (logo/accent from the owning profile) attaches here — upload UI ships with M11. */}
       </header>
 
       <div className="card card--dense flex" style={{ gap: 'var(--space-xl)' }}>
@@ -98,7 +100,7 @@ export default async function ReportPage({
         })}
       </div>
 
-      <footer className="font-mono-micro">Get your product found — usersessions.io</footer>
+      {!isAgency && <footer className="font-mono-micro">Get your product found — usersessions.io</footer>}
     </main>
   )
 }

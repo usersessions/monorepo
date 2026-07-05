@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: 'Listings', href: '/listings', icon: '⊞' },
   { label: 'Platforms', href: '/platforms', icon: '⊙' },
   { label: 'Analytics', href: '/analytics', icon: '↗' },
+  { label: 'Competitors', href: '/competitors', icon: '⊕' },
   { label: 'Settings', href: '/settings', icon: '⚙' },
   { label: 'Billing & plan', href: '/pricing', icon: '$' },
   { label: 'Support', href: '/support', icon: '?' },

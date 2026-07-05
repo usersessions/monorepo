@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizeCron, logCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/server'
+import type { PlanId } from '@usersessions/shared'
 
 export const maxDuration = 300
 
@@ -60,33 +61,54 @@ export async function GET(request: Request) {
   }
 
   const db = createServiceClient()
-  const stats = { queries: 0, checked: 0, mentioned: 0, changes: 0 }
+  const stats = { queries: 0, checked: 0, skippedRateLimit: 0, mentioned: 0, changes: 0 }
+  const now = new Date()
 
   try {
     const { data: queries } = await db
       .from('visibility_queries')
-      .select('id, user_id, query, products(name, url)')
+      .select('id, user_id, query, products(name, url), profiles(plan)')
       .limit(BATCH)
 
     for (const q of queries ?? []) {
       stats.queries++
       const product = q.products as { name?: string; url?: string } | null
+      const profile = q.profiles as { plan?: PlanId } | null
+      const plan = profile?.plan ?? 'free'
       if (!product?.name || !product?.url) continue
 
-      const result = await checkQuery(key, q.query, product.name, product.url)
-      if (!result) continue // engine failure → no row at all; never a guessed result
-      stats.checked++
-      if (result.mentioned) stats.mentioned++
-
-      // Previous state for change detection
+      // Previous state for change detection and frequency limiting
       const { data: prev } = await db
         .from('visibility_checks')
-        .select('mentioned')
+        .select('mentioned, checked_at')
         .eq('query_id', q.id)
         .eq('engine', 'gemini')
         .order('checked_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+
+      if (prev?.checked_at) {
+        const lastChecked = new Date(prev.checked_at)
+        if (plan === 'free') {
+          // Free = monthly
+          if (lastChecked.getUTCFullYear() === now.getUTCFullYear() && lastChecked.getUTCMonth() === now.getUTCMonth()) {
+            stats.skippedRateLimit++
+            continue
+          }
+        } else {
+          // Founder/Agency = weekly
+          const daysSince = (now.getTime() - lastChecked.getTime()) / (1000 * 3600 * 24)
+          if (daysSince < 7) {
+            stats.skippedRateLimit++
+            continue
+          }
+        }
+      }
+
+      const result = await checkQuery(key, q.query, product.name, product.url)
+      if (!result) continue // engine failure → no row at all; never a guessed result
+      stats.checked++
+      if (result.mentioned) stats.mentioned++
 
       await db.from('visibility_checks').insert({
         query_id: q.id,

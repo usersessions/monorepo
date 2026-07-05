@@ -19,7 +19,11 @@ export async function GET(request: Request) {
   const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
 
   try {
-    const { data: users } = await db.from('profiles').select('id, email').limit(100)
+    const { data: users } = await db
+      .from('profiles')
+      .select('id, email, notif_weekly_digest')
+      .eq('notif_weekly_digest', true)
+      .limit(100)
 
     for (const user of users ?? []) {
       stats.candidates++

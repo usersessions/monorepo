@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { authorizeCron, logCron } from '@/lib/cron'
 import { computeDistributionScore } from '@/lib/distribution-score'
 import { createServiceClient } from '@/lib/supabase/server'
+import type { PlanId } from '@usersessions/shared'
 
 export const maxDuration = 60
 
@@ -40,13 +41,13 @@ export async function GET(request: Request) {
   if (!authorizeCron(request)) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
 
   const db = createServiceClient()
-  const stats = { checked: 0, promoted: 0, graceStarted: 0, removed: 0, newPlatformNotices: 0 }
+  const stats = { checked: 0, promoted: 0, graceStarted: 0, removed: 0, autoResubmitted: 0, newPlatformNotices: 0 }
 
   try {
     // Oldest-checked first so the whole corpus rotates through daily batches.
     const { data: subs } = await db
       .from('submissions')
-      .select('id, campaign_id, user_id, status, listing_url, link_check_failing_since')
+      .select('id, campaign_id, user_id, status, listing_url, link_check_failing_since, platform_id, simulated, profiles(plan, notif_link_alerts)')
       .eq('simulated', false)
       .in('status', ['submitted', 'live', 'indexed'])
       .not('listing_url', 'is', null)
@@ -94,18 +95,53 @@ export async function GET(request: Request) {
       }
 
       // Confirmed dead: 48h of continuous failure.
-      stats.removed++
-      affectedCampaigns.add(sub.campaign_id)
-      await db
-        .from('submissions')
-        .update({ status: 'removed', last_checked_at: now.toISOString() })
-        .eq('id', sub.id)
-      await db.from('notifications').insert({
-        user_id: sub.user_id,
-        kind: 'dead_link',
-        title: 'A listing went dead',
-        body: `${sub.listing_url} has been unreachable for 48 hours. Queue a resubmission from Listings.`,
-      })
+      const profile = sub.profiles as { plan?: PlanId; notif_link_alerts?: boolean } | null
+      const plan = profile?.plan ?? 'free'
+
+      if (plan === 'founder' || plan === 'agency') {
+        // Auto-resubmit
+        stats.autoResubmitted++
+        affectedCampaigns.add(sub.campaign_id)
+        await db
+          .from('submissions')
+          .update({ status: 'removed', last_checked_at: now.toISOString() })
+          .eq('id', sub.id)
+
+        // Queue a new submission
+        await db.from('submissions').insert({
+          campaign_id: sub.campaign_id,
+          platform_id: sub.platform_id,
+          user_id: sub.user_id,
+          status: 'submitted',
+          simulated: false,
+        })
+
+        if (profile?.notif_link_alerts !== false) {
+          await db.from('notifications').insert({
+            user_id: sub.user_id,
+            kind: 'dead_link',
+            title: 'Auto-resubmitted a dead listing',
+            body: `${sub.listing_url} went dead, but your plan includes auto-resubmission. A new submission has been queued.`,
+          })
+        }
+      } else {
+        // Free plan: mark dead and notify
+        stats.removed++
+        affectedCampaigns.add(sub.campaign_id)
+        await db
+          .from('submissions')
+          .update({ status: 'removed', last_checked_at: now.toISOString() })
+          .eq('id', sub.id)
+          
+        if (profile?.notif_link_alerts !== false) {
+          await db.from('notifications').insert({
+            user_id: sub.user_id,
+            kind: 'dead_link',
+            title: 'A listing went dead',
+            body: `${sub.listing_url} has been unreachable for 48 hours. Queue a resubmission from Listings.`,
+          })
+        }
+      }
     }
 
     // Recompute Distribution Scores for every affected product.
@@ -132,15 +168,17 @@ export async function GET(request: Request) {
       .gte('created_at', dayAgo)
     if (newPlatforms && newPlatforms.length > 0) {
       const names = newPlatforms.map((p) => p.name).join(', ')
-      const { data: users } = await db.from('profiles').select('id').limit(500)
+      const { data: users } = await db.from('profiles').select('id, notif_new_platforms').limit(500)
       for (const u of users ?? []) {
-        stats.newPlatformNotices++
-        await db.from('notifications').insert({
-          user_id: u.id,
-          kind: 'new_platforms',
-          title: `New platform${newPlatforms.length > 1 ? 's' : ''} in the network`,
-          body: `${names} just joined the catalog. Launch again to get listed there too.`,
-        })
+        if (u.notif_new_platforms !== false) {
+          stats.newPlatformNotices++
+          await db.from('notifications').insert({
+            user_id: u.id,
+            kind: 'new_platforms',
+            title: `New platform${newPlatforms.length > 1 ? 's' : ''} in the network`,
+            body: `${names} just joined the catalog. Launch again to get listed there too.`,
+          })
+        }
       }
     }
 
