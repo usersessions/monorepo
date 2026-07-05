@@ -1,8 +1,15 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { updateProfile } from './actions'
+import { updateProfile, saveNotificationPrefs } from './actions'
+import { UsageMeter } from '@/components/UpgradePrompt'
+import { limitsFor, monthStartIso } from '@/lib/tiers'
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; notif_saved?: string }>
+}) {
+  const params = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -10,11 +17,23 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email, plan')
+    .select('full_name, email, plan, notif_weekly_digest, notif_link_alerts, notif_new_platforms')
     .eq('id', user!.id)
     .single()
 
   const plan = profile?.plan ?? 'free'
+  const limits = limitsFor(plan)
+
+  const [{ count: productCount }, { count: launchesThisMonth }, { count: visibilityQueryCount }] =
+    await Promise.all([
+      supabase.from('products').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+        .eq('simulated', false)
+        .gte('started_at', monthStartIso()),
+      supabase.from('visibility_queries').select('*', { count: 'exact', head: true }),
+    ])
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 640 }}>
@@ -22,6 +41,36 @@ export default async function SettingsPage() {
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Settings</h1>
         <p className="font-sans-body">Your profile, account, plan, and session.</p>
       </header>
+
+      {/* Save feedback */}
+      {params.saved && (
+        <div
+          style={{
+            border: '1px solid var(--green)',
+            borderRadius: 'var(--rounded-sm)',
+            padding: 'var(--space-sm) var(--space-md)',
+            background: 'rgba(52,211,153,0.05)',
+          }}
+        >
+          <p className="font-mono-label" style={{ color: 'var(--green)' }}>
+            ✓ Profile saved
+          </p>
+        </div>
+      )}
+      {params.notif_saved && (
+        <div
+          style={{
+            border: '1px solid var(--green)',
+            borderRadius: 'var(--rounded-sm)',
+            padding: 'var(--space-sm) var(--space-md)',
+            background: 'rgba(52,211,153,0.05)',
+          }}
+        >
+          <p className="font-mono-label" style={{ color: 'var(--green)' }}>
+            ✓ Notification preferences saved
+          </p>
+        </div>
+      )}
 
       {/* Profile */}
       <section className="card flex flex-col" style={{ gap: 'var(--space-md)' }}>
@@ -59,15 +108,33 @@ export default async function SettingsPage() {
         </p>
       </section>
 
-      {/* Plan & billing */}
-      <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
-        <h2 className="font-mono-label">Plan &amp; billing</h2>
-        <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
-          <span className="font-mono-data" style={{ color: 'var(--paper)', textTransform: 'capitalize' }}>
-            {plan}
-          </span>
-          {plan !== 'free' && <span className="status-live">active</span>}
+      {/* Plan & billing usage */}
+      <section className="card flex flex-col" style={{ gap: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', justifyContent: 'space-between' }}>
+          <h2 className="font-mono-label">Plan &amp; billing</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <span className="font-mono-data" style={{ color: 'var(--paper)', textTransform: 'capitalize' }}>
+              {plan}
+            </span>
+            {plan !== 'free' && <span className="status-live">active</span>}
+          </div>
         </div>
+
+        {/* Usage meters */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          <UsageMeter label="Products" used={productCount ?? 0} total={limits.productSlots} />
+          <UsageMeter
+            label="Launches this month"
+            used={launchesThisMonth ?? 0}
+            total={limits.launchesPerProductPerMonth * Math.max(productCount ?? 1, 1)}
+          />
+          <UsageMeter
+            label="Visibility queries tracked"
+            used={visibilityQueryCount ?? 0}
+            total={limits.visibilityQueriesPerProduct * Math.max(productCount ?? 1, 1)}
+          />
+        </div>
+
         <Link
           href="/pricing"
           className="font-mono-micro"
@@ -75,6 +142,58 @@ export default async function SettingsPage() {
         >
           {plan === 'free' ? 'Upgrade your plan →' : 'Manage plan →'}
         </Link>
+      </section>
+
+      {/* Notification preferences */}
+      <section className="card flex flex-col" style={{ gap: 'var(--space-md)' }}>
+        <h2 className="font-mono-label">Notifications</h2>
+        <p className="font-sans-body">Choose which emails you receive from usersessions.</p>
+        <form action={saveNotificationPrefs} className="flex flex-col" style={{ gap: 'var(--space-md)' }}>
+          {[
+            {
+              id: 'notif_weekly_digest',
+              label: 'Weekly digest',
+              description: 'A summary of your distribution score, new listings, and any issues.',
+              defaultChecked: profile?.notif_weekly_digest ?? true,
+            },
+            {
+              id: 'notif_link_alerts',
+              label: 'Dead link alerts',
+              description: 'Email when a listing goes dead and after it is resubmitted.',
+              defaultChecked: profile?.notif_link_alerts ?? true,
+            },
+            {
+              id: 'notif_new_platforms',
+              label: 'New platforms',
+              description: 'When a new submission target is added to your network.',
+              defaultChecked: profile?.notif_new_platforms ?? true,
+            },
+          ].map((pref) => (
+            <label
+              key={pref.id}
+              style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'flex-start', cursor: 'pointer' }}
+            >
+              <input
+                type="checkbox"
+                name={pref.id}
+                value="on"
+                defaultChecked={pref.defaultChecked}
+                style={{ marginTop: 3, accentColor: 'var(--primary)', width: 16, height: 16, flexShrink: 0 }}
+              />
+              <div>
+                <p className="font-sans-label" style={{ color: 'var(--paper)' }}>
+                  {pref.label}
+                </p>
+                <p className="font-mono-micro">{pref.description}</p>
+              </div>
+            </label>
+          ))}
+          <div>
+            <button className="btn-ghost" type="submit">
+              Save preferences
+            </button>
+          </div>
+        </form>
       </section>
 
       {/* Support */}

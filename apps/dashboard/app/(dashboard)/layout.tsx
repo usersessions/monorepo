@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
 import { RealtimeRefresh } from '@/components/RealtimeRefresh'
 import { SidebarNav } from '@/components/SidebarNav'
+import { AvatarMenu } from '@/components/AvatarMenu'
+import { CommandPalette } from '@/components/CommandPalette'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -19,12 +21,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single()
 
   const displayName = profile?.full_name ?? profile?.email ?? user.email ?? ''
+  const email = profile?.email ?? user.email ?? ''
   const initial = displayName.trim().charAt(0).toUpperCase() || '·'
 
   return (
     <div className="flex min-h-screen">
       <ExtensionBridge />
       <RealtimeRefresh userId={user.id} />
+      <CommandPalette />
 
       <aside
         className="flex flex-col shrink-0"
@@ -46,38 +50,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         <SidebarNav isAdmin={profile?.role === 'admin'} />
 
-        <div className="flex flex-col" style={{ marginTop: 'auto', gap: 'var(--space-sm)' }}>
-          <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
-            <span
-              className="flex items-center justify-center shrink-0"
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'var(--primary-dim)',
-                border: '1px solid var(--border)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '1rem',
-              }}
-            >
-              {initial}
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <p className="font-mono-micro truncate" style={{ color: 'var(--paper)' }}>
-                {profile?.email ?? user.email}
-              </p>
-              <p className="font-mono-micro">plan: {profile?.plan ?? 'free'}</p>
-            </div>
-          </div>
-          <form action="/auth/signout" method="post">
-            <button
-              className="btn-ghost w-full"
-              type="submit"
-              style={{ padding: 'var(--space-xs) var(--space-md)', fontSize: '0.75rem' }}
-            >
-              Sign out
-            </button>
-          </form>
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+          <p className="font-mono-micro" style={{ paddingLeft: 'var(--space-xs)', opacity: 0.4 }}>
+            ⌘K to jump anywhere
+          </p>
+          <AvatarMenu
+            displayName={displayName}
+            email={email}
+            plan={profile?.plan ?? 'free'}
+            initial={initial}
+          />
         </div>
       </aside>
 

@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { TrendChart } from '@/components/TrendChart'
+import { UpgradePrompt, UsageMeter } from '@/components/UpgradePrompt'
+import { limitsFor, monthStartIso } from '@/lib/tiers'
 
-const STEPS = ['Install', 'Launch', 'Watch'] as const // verbatim StoryBrand plan — BUILD_SPEC §2
+const STEPS = ['Install', 'Launch', 'Watch'] as const
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -9,6 +11,21 @@ export default async function OverviewPage() {
   const supabase = await createClient()
   const ninetyDaysAgo = new Date(Date.now() - 90 * DAY_MS).toISOString()
   const thirtyDaysAgo = new Date(Date.now() - 30 * DAY_MS).toISOString()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, email, plan')
+    .eq('id', user!.id)
+    .single()
+
+  const plan = profile?.plan ?? 'free'
+  const limits = limitsFor(plan)
+  const greeting = profile?.full_name
+    ? `Welcome back, ${profile.full_name.split(' ')[0]}.`
+    : 'Welcome back.'
 
   const [
     { count: campaignCount },
@@ -19,6 +36,9 @@ export default async function OverviewPage() {
     { data: visibilityChecks },
     { data: recent },
     { data: notifications },
+    { count: productCount },
+    { count: launchesThisMonth },
+    { count: visibilityQueryCount },
   ] = await Promise.all([
     supabase.from('campaigns').select('*', { count: 'exact', head: true }),
     supabase.from('submissions').select('*', { count: 'exact', head: true }),
@@ -49,10 +69,15 @@ export default async function OverviewPage() {
       .select('id, kind, title, body, read, created_at')
       .order('created_at', { ascending: false })
       .limit(8),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .eq('simulated', false)
+      .gte('started_at', monthStartIso()),
+    supabase.from('visibility_queries').select('*', { count: 'exact', head: true }),
   ])
 
-  // AI Visibility: HONEST mention rate across real checks — never smoothed,
-  // never fabricated (BUILD_SPEC §10). Null until real checks exist.
   const checks = visibilityChecks ?? []
   const mentionRate =
     checks.length > 0
@@ -65,10 +90,28 @@ export default async function OverviewPage() {
   }))
 
   const doneByStep = [Boolean(campaignCount), Boolean(campaignCount), Boolean(submissionCount)]
+  const atProductLimit = limits.productSlots !== null && (productCount ?? 0) >= limits.productSlots
+  const atLaunchLimit =
+    limits.launchesPerProductPerMonth !== null &&
+    (launchesThisMonth ?? 0) >= limits.launchesPerProductPerMonth * (productCount ?? 1)
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
-      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Overview</h1>
+      {/* Greeting */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>{greeting}</h1>
+        {!campaignCount && (
+          <a
+            href="https://usersessions.io#install"
+            className="btn-primary"
+            style={{ textDecoration: 'none', fontSize: '0.875rem' }}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Install the extension →
+          </a>
+        )}
+      </div>
 
       {/* Progress: Install → Launch → Watch */}
       <div className="card--dense card flex" style={{ gap: 'var(--space-lg)' }}>
@@ -85,7 +128,32 @@ export default async function OverviewPage() {
         ))}
       </div>
 
-      {/* Metric cards — real values only, honest empty states otherwise */}
+      {/* Plan usage — only shown when on a capped plan or near a limit */}
+      {(atProductLimit || atLaunchLimit || plan === 'free') && (
+        <div className="card card--dense" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          <p className="font-mono-label">Your usage this month</p>
+          <UsageMeter
+            label="Products"
+            used={productCount ?? 0}
+            total={limits.productSlots}
+          />
+          <UsageMeter
+            label="Launches"
+            used={launchesThisMonth ?? 0}
+            total={limits.launchesPerProductPerMonth * Math.max(productCount ?? 1, 1)}
+          />
+          <UsageMeter
+            label="Visibility queries"
+            used={visibilityQueryCount ?? 0}
+            total={limits.visibilityQueriesPerProduct * Math.max(productCount ?? 1, 1)}
+          />
+          {(atProductLimit || atLaunchLimit) && plan === 'free' && (
+            <UpgradePrompt feature="More products and launches" requiredPlan="founder" />
+          )}
+        </div>
+      )}
+
+      {/* Metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-lg)' }}>
         <div className="card">
           <p className="font-mono-label">Distribution Score</p>
@@ -135,7 +203,7 @@ export default async function OverviewPage() {
         </div>
       </div>
 
-      {/* 90-day trend — the shared chart renders an honest placeholder under 2 points */}
+      {/* 90-day trend */}
       <div className="card">
         <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>
           Distribution Score · 90 days
@@ -198,8 +266,7 @@ export default async function OverviewPage() {
           </table>
         ) : (
           <p className="font-sans-body">
-            Your product is built. Now get it found — install the extension and run your first
-            launch.
+            Your product is built. Now get it found — install the extension and run your first launch.
           </p>
         )}
       </div>
