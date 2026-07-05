@@ -1,8 +1,13 @@
-import type { BridgeMessage, PlatformResult, SiteData } from '@usersessions/shared'
+import { appendUtm } from '@usersessions/shared'
+import type { BridgeMessage, GeneratedCopy, PlatformResult, SiteData } from '@usersessions/shared'
+
+import { postCampaign } from './api'
+import { ADAPTERS, getAdapter } from './adapters/registry'
+import type { AdapterOutcome, RunContext } from './adapters/types'
 
 /**
  * Background service worker — MV3-SAFE BY CONSTRUCTION:
- * all campaign state lives in chrome.storage.local, never in worker memory,
+ * all campaign state lives in chrome.storage.local and step delays use chrome.alarms,
  * so pause/resume and in-flight campaigns survive worker restarts (BUILD_SPEC §7).
  */
 
@@ -11,38 +16,183 @@ chrome.runtime.onMessageExternal.addListener(
   (message: BridgeMessage, _sender, sendResponse) => {
     if (message?.type === 'SET_TOKEN' && typeof message.token === 'string') {
       void chrome.storage.local.set({ accessToken: message.token }).then(() => sendResponse({ ok: true }))
-      return true // async response
+      return true
     }
     return false
   }
 )
 
-// ---------- Campaign state machine ----------
+// ---------- Campaign state ----------
 export interface CampaignRunState {
-  status: 'idle' | 'running' | 'paused' | 'awaiting_captcha'
+  status: 'idle' | 'running' | 'paused' | 'awaiting_captcha' | 'done' | 'plan_limit'
   campaignId?: string
   productId?: string
-  queue: string[] // platform ids remaining
-  results: PlatformResult[]
+  startedAt?: string
   simulated: boolean
+  queue: string[]
+  currentPlatform?: string
+  results: PlatformResult[]
 }
 
 const STATE_KEY = 'campaignState'
-const IDLE: CampaignRunState = { status: 'idle', queue: [], results: [], simulated: true }
+const ALARM_NEXT = 'campaign-next'
+const IDLE: CampaignRunState = { status: 'idle', simulated: true, queue: [], results: [] }
 
 async function getState(): Promise<CampaignRunState> {
   const stored = await chrome.storage.local.get(STATE_KEY)
   return (stored[STATE_KEY] as CampaignRunState) ?? IDLE
 }
-
 async function setState(state: CampaignRunState): Promise<void> {
   await chrome.storage.local.set({ [STATE_KEY]: state })
 }
 
-// Human-mimicking pacing: base interval + jitter. We are not a spam tool (BUILD_SPEC §1).
+// Human-mimicking pacing (BUILD_SPEC §1: not a spam tool). Simulation paces lightly.
 const RATE_LIMIT_MIN_MS = 45_000
 const JITTER_MAX_MS = 30_000
-export const nextDelayMs = (): number => RATE_LIMIT_MIN_MS + Math.floor(Math.random() * JITTER_MAX_MS)
+const nextDelayMs = (simulated: boolean): number =>
+  simulated ? 2_000 : RATE_LIMIT_MIN_MS + Math.floor(Math.random() * JITTER_MAX_MS)
+
+// ---------- Campaign loop ----------
+async function startCampaign(requestedSimulated: boolean): Promise<CampaignRunState> {
+  const { siteData, approvedCopy, productIdByUrl } = await chrome.storage.local.get([
+    'siteData',
+    'approvedCopy',
+    'productIdByUrl',
+  ])
+  const site = siteData as SiteData | undefined
+  const copy = (approvedCopy as GeneratedCopy[] | undefined) ?? []
+  if (!site || copy.length === 0) {
+    return { ...IDLE, status: 'idle' } // popup guards this; defensive here
+  }
+
+  // M6 GATE ENFORCED: live mode is refused until every queued adapter is verified.
+  const allVerified = ADAPTERS.every((a) => a.verified)
+  const simulated = requestedSimulated || !allVerified
+
+  // Stable product id per landing-page URL.
+  const ids = (productIdByUrl as Record<string, string> | undefined) ?? {}
+  if (!ids[site.url]) {
+    ids[site.url] = crypto.randomUUID()
+    await chrome.storage.local.set({ productIdByUrl: ids })
+  }
+
+  const state: CampaignRunState = {
+    status: 'running',
+    campaignId: crypto.randomUUID(),
+    productId: ids[site.url],
+    startedAt: new Date().toISOString(),
+    simulated,
+    queue: ADAPTERS.map((a) => a.platformId),
+    results: [],
+  }
+  await setState(state)
+  chrome.alarms.create(ALARM_NEXT, { when: Date.now() + 500 })
+  return state
+}
+
+function waitForTabLoad(tabId: number): Promise<void> {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener)
+      resolve()
+    }, 20_000)
+    const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
+      if (id === tabId && info.status === 'complete') {
+        clearTimeout(timeout)
+        chrome.tabs.onUpdated.removeListener(listener)
+        resolve()
+      }
+    }
+    chrome.tabs.onUpdated.addListener(listener)
+  })
+}
+
+function toResult(platformId: string, outcome: AdapterOutcome, simulated: boolean): PlatformResult {
+  switch (outcome.outcome) {
+    case 'filled':
+    case 'submitted':
+      return { platformId, status: 'submitted', simulated }
+    case 'captcha':
+      return { platformId, status: 'failed', simulated, error: 'CAPTCHA — needs a human, rerun with the tab open' }
+    case 'failed':
+      return { platformId, status: 'failed', simulated, error: outcome.error }
+  }
+}
+
+async function processNext(): Promise<void> {
+  const state = await getState()
+  if (state.status !== 'running') return
+
+  // Queue drained → finalize: post to the dashboard (the M7 heartbeat).
+  if (state.queue.length === 0) {
+    const { siteData } = await chrome.storage.local.get('siteData')
+    const site = siteData as SiteData
+    const res = await postCampaign({
+      campaignId: state.campaignId!,
+      productId: state.productId!,
+      productName: site?.title ?? 'Untitled product',
+      productUrl: site?.url ?? '',
+      startedAt: state.startedAt!,
+      finishedAt: new Date().toISOString(),
+      results: state.results,
+    })
+    state.status = res.ok ? 'done' : res.error === 'PLAN_LIMIT_EXCEEDED' ? 'plan_limit' : 'done'
+    state.currentPlatform = undefined
+    await setState(state)
+    return
+  }
+
+  const platformId = state.queue[0]
+  state.queue = state.queue.slice(1)
+  state.currentPlatform = platformId
+  await setState(state)
+
+  const adapter = getAdapter(platformId)
+  const { siteData, approvedCopy } = await chrome.storage.local.get(['siteData', 'approvedCopy'])
+  const site = siteData as SiteData
+  const copy = (approvedCopy as GeneratedCopy[]) ?? []
+
+  let result: PlatformResult
+  if (!adapter || !site) {
+    result = { platformId, status: 'failed', simulated: state.simulated, error: 'no adapter or site data' }
+  } else {
+    const categoryCopy = copy.find((c) => c.category === adapter.category) ?? copy[0]
+    const context: RunContext = {
+      title: site.title,
+      url: appendUtm(site.url, state.campaignId!), // UTM on every URL before submission (BUILD_SPEC §7)
+      tagline: site.tagline ?? categoryCopy?.hook ?? '',
+      hook: categoryCopy?.hook ?? '',
+      body: categoryCopy?.body ?? '',
+    }
+    try {
+      const tab = await chrome.tabs.create({ url: adapter.submitUrl, active: true })
+      await waitForTabLoad(tab.id!)
+      const outcome = (await chrome.tabs.sendMessage(tab.id!, {
+        type: 'RUN_ADAPTER',
+        steps: adapter.steps,
+        context,
+        simulated: state.simulated,
+      })) as AdapterOutcome
+      result = toResult(platformId, outcome, state.simulated)
+      if (state.simulated && tab.id) void chrome.tabs.remove(tab.id) // tidy up simulation tabs
+    } catch (err) {
+      result = { platformId, status: 'failed', simulated: state.simulated, error: String(err) }
+    }
+  }
+
+  const latest = await getState()
+  latest.results = [...latest.results, result]
+  latest.currentPlatform = undefined
+  await setState(latest)
+
+  if (latest.status === 'running') {
+    chrome.alarms.create(ALARM_NEXT, { when: Date.now() + nextDelayMs(latest.simulated) })
+  }
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === ALARM_NEXT) void processNext()
+})
 
 // ---------- Popup ↔ background messaging ----------
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -53,27 +203,41 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ state: await getState(), connected: Boolean(accessToken) })
         break
       }
-
+      case 'START_CAMPAIGN': {
+        const current = await getState()
+        if (current.status === 'running') {
+          sendResponse({ state: current })
+          break
+        }
+        sendResponse({ state: await startCampaign(Boolean(msg.simulated)) })
+        break
+      }
       case 'PAUSE': {
         const s = await getState()
         if (s.status === 'running') {
           s.status = 'paused'
           await setState(s)
+          await chrome.alarms.clear(ALARM_NEXT)
         }
         sendResponse({ state: await getState() })
         break
       }
-
       case 'RESUME': {
         const s = await getState()
         if (s.status === 'paused') {
           s.status = 'running'
           await setState(s)
+          chrome.alarms.create(ALARM_NEXT, { when: Date.now() + 500 })
         }
         sendResponse({ state: await getState() })
         break
       }
-
+      case 'RESET_CAMPAIGN': {
+        await setState({ ...IDLE })
+        await chrome.alarms.clear(ALARM_NEXT)
+        sendResponse({ state: await getState() })
+        break
+      }
       case 'EXTRACT_ACTIVE_TAB': {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
         if (!tab?.id) {
@@ -85,34 +249,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           await chrome.storage.local.set({ siteData: data })
           sendResponse({ ok: true, data })
         } catch {
-          sendResponse({
-            ok: false,
-            error: 'Could not read this page — reload it and try again.',
-          })
+          sendResponse({ ok: false, error: 'Could not read this page — reload it and try again.' })
         }
         break
       }
-
-      // CAPTCHA relay: adapters (M6) report CAPTCHA_DETECTED from submission tabs; the human
-      // solves it (assisted automation — BUILD_SPEC §1); adapters resume on CAPTCHA_SOLVED.
-      case 'CAPTCHA_DETECTED': {
-        const s = await getState()
-        if (s.status === 'running') {
-          s.status = 'awaiting_captcha'
-          await setState(s)
-        }
-        sendResponse({ ok: true })
-        break
-      }
-
       default:
         sendResponse({ ok: false, error: 'Unknown message type.' })
     }
   })()
-  return true // keep channel open for async responses
+  return true
 })
 
-// M5: Gemini copy generation (brain.ts) — EXECUTION_PLAN M5.
-// M6: adapter registry + campaign execution loop (3 pilots, then 15) — EXECUTION_PLAN M6.
-// M7: POST results to /api/campaigns with the stored Bearer token — EXECUTION_PLAN M7.
 export {}

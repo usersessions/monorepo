@@ -1,9 +1,87 @@
 import { useEffect, useState } from 'react'
-import type { GeneratedCopy, SiteData, TelemetryBatch } from '@usersessions/shared'
+import type { GeneratedCopy, PlatformResult, SiteData, TelemetryBatch } from '@usersessions/shared'
 
 import { generateCopy, sendTelemetry } from './brain'
 
 import './style.css'
+
+interface RunView {
+  status: string
+  simulated: boolean
+  queue: string[]
+  currentPlatform?: string
+  results: PlatformResult[]
+}
+
+/** Launch + live progress. Live mode stays locked until adapters are verified (M6 gate, enforced in background). */
+function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean }) {
+  const [run, setRun] = useState<RunView | null>(null)
+
+  const refresh = () =>
+    chrome.runtime.sendMessage({ type: 'GET_STATE' }, (res) => setRun(res?.state ?? null))
+
+  useEffect(() => {
+    refresh()
+    const interval = setInterval(refresh, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const launch = () =>
+    chrome.runtime.sendMessage({ type: 'START_CAMPAIGN', simulated: true }, () => refresh())
+  const reset = () => chrome.runtime.sendMessage({ type: 'RESET_CAMPAIGN' }, () => refresh())
+
+  const running = run?.status === 'running' || run?.status === 'paused'
+
+  return (
+    <div className="site-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+      {!running && run?.status !== 'done' && run?.status !== 'plan_limit' && (
+        <button
+          className="btn-primary"
+          onClick={launch}
+          disabled={!connected || !ready}
+          title={!ready ? 'Approve your copy first' : 'Runs in simulation until adapters are live-verified'}
+        >
+          Launch campaign (simulation)
+        </button>
+      )}
+
+      {running && (
+        <div className="card card--dense site-card">
+          <span className="status-running">running</span>
+          <p className="font-mono-micro">
+            {run?.currentPlatform ? `submitting: ${run.currentPlatform}` : 'pacing…'}
+            {' · '}
+            {run?.queue.length ?? 0} remaining
+          </p>
+        </div>
+      )}
+
+      {(run?.results.length ?? 0) > 0 && (
+        <div className="card card--dense site-card">
+          {run!.results.map((r) => (
+            <p key={r.platformId} className="font-mono-micro">
+              <span className={r.status === 'failed' ? 'status-dead' : 'status-pending'}>{r.status}</span>{' '}
+              {r.platformId}
+              {r.error ? ` — ${r.error}` : ''}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {run?.status === 'plan_limit' && (
+        <p className="font-mono-micro" style={{ color: 'var(--amber)' }}>
+          Plan limit reached — upgrade on the dashboard to keep launching.
+        </p>
+      )}
+
+      {(run?.status === 'done' || run?.status === 'plan_limit') && (
+        <button className="btn-ghost" onClick={reset}>
+          Start another run
+        </button>
+      )}
+    </div>
+  )
+}
 
 const STEPS = ['Install', 'Launch', 'Watch'] as const // verbatim plan — BUILD_SPEC §2
 const CATEGORY_LABELS: Record<string, string> = {
@@ -175,14 +253,7 @@ function IndexPopup() {
         </p>
       )}
 
-      {/* The adapter-driven launch attaches here in M6. Disabled, not hidden — honest state. */}
-      <button
-        className="btn-ghost"
-        disabled
-        title="Launching lands with the adapter milestone (M6)"
-      >
-        Launch campaign
-      </button>
+      <LaunchPanel connected={connected} ready={approved} />
 
       <footer className="font-mono-micro popup-footer">Get your product found</footer>
     </div>
