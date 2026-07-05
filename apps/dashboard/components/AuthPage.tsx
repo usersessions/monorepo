@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type Mode = 'signin' | 'signup'
@@ -39,8 +39,6 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
   const [error, setError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
 
-  const supabase = useMemo(() => createClient(), [])
-
   useEffect(() => {
     const err = new URLSearchParams(window.location.search).get('error')
     if (err === 'google_admin_only')
@@ -58,6 +56,9 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
     e?.preventDefault()
     setBusy(true)
     setError(null)
+    // Created lazily in the handler: never runs during prerender, where
+    // NEXT_PUBLIC_SUPABASE_* env vars may be absent (e.g. CI builds).
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -75,6 +76,7 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
 
   async function signInWithGoogle() {
     setError(null)
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
