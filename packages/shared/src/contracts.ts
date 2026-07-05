@@ -38,6 +38,9 @@ export interface PlatformResult {
 export interface CampaignPayload {
   campaignId: string
   productId: string
+  /** Product bootstrap: if productId is unknown to the server, it creates the product from these. */
+  productName?: string
+  productUrl?: string
   startedAt: string
   finishedAt?: string
   results: PlatformResult[]
