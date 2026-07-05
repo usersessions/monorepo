@@ -3,9 +3,13 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
 
-// Built in M8 — rendered as visibly-disabled until then (a 404 reads as broken; a labeled
-// disabled item reads as not-yet-built, which is the honest state).
-const UPCOMING_NAV = ['Campaigns', 'Listings', 'Platforms', 'Analytics']
+const NAV: { label: string; href: string }[] = [
+  { label: 'Overview', href: '/' },
+  { label: 'Campaigns', href: '/campaigns' },
+  { label: 'Listings', href: '/listings' },
+  { label: 'Platforms', href: '/platforms' },
+  { label: 'Analytics', href: '/analytics' },
+]
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -39,28 +43,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </span>
 
         <nav className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
-          <Link
-            href="/"
-            className="font-sans-label"
-            style={{
-              color: 'var(--paper)',
-              background: 'var(--primary-dim)',
-              borderRadius: 'var(--rounded-sm)',
-              padding: 'var(--space-sm) var(--space-md)',
-              textDecoration: 'none',
-            }}
-          >
-            Overview
-          </Link>
-          {UPCOMING_NAV.map((label) => (
-            <span
-              key={label}
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
               className="font-sans-label"
-              title="Lands in M8"
-              style={{ color: 'var(--muted-2)', padding: 'var(--space-sm) var(--space-md)' }}
+              style={{
+                color: 'var(--paper)',
+                borderRadius: 'var(--rounded-sm)',
+                padding: 'var(--space-sm) var(--space-md)',
+                textDecoration: 'none',
+              }}
             >
-              {label}
-            </span>
+              {item.label}
+            </Link>
           ))}
           {profile?.role === 'admin' && (
             <span
