@@ -9,23 +9,35 @@ declare const chrome:
   | undefined
 
 /**
- * Renders nothing. Sends the Supabase access token to the extension on mount AND on every
- * auth state change — including TOKEN_REFRESHED (BUILD_SPEC §7: re-send on refresh, not just mount).
- * Guarded so it never throws in a browser without the extension.
+ * Renders nothing. Delivers the Supabase access token to the extension on mount AND on
+ * every auth state change — including TOKEN_REFRESHED (BUILD_SPEC §7).
+ * TWO delivery paths so the connection never depends on build configuration:
+ * 1. window.postMessage → picked up by the extension's token-bridge content script.
+ *    Works for ANY install (packed, unpacked, dev) — no extension ID required.
+ * 2. chrome.runtime.sendMessage(NEXT_PUBLIC_EXTENSION_ID) — kept as a fallback for the
+ *    brief window before the content script injects.
  */
 export function ExtensionBridge() {
   useEffect(() => {
-    const extensionId = process.env.NEXT_PUBLIC_EXTENSION_ID
-    if (!extensionId || typeof chrome === 'undefined' || !chrome?.runtime?.sendMessage) return
-
     const supabase = createClient()
+    const extensionId = process.env.NEXT_PUBLIC_EXTENSION_ID
 
     const send = (token: string | undefined) => {
       if (!token) return
       try {
-        chrome!.runtime!.sendMessage!(extensionId, { type: 'SET_TOKEN', token })
+        window.postMessage(
+          { source: 'usersessions-dashboard', type: 'SET_TOKEN', token },
+          window.location.origin
+        )
       } catch {
-        // Extension not installed or not listening — never a user-facing error.
+        // Never a user-facing error.
+      }
+      if (extensionId && typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage) {
+        try {
+          chrome.runtime.sendMessage(extensionId, { type: 'SET_TOKEN', token })
+        } catch {
+          // Extension not installed or not listening — never a user-facing error.
+        }
       }
     }
 

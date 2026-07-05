@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -11,6 +11,13 @@ export default function LoginPage() {
 
   const supabase = createClient()
   const redirectTo = () => `${window.location.origin}/auth/callback`
+
+  useEffect(() => {
+    const err = new URLSearchParams(window.location.search).get('error')
+    if (err === 'google_admin_only')
+      setError('Google sign-in is reserved for the admin account. Use your email magic link instead.')
+    else if (err === 'auth') setError('Sign-in failed — request a fresh link and try again.')
+  }, [])
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -69,7 +76,7 @@ export default function LoginPage() {
         </div>
 
         <button className="btn-ghost" onClick={signInWithGoogle}>
-          Continue with Google
+          Admin · Continue with Google
         </button>
 
         {error && (
