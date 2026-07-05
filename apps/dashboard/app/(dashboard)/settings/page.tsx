@@ -77,6 +77,19 @@ export default async function SettingsPage() {
         </Link>
       </section>
 
+      {/* Support */}
+      <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
+        <h2 className="font-mono-label">Support</h2>
+        <p className="font-sans-body">Stuck, found a bug, or need help with billing? We answer fast.</p>
+        <Link
+          href="/support"
+          className="font-mono-micro"
+          style={{ color: 'var(--primary)', textDecoration: 'none' }}
+        >
+          Contact support →
+        </Link>
+      </section>
+
       {/* Session */}
       <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Session</h2>

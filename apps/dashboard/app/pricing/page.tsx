@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { isEnabled } from '@/lib/flags'
+import { MarketingFooter } from '@/components/MarketingFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,8 @@ export default async function PricingPage() {
           </div>
         ))}
       </div>
+
+      <MarketingFooter />
     </main>
   )
 }
