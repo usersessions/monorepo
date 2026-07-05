@@ -1,4 +1,6 @@
 {
+  "installCommand": "cd ../.. && pnpm install --filter dashboard...",
+  "buildCommand": "cd ../.. && pnpm --filter dashboard build",
   "crons": [
     { "path": "/api/cron/link-check", "schedule": "0 3 * * *" },
     { "path": "/api/cron/platform-quality", "schedule": "30 3 * * *" },
