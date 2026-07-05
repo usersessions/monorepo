@@ -10,12 +10,14 @@ export interface PlanLimits {
   launchesPerProductPerMonth: number
   /** Free plan only: lifetime cap on real (non-simulated) submissions. */
   lifetimeSubmissionCap: number | null
+  /** AI Visibility queries tracked per product. */
+  visibilityQueriesPerProduct: number
 }
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
-  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: 3 },
-  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null },
-  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null },
+  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: 3, visibilityQueriesPerProduct: 1 },
+  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5 },
+  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10 },
 }
 
 export function limitsFor(plan: string | null | undefined): PlanLimits {

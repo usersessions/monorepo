@@ -1,6 +1,8 @@
 {
   "crons": [
     { "path": "/api/cron/link-check", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/platform-quality", "schedule": "30 3 * * *" },
+    { "path": "/api/cron/ai-visibility", "schedule": "0 6 * * 2" },
     { "path": "/api/cron/weekly-digest", "schedule": "0 8 * * 1" }
   ]
 }
