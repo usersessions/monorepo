@@ -171,7 +171,7 @@ function IndexPopup() {
     void sendTelemetry(batch)
   }
 
-  const dashboardUrl = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://beta.usersessions.io'
+  const dashboardUrl = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://usersessions.io'
 
   return (
     <div className="popup">

@@ -6,7 +6,7 @@ import type { CampaignPayload, CampaignResponse } from '@usersessions/shared'
  * show its specific upgrade state (BUILD_SPEC §11) instead of a generic error.
  */
 
-const DASHBOARD_URL = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://beta.usersessions.io'
+const DASHBOARD_URL = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://usersessions.io'
 
 export type PostCampaignResult =
   | { ok: true; campaignId: string }

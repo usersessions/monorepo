@@ -5,7 +5,7 @@ import type { CopyResponse, SiteData, TelemetryBatch } from '@usersessions/share
  * dashboard's Bearer-authenticated /api/ai/copy route using the token from ExtensionBridge.
  */
 
-const DASHBOARD_URL = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://beta.usersessions.io'
+const DASHBOARD_URL = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://usersessions.io'
 
 async function getToken(): Promise<string> {
   const { accessToken } = await chrome.storage.local.get('accessToken')
