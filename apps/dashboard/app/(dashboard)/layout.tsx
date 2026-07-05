@@ -59,13 +59,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           ))}
           {profile?.role === 'admin' && (
-            <span
+            <Link
+              href="/admin"
               className="font-sans-label"
-              title="Lands in M12"
-              style={{ color: 'var(--muted-2)', padding: 'var(--space-sm) var(--space-md)' }}
+              style={{ color: 'var(--amber)', padding: 'var(--space-sm) var(--space-md)', textDecoration: 'none' }}
             >
               Admin
-            </span>
+            </Link>
           )}
         </nav>
 
