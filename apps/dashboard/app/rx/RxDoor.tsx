@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 /**
- * Operator door. Unlinked, noindexed. Google OAuth only — the auth callback
- * rejects any non-admin Google account SERVER-SIDE (signed out immediately),
- * so this page is a convenience, never the security boundary.
+ * Operator door. Unlinked, noindexed. Google OAuth only, landing on /admin.
+ * The /admin layout's server-side role check is the security boundary —
+ * non-admin accounts signing in here are simply redirected away from /admin.
  */
 export function RxDoor() {
   const [error, setError] = useState<string | null>(null)
@@ -14,8 +14,7 @@ export function RxDoor() {
 
   useEffect(() => {
     const err = new URLSearchParams(window.location.search).get('error')
-    if (err === 'google_admin_only') setError('That Google account is not the operator account.')
-    else if (err === 'auth') setError('Sign-in failed — try again.')
+    if (err === 'auth') setError('Sign-in failed — try again.')
   }, [])
 
   async function signIn() {
@@ -47,7 +46,7 @@ export function RxDoor() {
             {error}
           </p>
         )}
-        <p className="font-mono-micro text-center">Non-operator accounts are rejected server-side.</p>
+        <p className="font-mono-micro text-center">Only operator accounts can enter the admin area.</p>
       </div>
     </main>
   )
