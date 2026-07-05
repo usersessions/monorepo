@@ -89,6 +89,18 @@ export interface SiteData {
   h1s: string[]
 }
 
+/** AI-generated, user-editable copy for one platform category (BUILD_SPEC §7: creative director, not bystander). */
+export interface GeneratedCopy {
+  category: PlatformCategory
+  hook: string
+  body: string
+}
+
+/** Response of POST /api/ai/copy (extension → dashboard, Bearer-authenticated; Gemini key stays server-side). */
+export interface CopyResponse {
+  copy: GeneratedCopy[]
+}
+
 /** Dashboard → extension bridge message (chrome.runtime.sendMessage, externally_connectable). */
 export type BridgeMessage = { type: 'SET_TOKEN'; token: string }
 
