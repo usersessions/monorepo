@@ -7,7 +7,7 @@ export const maxDuration = 60
 
 const BATCH = 50
 const GRACE_MS = 48 * 3600 * 1000 // 48h grace — BUILD_SPEC §9, non-negotiable
-const UA = 'Mozilla/5.0 (compatible; usersessions-linkcheck/1.0; +https://beta.usersessions.io)'
+const UA = 'Mozilla/5.0 (compatible; usersessions-linkcheck/1.0; +https://usersessions.io)'
 
 /**
  * Is the listing reachable? HEAD first, GET fallback (many hosts 405 HEAD), retry with backoff.

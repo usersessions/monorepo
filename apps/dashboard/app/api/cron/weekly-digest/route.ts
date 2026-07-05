@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         '<p style="font-style:italic;font-size:18px">usersessions</p>',
         '<h2 style="font-weight:normal">Your week in distribution</h2>',
         `<table style="font-family:monospace;font-size:14px">${rows.join('')}</table>`,
-        `<p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beta.usersessions.io'}">Open your dashboard</a></p>`,
+        `<p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}">Open your dashboard</a></p>`,
         '<p style="color:#888;font-size:12px">Get your product found — usersessions.io</p>',
         '</div>',
       ].join('')
