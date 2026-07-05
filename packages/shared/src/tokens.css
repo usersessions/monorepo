@@ -1,0 +1,104 @@
+/*
+ * SINGLE SOURCE OF TRUTH for design tokens — DESIGN.md is the spec, this file is the implementation.
+ * Consumed by apps/dashboard/app/globals.css AND apps/extension/src/style.css.
+ * Never redefine these values locally. Zero hex codes anywhere else in the codebase.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
+
+:root {
+  /* Color — each token has exactly ONE role */
+  --ink: #09090F;
+  --ink-2: #0F0F1A;
+  --paper: #F4F2ED;
+  --muted: #A8A5A0;
+  --muted-2: #6B6862;
+  --border: #232330;
+  --primary: #6366F1;       /* interactive CTAs ONLY */
+  --primary-dim: #6366F11A; /* primary hover bg ONLY */
+  --cyan: #22D3EE;          /* real-time / live signals ONLY */
+  --green: #34D399;         /* hard positive status ONLY */
+  --amber: #FBBF24;         /* hard warning ONLY */
+  --red: #F87171;           /* hard negative ONLY */
+
+  /* Typography */
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Syne', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* Radius & elevation */
+  --rounded-sm: 4px;
+  --rounded-md: 8px;
+  --rounded-lg: 16px;
+  --shadow-glow-primary: 0 0 24px var(--primary-dim);
+}
+
+/* Font-role utilities — defined ONCE, used everywhere */
+.font-serif-metric { font-family: var(--font-serif); font-size: 3rem; line-height: 1.05; color: var(--paper); }
+.font-sans-label   { font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.01em; }
+.font-sans-body    { font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.6; color: var(--muted); }
+.font-mono-data    { font-family: var(--font-mono); font-size: 0.875rem; }
+.font-mono-label   { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.font-mono-micro   { font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.06em; color: var(--muted-2); }
+
+/* Status classes — identical across extension popup, dashboard, admin */
+.status-live, .status-pending, .status-dead, .status-running {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px var(--space-sm);
+  border-radius: var(--rounded-sm);
+  border: 1px solid var(--border);
+  background: var(--ink-2);
+  display: inline-block;
+}
+.status-live    { color: var(--green); }
+.status-pending { color: var(--amber); }
+.status-dead    { color: var(--red); }
+.status-running { color: var(--cyan); }
+
+/* Core components — defined once */
+.card {
+  background: var(--ink-2);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-md);
+  padding: var(--space-lg);
+}
+.card--dense { padding: var(--space-md); }
+
+.btn-primary {
+  font-family: var(--font-sans); font-weight: 600; font-size: 0.875rem;
+  background: var(--primary); color: var(--paper);
+  border: none; border-radius: var(--rounded-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer; transition: box-shadow 150ms ease;
+}
+.btn-primary:hover { box-shadow: var(--shadow-glow-primary); }
+.btn-primary:disabled { background: var(--muted-2); cursor: not-allowed; box-shadow: none; }
+
+.btn-ghost {
+  font-family: var(--font-sans); font-weight: 600; font-size: 0.875rem;
+  background: var(--ink-2); color: var(--paper);
+  border: 1px solid var(--border); border-radius: var(--rounded-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+}
+.btn-ghost:hover { background: var(--primary-dim); }
+
+.input-field {
+  font-family: var(--font-mono); font-size: 0.875rem;
+  background: var(--ink); color: var(--paper);
+  border: 1px solid var(--border); border-radius: var(--rounded-sm);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+}
+.input-field::placeholder { color: var(--muted-2); }
+.input-field:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
