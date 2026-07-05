@@ -24,7 +24,7 @@
   "manifest": {
     "permissions": ["activeTab", "scripting", "tabs", "storage", "alarms"],
     "externally_connectable": {
-      "matches": ["https://beta.usersessions.io/*", "http://localhost:3000/*"]
+      "matches": ["https://usersessions.io/*", "http://localhost:3000/*"]
     }
   }
 }
