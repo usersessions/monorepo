@@ -1,0 +1,53 @@
+# Security templates (SAST + Secret Detection) preserved from project setup,
+# extended with per-app build jobs. Each app builds only when it (or shared) changes.
+stages:
+- test
+- secret-detection
+- build
+
+include:
+- template: Security/SAST.gitlab-ci.yml
+- template: Security/Secret-Detection.gitlab-ci.yml
+
+variables:
+  SECRET_DETECTION_ENABLED: 'true'
+
+sast:
+  stage: test
+
+secret_detection:
+  stage: secret-detection
+
+.node:
+  image: node:20
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@9.15.0 --activate
+    - pnpm install --no-frozen-lockfile
+
+dashboard:build:
+  extends: .node
+  stage: build
+  rules:
+    - changes:
+        - apps/dashboard/**/*
+        - packages/shared/**/*
+        - pnpm-workspace.yaml
+        - package.json
+  script:
+    - pnpm --filter dashboard build
+
+extension:build:
+  extends: .node
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^extension-v/'
+    - changes:
+        - apps/extension/**/*
+        - packages/shared/**/*
+  script:
+    - pnpm --filter extension build
+  artifacts:
+    paths:
+      - apps/extension/build
+    expire_in: 30 days
