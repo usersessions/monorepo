@@ -5,8 +5,8 @@
 
 insert into platforms (id, name, category, editorial_score, tier_required, active) values
   -- AI tool indexes
-  ('theresanaiforthat', 'There''s An AI For That', 'ai', 80, 'free',    false),
-  ('futurepedia',       'Futurepedia',             'ai', 78, 'free',    false),
+  ('theresanaiforthat', 'There''s An AI For That', 'ai', 80, 'free',    true),
+  ('futurepedia',       'Futurepedia',             'ai', 78, 'free',    true),
   ('futuretools',       'FutureTools',             'ai', 75, 'founder', false),
   ('toolify',           'Toolify',                 'ai', 72, 'founder', false),
   ('aitoolsdirectory',  'AI Tools Directory',      'ai', 60, 'free',    false),
@@ -17,7 +17,7 @@ insert into platforms (id, name, category, editorial_score, tier_required, activ
   ('betalist',          'BetaList',                'startup', 75, 'founder', false),
   ('indiehackers',      'Indie Hackers',           'startup', 70, 'free',    false),
   ('microlaunch',       'MicroLaunch',             'startup', 65, 'free',    false),
-  ('uneed',             'Uneed',                   'startup', 62, 'free',    false),
+  ('uneed',             'Uneed',                   'startup', 62, 'free',    true),
   ('startupbase',       'StartupBase',             'startup', 50, 'free',    false),
   ('betapage',          'BetaPage',                'startup', 48, 'founder', false),
   ('launchingnext',     'Launching Next',          'startup', 45, 'founder', false)
@@ -28,6 +28,6 @@ on conflict (id) do update set
   tier_required = excluded.tier_required;
 
 insert into feature_flags (flag_name, enabled) values
-  ('pricing_page', false),
-  ('billing', false)
+  ('pricing_page', true),
+  ('billing', true)
 on conflict (flag_name) do nothing;
