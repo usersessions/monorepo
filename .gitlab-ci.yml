@@ -18,6 +18,15 @@ sast:
 secret_detection:
   stage: secret-detection
 
+# Dependency vulnerability audit (high and above). allow_failure while the
+# baseline is established; flip to blocking once the report is clean.
+dependency_audit:
+  extends: .node
+  stage: test
+  script:
+    - pnpm audit --audit-level high
+  allow_failure: true
+
 .node:
   image: node:20
   before_script:
