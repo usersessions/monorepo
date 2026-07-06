@@ -279,6 +279,13 @@ export default async function SettingsPage({
         >
           Contact support →
         </Link>
+        <Link
+          href="/faq"
+          className="font-mono-micro"
+          style={{ color: 'var(--primary)', textDecoration: 'none' }}
+        >
+          Frequently asked questions →
+        </Link>
       </section>
 
       {/* Danger zone */}

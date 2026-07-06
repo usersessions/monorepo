@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Public: marketing, auth flow, shareable reports, pricing. /api routes self-authenticate (Bearer, cron secret, or webhook signature).
-const PUBLIC_PREFIXES = ['/home', '/login', '/signup', '/rx', '/auth', '/reports', '/pricing', '/api', '/terms', '/privacy', '/support']
+const PUBLIC_PREFIXES = ['/home', '/login', '/signup', '/rx', '/auth', '/reports', '/pricing', '/api', '/terms', '/privacy', '/support', '/articles', '/faq']
 
 /** Security headers on every response, including redirects. CSP is deferred until
  *  nonce handling for Next.js inline chunks is validated in a local build. */
@@ -44,8 +44,14 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
-    // Logged-out visitors hitting the root see marketing; anything else asks them to sign in.
-    url.pathname = path === '/' ? '/home' : '/login'
+    if (path === '/') {
+      // Serve marketing AT the apex (rewrite, not redirect): the canonical homepage
+      // is https://usersessions.io/ — link equity and SEO stay on the root URL,
+      // while signed-in users see the dashboard at the same address.
+      url.pathname = '/home'
+      return withSecurityHeaders(NextResponse.rewrite(url))
+    }
+    url.pathname = '/login'
     return withSecurityHeaders(NextResponse.redirect(url))
   }
 
