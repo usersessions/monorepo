@@ -21,11 +21,16 @@ export async function generateCopy(site: SiteData): Promise<CopyResponse> {
     body: JSON.stringify(site),
   })
   if (!res.ok) {
-    throw new Error(
-      res.status === 401
-        ? 'Session expired — open the dashboard to reconnect.'
-        : 'Copy generation failed — try again in a moment.'
-    )
+    let code = ''
+    try {
+      code = ((await res.json()) as { error?: string }).error ?? ''
+    } catch {
+      // non-JSON error body — fall through to generic messages
+    }
+    if (res.status === 401) throw new Error('Session expired — open the dashboard to reconnect.')
+    if (code === 'AI_NOT_CONFIGURED')
+      throw new Error('AI copy is not configured on the server yet (Gemini key missing) — contact support.')
+    throw new Error('Copy generation failed — try again in a moment.')
   }
   return (await res.json()) as CopyResponse
 }
