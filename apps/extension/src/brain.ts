@@ -27,7 +27,10 @@ export async function generateCopy(site: SiteData): Promise<CopyResponse> {
     } catch {
       // non-JSON error body — fall through to generic messages
     }
-    if (res.status === 401) throw new Error('Session expired — open the dashboard to reconnect.')
+    if (res.status === 401) {
+      void chrome.storage.local.remove('accessToken')
+      throw new Error('Session expired — open the dashboard to reconnect.')
+    }
     if (code === 'AI_NOT_CONFIGURED')
       throw new Error('AI copy is not configured on the server yet (Gemini key missing) — contact support.')
     if (code === 'GENERATION_FAILED')
@@ -41,11 +44,14 @@ export async function generateCopy(site: SiteData): Promise<CopyResponse> {
 export async function sendTelemetry(batch: TelemetryBatch): Promise<void> {
   try {
     const token = await getToken()
-    void fetch(`${DASHBOARD_URL}/api/telemetry/ai-edits`, {
+    const res = await fetch(`${DASHBOARD_URL}/api/telemetry/ai-edits`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(batch),
     })
+    if (res.status === 401) {
+      void chrome.storage.local.remove('accessToken')
+    }
   } catch {
     // swallowed by design
   }

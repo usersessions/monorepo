@@ -26,6 +26,11 @@ export async function postCampaign(payload: CampaignPayload): Promise<PostCampai
       body: JSON.stringify(payload),
     })
 
+    if (res.status === 401) {
+      void chrome.storage.local.remove('accessToken')
+      return { ok: false, error: 'NOT_CONNECTED' }
+    }
+
     const body = (await res.json()) as CampaignResponse
     if (body.ok && body.campaignId) return { ok: true, campaignId: body.campaignId }
     if (body.error === 'PLAN_LIMIT_EXCEEDED') return { ok: false, error: 'PLAN_LIMIT_EXCEEDED' }
