@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 const LINKS = [
   { label: 'Pricing', href: '/pricing' },
+  { label: 'Guides', href: '/articles' },
+  { label: 'FAQ', href: '/faq' },
   { label: 'Support', href: '/support' },
   { label: 'Terms', href: '/terms' },
   { label: 'Privacy', href: '/privacy' },
@@ -20,6 +22,14 @@ export function MarketingFooter() {
         marginTop: 'var(--space-2xl)',
       }}
     >
+      {/* Logo home link — on every public page, always back to / */}
+      <Link
+        href="/"
+        className="italic"
+        style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--paper)', textDecoration: 'none' }}
+      >
+        usersessions
+      </Link>
       <nav className="flex flex-wrap justify-center" style={{ gap: 'var(--space-lg)' }}>
         {LINKS.map((l) => (
           <Link
