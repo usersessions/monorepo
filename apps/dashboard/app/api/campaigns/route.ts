@@ -3,6 +3,7 @@ import { authenticateBearer } from '@/lib/auth/bearer'
 import { createServiceClient } from '@/lib/supabase/server'
 import { computeDistributionScore } from '@/lib/distribution-score'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
+import { rateLimit } from '@/lib/rate-limit'
 import type { CampaignPayload, CampaignResponse, SubmissionStatus } from '@usersessions/shared'
 
 /**
@@ -30,6 +31,10 @@ function bad(error: CampaignResponse['error'], status: number): NextResponse {
 export async function POST(request: Request) {
   const user = await authenticateBearer(request)
   if (!user) return bad('UNAUTHORIZED', 401)
+
+  // Abuse backstop: a legitimate extension run syncs a handful of times per
+  // campaign; 30/min/user only trips on runaway retry loops or token abuse.
+  if (!rateLimit(`campaigns:${user.id}`, 30, 60_000)) return bad('RATE_LIMITED', 429)
 
   let payload: CampaignPayload
   try {

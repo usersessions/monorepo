@@ -50,6 +50,7 @@ export type CampaignApiError =
   | 'PLAN_LIMIT_EXCEEDED'
   | 'UNAUTHORIZED'
   | 'INVALID_PAYLOAD'
+  | 'RATE_LIMITED'
 
 export interface CampaignResponse {
   ok: boolean
