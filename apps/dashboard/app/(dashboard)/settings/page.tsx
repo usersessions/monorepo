@@ -7,7 +7,7 @@ import { limitsFor, monthStartIso } from '@/lib/tiers'
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; notif_saved?: string }>
+  searchParams: Promise<{ saved?: string; notif_saved?: string; cancelled?: string; cancel_error?: string }>
 }) {
   const params = await searchParams
   const supabase = await createClient()
@@ -141,6 +141,35 @@ export default async function SettingsPage({
           style={{ color: 'var(--primary)', textDecoration: 'none' }}
         >
           {plan === 'free' ? 'Upgrade your plan →' : 'Manage plan →'}
+        </Link>
+
+        {params.cancelled && (
+          <p className="font-mono-label" style={{ color: 'var(--green)' }}>
+            ✓ Auto-renew is off — your plan stays active until the end of the billing period.
+          </p>
+        )}
+        {params.cancel_error && (
+          <p className="font-mono-label" style={{ color: 'var(--red)' }}>
+            Could not cancel automatically. Contact support and we will do it immediately.
+          </p>
+        )}
+        {plan !== 'free' && !params.cancelled && (
+          <form action="/api/billing/cancel" method="post">
+            <button className="btn-ghost" type="submit">Cancel subscription</button>
+          </form>
+        )}
+      </section>
+
+      {/* Integrations */}
+      <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
+        <h2 className="font-mono-label">Integrations</h2>
+        <p className="font-sans-body">Send dead-link alerts and campaign updates to Slack or Discord.</p>
+        <Link
+          href="/settings/integrations"
+          className="font-mono-micro"
+          style={{ color: 'var(--primary)', textDecoration: 'none' }}
+        >
+          Manage integrations →
         </Link>
       </section>
 

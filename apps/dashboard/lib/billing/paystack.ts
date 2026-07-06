@@ -69,3 +69,25 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
     return false
   }
 }
+
+/**
+ * Turn off auto-renew (BUILD_SPEC §11: email_token stored for cancellation).
+ * The subscription stays active until the end of the paid period — Paystack's
+ * subscription/disable semantics, mirrored as subscription_status='non_renewing'.
+ */
+export async function disableSubscription(code: string, emailToken: string): Promise<boolean> {
+  const secret = process.env.PAYSTACK_SECRET_KEY
+  if (!secret) return false
+  try {
+    const res = await fetch(`${API}/subscription/disable`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, token: emailToken }),
+    })
+    if (!res.ok) return false
+    const payload = await res.json()
+    return Boolean(payload?.status)
+  } catch {
+    return false
+  }
+}
