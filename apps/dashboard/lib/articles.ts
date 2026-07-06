@@ -74,7 +74,7 @@ export const ARTICLES: Article[] = [
     slug: 'how-to-check-if-chatgpt-recommends-your-product',
     title: 'AI Visibility: How to Find Out Whether ChatGPT Recommends Your Product',
     description:
-      'People increasingly ask AI assistants what tools to use — and the assistants answer with confidence. Here is how to measure whether you appear in those answers, and what actually moves the needle when you don't.',
+      "People increasingly ask AI assistants what tools to use — and the assistants answer with confidence. Here is how to measure whether you appear in those answers, and what actually moves the needle when you don't.",
     date: '2026-07-06',
     readingMinutes: 7,
     html: `
@@ -199,6 +199,97 @@ export const ARTICLES: Article[] = [
 <p>The gap list is the headline, but their listings also teach you positioning: which use cases they lead with, which categories they chose, how their hook differs per platform. You're not copying — you're mapping the language of the category so your own copy can either meet it or deliberately break from it. Their neglect is signal too: outdated screenshots and stale descriptions on a high-quality platform mean the comparison is winnable with nothing more than a maintained listing.</p>
 <h2>Then close the gaps — systematically</h2>
 <p>The analysis takes an afternoon. Closing the gaps — adapting copy per platform, submitting with your own accounts, handling the confirmation emails, verifying what went live — is the part that stalls, because it's exactly the tedious recurring work founders defer forever. That's the part <a href='/'>usersessions</a> exists for: run the free <strong>Competitor Distribution Scan</strong> to see the gap list computed for you, then <strong>Install → Launch → Watch</strong> to close it with copy you approved word by word and a monitoring loop that keeps it closed. Your competitors published their playbook. <a href='/signup'>Get your product found</a> everywhere they are — and the places they missed.</p>
+`,
+  },
+  {
+    slug: 'editing-ai-generated-listing-copy',
+    title: 'How to Edit AI-Generated Listing Copy Like a Creative Director',
+    description:
+      "AI writes a competent first draft in seconds. What separates listings that convert from generic sludge is the founder's edit. Here is the editing pass that takes five minutes and changes everything.",
+    date: '2026-07-06',
+    readingMinutes: 6,
+    html: `
+<p>AI-generated copy has a tell. You have seen it: technically correct, weirdly frictionless, and completely interchangeable with every other product in the category. “Unlock the power of AI to streamline your workflow.” Whose product is that? Everyone's. Which is to say: no one's.</p>
+<p>The answer isn't to skip the AI draft — a good model produces a structurally sound first pass faster than you can open a blank document. The answer is to treat the draft the way a creative director treats an intern's work: useful raw material, never the final cut. You are the only one in the room who actually knows the product. The edit is where that knowledge enters the copy.</p>
+<h2>The five-minute editing pass</h2>
+<p><strong>1. Replace every claim that could describe a competitor.</strong> Read each sentence and ask: could my closest rival paste this into their listing unchanged? If yes, it says nothing. “Powerful analytics” becomes “see which directories actually sent you signups.” Specificity is the entire game — editors approve it, buyers believe it, and AI assistants quoting your listing later repeat it.</p>
+<p><strong>2. Cut the adjectives, keep the mechanisms.</strong> “Revolutionary”, “seamless”, “cutting-edge” — delete on sight. Replace with how the thing works: what the user does, what happens next. Mechanisms are convincing because they are checkable; adjectives are noise because they are not.</p>
+<p><strong>3. Say the number only if the number is real.</strong> If the draft invented “trusted by thousands” and you have forty users, that line is not marketing — it is a credibility time bomb on a public page with your name on it. Zero fabricated numbers, ever. Forty real users doing something specific beats a thousand imaginary ones.</p>
+<p><strong>4. Read the hook out loud.</strong> If you stumble, a stranger will too. The hook has one job: a person who has never heard of you understands what the product does in one breath. Rewrite until it survives being spoken.</p>
+<p><strong>5. Match the room.</strong> An AI tool index wants capability stated plainly; a launch platform wants the founder and the problem. The same draft should leave your editing pass sounding different for each — the <a href='/articles/directory-submissions-best-practices'>submission best-practices guide</a> covers the per-category framing in depth.</p>
+<h2>What to keep from the draft</h2>
+<p>Structure, coverage, and the phrases that surprised you. A good draft occasionally frames your own product better than you would have — models have read every listing in your category and sometimes surface an angle you were too close to see. Keep those lines. Delete the rest of the varnish.</p>
+<h2>Why this workflow is built into usersessions</h2>
+<p>This is exactly how <a href='/'>usersessions</a> treats copy: the AI generates per-category drafts from your real landing page, and then every word sits in an editable field in front of you before anything is submitted anywhere. Approval is a deliberate act — the system will not submit copy you have not signed off. You stay the creative director; the machine stays the intern who types fast. <a href='/signup'>Get your product found</a> — in your own words.</p>
+`,
+  },
+  {
+    slug: 'choosing-platforms-by-quality-score',
+    title: 'Stop Submitting Everywhere: How to Choose Platforms by Quality, Not Count',
+    description:
+      'A hundred directory listings sounds like distribution. Most of it is dead weight. Here is how to judge platform quality before you spend a single submission on it — and why fifteen good surfaces beat a hundred mediocre ones.',
+    date: '2026-07-06',
+    readingMinutes: 6,
+    html: `
+<p>Somewhere in your bookmarks is a list titled something like “300+ places to submit your startup.” It felt like treasure when you saved it. It is mostly landfill. The uncomfortable arithmetic of distribution is that platform value follows a steep power law: a small set of maintained, editorially-curated surfaces produces nearly everything — traffic, credibility, AI citations — while the long tail produces dead links and, at the margin, actively negative signal.</p>
+<h2>The four questions that reveal platform quality</h2>
+<p><strong>1. Is there an editorial gate?</strong> A platform that approves everything is worth approximately what its approval costs: nothing. Rejection risk is a feature — it means a human is maintaining the surface, which means search engines and AI assistants treat its listings as vetted rather than self-published.</p>
+<p><strong>2. Is it alive?</strong> Check the most recent listings. Are new products appearing this week, or did the front page fossilize two years ago? Is anyone commenting, voting, updating? A directory nobody maintains is a graveyard with a submission form.</p>
+<p><strong>3. Do real buyers actually browse it?</strong> Not “does it have traffic” — does it have <em>your</em> traffic? A high-volume general directory can be worth less to you than a modest index that your exact customers check monthly. Your competitors' presence is a useful proxy: the <a href='/articles/competitor-gap-analysis-for-distribution'>competitor gap analysis guide</a> shows how to read it.</p>
+<p><strong>4. Do its listings survive?</strong> Platforms restructure and purge. A surface where listings reliably stay live for months compounds; one that churns its catalog quarterly makes you pay the submission cost repeatedly for the same shelf space. You only learn this by tracking — or by using data aggregated across many products.</p>
+<h2>How usersessions scores this for you</h2>
+<p>Inside <a href='/'>usersessions</a>, every platform in the catalog carries a <strong>Platform Quality Score</strong> — computed from real outcomes across all users: how often listings survive, how often they get indexed, how the platform behaves over time. Where the computed score does not exist yet, you see an editorial estimate <em>labeled as an estimate</em> — never a made-up number dressed as data. And a hard catalog rule keeps the list honest: a platform only enters the active catalog once submissions to it actually work. No aspirational rows, no landfill.</p>
+<h2>The portfolio mindset</h2>
+<p>Choose platforms the way you would choose investments: a concentrated core of high-quality surfaces you maintain seriously, a small experimental allocation for promising newcomers, and zero sentiment about cutting what underperforms. Review quarterly with your <a href='/articles/utm-attribution-guide-for-founders'>UTM data</a> in one hand and your live-listing survival rates in the other. Fifteen platforms chosen this way will outperform the 300-item landfill list every quarter, forever — and they will do it without making your product look like spam in the places that decide what to recommend. <a href='/signup'>Get your product found</a> — in the places that count.</p>
+`,
+  },
+  {
+    slug: 'founder-launch-week-checklist',
+    title: "The Founder's Launch-Week Checklist: Seven Days to Being Findable",
+    description:
+      'The week you launch decides whether your product enters the discovery layer or stays a URL only you know. A day-by-day checklist — from copy freeze to verified listings — for founders doing this alongside everything else.',
+    date: '2026-07-06',
+    readingMinutes: 7,
+    html: `
+<p>Launch week has a way of dissolving into vibes: a tweet, a Product Hunt post, a hopeful refresh of the analytics dashboard, and then Friday arrives with nothing systematic done. Not from laziness — from the absence of a checklist. Here is one. Seven days, each with a finishable job, built for a founder doing this alongside support tickets and bug fixes.</p>
+<h2>Day 1 — Freeze the story</h2>
+<p>Before any form gets filled: one factual hook (what it does, one breath), one capability description for tool indexes, one founder-story description for launch platforms, current screenshots. Get the drafts fast and then edit like you mean it — the <a href='/articles/editing-ai-generated-listing-copy'>creative-director editing pass</a> is the difference between copy and filler. Nothing else this week works without this day.</p>
+<h2>Day 2 — Fix the landing page</h2>
+<p>Every listing points here. Value stated in the first screen, one primary call to action, loads fast, works on a phone. An hour of landing-page honesty converts more launch traffic than any amount of extra promotion.</p>
+<h2>Day 3 — Map the surfaces</h2>
+<p>Build your target list: the AI tool indexes and launch platforms where your buyers and their AI assistants actually look — chosen by <a href='/articles/choosing-platforms-by-quality-score'>quality, not count</a> — plus the gaps your <a href='/articles/competitor-gap-analysis-for-distribution'>competitor analysis</a> exposed. Fifteen good targets, ranked.</p>
+<h2>Day 4 — Submit everywhere</h2>
+<p>The grind day. Per-category copy, your own accounts, UTM tags on every URL <em>before</em> it goes into a form (the <a href='/articles/utm-attribution-guide-for-founders'>attribution guide</a> has the exact scheme). Handle each CAPTCHA and confirmation email as it comes — those human gates protect the accounts everything depends on. Done by hand this is the day founders abandon around form twelve; with <a href='/'>usersessions</a> it is the day the extension does the typing while you do the approving.</p>
+<h2>Day 5 — The launch-platform push</h2>
+<p>If Product Hunt or a peer platform is part of the plan, this is its day, and your only job is presence: answer every comment like a human, concede real limitations, ship nothing. The <a href='/articles/product-hunt-launch-prep-for-ai-tools'>Product Hunt prep guide</a> covers the two weeks that should precede this day.</p>
+<h2>Day 6 — Verify</h2>
+<p>Submitting is not being listed. Walk your submissions: which are live, which are pending editorial review, which bounced. Fix the fixable rejections — usually thin copy or a broken screenshot — and resubmit. Record listing URLs as they go live.</p>
+<h2>Day 7 — Turn on the loop</h2>
+<p>Launch week ends; discovery maintenance begins. Set up the recurring checks: are listings still live (<a href='/articles/dead-listings-why-they-happen-and-how-to-fix-them'>they will die quietly if unwatched</a>), is referral traffic arriving, and — the metric that matters most going forward — <a href='/articles/how-to-check-if-chatgpt-recommends-your-product'>do AI assistants mention you</a> for your category queries. In <a href='/'>usersessions</a> this whole day is automatic: the monitoring loop verifies nightly, flags real deaths after a 48-hour grace window, and runs your visibility checks weekly.</p>
+<p>Seven days, each one finishable. At the end your product does not just exist — it is findable, measured, and maintained. <a href='/signup'>Get your product found</a>.</p>
+`,
+  },
+  {
+    slug: 'what-to-do-when-your-distribution-score-drops',
+    title: "Your Distribution Score Dropped. Here's What It Means and What to Do",
+    description:
+      'A falling score feels like bad news. It is actually the system doing its job: telling you precisely which part of your discovery surface degraded — coverage, quality, survival or indexation — while the problem is still fixable.',
+    date: '2026-07-06',
+    readingMinutes: 6,
+    html: `
+<p>You open the dashboard and the number is lower than last week. The reflex is to treat it like a grade — something went wrong, someone is to blame. Wrong frame. A distribution score that can only go up is a vanity metric; a score that drops when reality degrades is an instrument. The drop is the instrument working. Your job now is diagnosis, and the score's components tell you exactly where to look.</p>
+<h2>How the score is built — and why that structure is the diagnosis</h2>
+<p>The <a href='/'>usersessions</a> Distribution Score is computed from four measurable components: <strong>coverage</strong> (how many active platforms you are live on), <strong>platform quality</strong> (how good those platforms are), <strong>survival</strong> (how many recent submissions are still alive) and <strong>indexation</strong> (how many live listings search engines have picked up). Every score in your history is computed from verified listings and stored append-only — the trend is never smoothed, backfilled or edited. So when it drops, one of four specific things happened.</p>
+<h2>Cause 1: Listings died (survival dropped)</h2>
+<p>The most common cause. A platform restructured, purged or archived, and listings that were live went dark. Check your Listings page for rows marked removed — each was confirmed dead for a full 48 hours before being marked, so these are real deaths, not blips. The fix is mechanical: resubmit, with refreshed copy while you are there. Paid plans queue the resubmission automatically. The <a href='/articles/dead-listings-why-they-happen-and-how-to-fix-them'>dead listings guide</a> explains the failure modes.</p>
+<h2>Cause 2: The catalog grew (coverage dropped)</h2>
+<p>Counterintuitive but healthy: when new platforms join the active catalog, your coverage percentage falls because the denominator grew. Nothing you had was lost — an opportunity appeared. You will typically also see a new-platform notification. The fix is pleasant: launch again and claim the new surface.</p>
+<h2>Cause 3: Platform quality shifted</h2>
+<p>Quality scores are recomputed from real outcomes across all users. When a platform you rely on degrades — listings there dying more often, indexation slowing — its falling quality score pulls on yours. That is information you could not have gotten alone: the network noticed the platform rotting before you did. Rebalance toward stronger surfaces (<a href='/articles/choosing-platforms-by-quality-score'>the quality-over-count guide</a> shows how to judge).</p>
+<h2>Cause 4: Indexation lagged</h2>
+<p>Live but not yet indexed listings count for less. New listings often sit in this state for weeks — search engines crawl on their own schedule. If the drop coincides with a fresh batch of submissions, this is usually self-healing. Patience, then verify.</p>
+<h2>What not to do</h2>
+<p>Do not chase the number with volume — blasting low-quality directories to push coverage up trades real credibility for a cosmetic bounce and makes the quality component worse. And do not stop looking at the dashboard because it delivered bad news once. The founders who win this channel are the ones for whom a drop triggers a fifteen-minute diagnosis instead of a mood. The score is honest so that your decisions can be. <a href='/signup'>Get your product found</a> — and know, precisely, when something changes.</p>
 `,
   },
 ]
