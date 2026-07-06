@@ -42,6 +42,17 @@ export async function GET(request: Request) {
         await db.from('profiles').update({ role: 'admin' }).eq('id', data.user.id).neq('role', 'admin')
       }
 
+      // Suspended accounts cannot sign in (admin suspension, audited).
+      const { data: gate } = await supabase
+        .from('profiles')
+        .select('suspended_at')
+        .eq('id', data.user.id)
+        .maybeSingle()
+      if (gate?.suspended_at) {
+        await supabase.auth.signOut()
+        return NextResponse.redirect(`${origin}/login?error=suspended`)
+      }
+
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
