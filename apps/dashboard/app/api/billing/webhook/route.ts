@@ -28,6 +28,9 @@ export async function POST(request: Request) {
     email_token?: string
     plan?: { plan_code?: string }
     subscription?: { subscription_code?: string }
+    amount?: number
+    currency?: string
+    reference?: string
   }
 
   async function findUserId(): Promise<string | null> {
@@ -57,6 +60,13 @@ export async function POST(request: Request) {
             ...(plan ? { plan } : {}),
           })
           .eq('id', userId)
+        await db.from('revenue_events').insert({
+          user_id: userId,
+          event_type: 'payment_succeeded',
+          amount: typeof data.amount === 'number' ? data.amount / 100 : null, // Paystack sends subunits
+          ...(data.currency ? { currency: data.currency } : {}),
+          paystack_reference: data.reference ?? null,
+        })
         break
       }
 
@@ -74,27 +84,58 @@ export async function POST(request: Request) {
             ...(plan ? { plan } : {}),
           })
           .eq('id', userId)
+        await db.from('revenue_events').insert({
+          user_id: userId,
+          event_type: 'subscription_created',
+          paystack_reference: data.subscription_code ?? null,
+        })
         break
       }
 
       case 'subscription.disable': {
         const code = data.subscription_code ?? data.subscription?.subscription_code
         if (!code) break
+        const { data: target } = await db
+          .from('profiles')
+          .select('id')
+          .eq('paystack_subscription_code', code)
+          .maybeSingle()
         // v1 policy: disable = immediate downgrade to free. Revisit for period-end grace.
         await db
           .from('profiles')
           .update({ subscription_status: 'cancelled', plan: 'free' })
           .eq('paystack_subscription_code', code)
+        if (target?.id) {
+          await db.from('revenue_events').insert({
+            user_id: target.id,
+            event_type: 'subscription_cancelled',
+            paystack_reference: code,
+          })
+        }
         break
       }
 
       case 'invoice.payment_failed': {
         const code = data.subscription?.subscription_code ?? data.subscription_code
+        let failedUserId: string | null = null
         if (code) {
+          const { data: target } = await db
+            .from('profiles')
+            .select('id')
+            .eq('paystack_subscription_code', code)
+            .maybeSingle()
+          failedUserId = target?.id ?? null
           await db.from('profiles').update({ subscription_status: 'attention' }).eq('paystack_subscription_code', code)
         } else {
-          const userId = await findUserId()
-          if (userId) await db.from('profiles').update({ subscription_status: 'attention' }).eq('id', userId)
+          failedUserId = await findUserId()
+          if (failedUserId) await db.from('profiles').update({ subscription_status: 'attention' }).eq('id', failedUserId)
+        }
+        if (failedUserId) {
+          await db.from('revenue_events').insert({
+            user_id: failedUserId,
+            event_type: 'payment_failed',
+            paystack_reference: code ?? null,
+          })
         }
         break
       }

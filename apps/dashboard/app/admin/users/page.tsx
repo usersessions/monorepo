@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { setPlan, setSubscriptionStatus } from '../actions'
+import { setPlan, setSubscriptionStatus, suspendUser, unsuspendUser } from '../actions'
 
 export default async function AdminUsersPage({
   searchParams,
@@ -14,7 +14,7 @@ export default async function AdminUsersPage({
 
   let query = db
     .from('profiles')
-    .select('id, email, plan, subscription_status, role, created_at')
+    .select('id, email, plan, subscription_status, role, created_at, suspended_at')
     .order('created_at', { ascending: false })
     .limit(50)
   if (q) query = query.ilike('email', `%${q}%`)
@@ -54,6 +54,19 @@ export default async function AdminUsersPage({
               <button className="btn-ghost" type="submit">Set status</button>
             </form>
 
+            {u.suspended_at && <span className="status-dead">suspended</span>}
+            {u.role !== 'admin' &&
+              (u.suspended_at ? (
+                <form action={unsuspendUser}>
+                  <input type="hidden" name="userId" value={u.id} />
+                  <button className="btn-ghost" type="submit">Unsuspend</button>
+                </form>
+              ) : (
+                <form action={suspendUser}>
+                  <input type="hidden" name="userId" value={u.id} />
+                  <button className="btn-ghost" style={{ color: 'var(--red)' }} type="submit">Suspend</button>
+                </form>
+              ))}
             <Link className="font-mono-micro" style={{ color: 'var(--primary)' }} href={`/admin/users/${u.id}`}>
               view as →
             </Link>

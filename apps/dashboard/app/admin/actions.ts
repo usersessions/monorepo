@@ -80,3 +80,30 @@ export async function reviewAdapterRun(formData: FormData) {
   })
   revalidatePath('/admin/adapters')
 }
+
+/** Suspend a user: blocks API access and future sign-ins. Admins can never be suspended. */
+export async function suspendUser(formData: FormData) {
+  const { user } = await requireAdmin()
+  const targetUserId = String(formData.get('userId') ?? '')
+  const reason = String(formData.get('reason') ?? '').slice(0, 500)
+  if (!targetUserId) return
+
+  const db = createServiceClient()
+  const { data: target } = await db.from('profiles').select('role').eq('id', targetUserId).maybeSingle()
+  if (!target || target.role === 'admin') return
+
+  await db.from('profiles').update({ suspended_at: new Date().toISOString() }).eq('id', targetUserId)
+  await audit(user.id, 'user_suspend', targetUserId, { reason: reason || null })
+  revalidatePath('/admin/users')
+}
+
+export async function unsuspendUser(formData: FormData) {
+  const { user } = await requireAdmin()
+  const targetUserId = String(formData.get('userId') ?? '')
+  if (!targetUserId) return
+
+  const db = createServiceClient()
+  await db.from('profiles').update({ suspended_at: null }).eq('id', targetUserId)
+  await audit(user.id, 'user_unsuspend', targetUserId, null)
+  revalidatePath('/admin/users')
+}
