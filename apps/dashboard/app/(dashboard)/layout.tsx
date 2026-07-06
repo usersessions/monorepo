@@ -49,6 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
         <nav aria-label="Primary" style={{ display: 'flex', gap: 'var(--space-md)', overflowX: 'auto', paddingTop: 'var(--space-sm)' }}>
           {[
+            ['Get started', '/onboarding'],
             ['Overview', '/'],
             ['Campaigns', '/campaigns'],
             ['Listings', '/listings'],
