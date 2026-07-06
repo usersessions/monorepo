@@ -37,9 +37,32 @@ export default async function AdminBillingPage() {
   const currencies = [...new Set(succeeded30.map((e) => e.currency).filter(Boolean))]
   const mrr = (founderCount ?? 0) * PLAN_PRICE_USD.founder + (agencyCount ?? 0) * PLAN_PRICE_USD.agency
 
+  const envChecks: [string, boolean][] = [
+    ['PAYSTACK_SECRET_KEY', Boolean(process.env.PAYSTACK_SECRET_KEY)],
+    ['PAYSTACK_PLAN_FOUNDER_MONTHLY', Boolean(process.env.PAYSTACK_PLAN_FOUNDER_MONTHLY)],
+    ['PAYSTACK_PLAN_FOUNDER_ANNUAL', Boolean(process.env.PAYSTACK_PLAN_FOUNDER_ANNUAL)],
+    ['PAYSTACK_PLAN_AGENCY_MONTHLY', Boolean(process.env.PAYSTACK_PLAN_AGENCY_MONTHLY)],
+  ]
+
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Billing</h1>
+
+      {/* Live env check, read at request time. Presence only — values are never shown. */}
+      <div className="card card--dense">
+        <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Paystack configuration</p>
+        {envChecks.map(([name, set]) => (
+          <div key={name} className="flex" style={{ gap: 'var(--space-md)', borderTop: '1px solid var(--border)', padding: 'var(--space-sm) 0' }}>
+            <span className="font-mono-data" style={{ flex: 1 }}>{name}</span>
+            <span className={set ? 'status-live' : 'status-dead'}>{set ? 'set' : 'missing'}</span>
+          </div>
+        ))}
+        {envChecks.some(([, set]) => !set) && (
+          <p className="font-mono-micro" style={{ paddingTop: 'var(--space-sm)', color: 'var(--amber)' }}>
+            Missing values break checkout for the corresponding plan. Set them in Vercel (Production) and redeploy — env changes do not apply to running deployments.
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4" style={{ gap: 'var(--space-md)' }}>
         {[

@@ -28,7 +28,8 @@ export async function POST(request: Request) {
 
   const code = planCode(plan)
   if (!code) {
-    return NextResponse.redirect(`${origin}/pricing?checkout_error=not_configured`, 303)
+    // Name the failing plan so /pricing can say exactly which env var is missing.
+    return NextResponse.redirect(`${origin}/pricing?checkout_error=not_configured&plan=${plan}`, 303)
   }
 
   const { data: profile } = await supabase.from('profiles').select('email').eq('id', user.id).single()

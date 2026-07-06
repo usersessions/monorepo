@@ -30,7 +30,16 @@ function tiersFor(annual: boolean) {
       note: annual ? 'billed annually at $390 · save 17% (2 months free)' : 'or $32.50/mo billed annually',
       popular: true,
       features: ['3 products', '2 launches per product / month', 'Full monitoring + auto-resubmission', '5 AI Visibility queries / product, weekly', 'Weekly digest + new-platform drops'],
-      cta: [{ label: annual ? 'Subscribe yearly' : 'Subscribe monthly', plan: annual ? 'founder_annual' : 'founder_monthly' }],
+      // BOTH cycles always purchasable; the toggle only changes which is primary.
+      cta: annual
+        ? [
+            { label: 'Subscribe yearly — $390', plan: 'founder_annual' },
+            { label: 'Or monthly at $39/mo', plan: 'founder_monthly' },
+          ]
+        : [
+            { label: 'Subscribe monthly — $39/mo', plan: 'founder_monthly' },
+            { label: 'Or yearly at $390 (save 17%)', plan: 'founder_annual' },
+          ],
     },
     {
       name: 'Agency',
@@ -50,16 +59,27 @@ const CHECKOUT_ERRORS: Record<string, string> = {
   invalid_plan: 'That plan selection was not recognized. Please pick a plan below.',
 }
 
+const PLAN_ENV_NAMES: Record<string, string> = {
+  founder_monthly: 'PAYSTACK_PLAN_FOUNDER_MONTHLY',
+  founder_annual: 'PAYSTACK_PLAN_FOUNDER_ANNUAL',
+  agency_monthly: 'PAYSTACK_PLAN_AGENCY_MONTHLY',
+}
+
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout_error?: string; cycle?: string }>
+  searchParams: Promise<{ checkout_error?: string; cycle?: string; plan?: string }>
 }) {
   // Real 404 while the flag is off — never a "coming soon" page (BUILD_SPEC §11).
   if (!(await isEnabled('pricing_page'))) notFound()
 
   const params = await searchParams
-  const errorMessage = params.checkout_error ? CHECKOUT_ERRORS[params.checkout_error] : null
+  const errorMessage =
+    params.checkout_error === 'not_configured' && params.plan && PLAN_ENV_NAMES[params.plan]
+      ? `Checkout for “${params.plan}” is not configured on the server — the ${PLAN_ENV_NAMES[params.plan]} environment variable is missing or empty (set it in Vercel and redeploy). Nothing was charged.`
+      : params.checkout_error
+        ? CHECKOUT_ERRORS[params.checkout_error]
+        : null
   const annual = params.cycle !== 'monthly' // annual is the default anchor
   const TIERS = tiersFor(annual)
 
@@ -130,10 +150,12 @@ export default async function PricingPage({
             </ul>
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
               {tier.cta ? (
-                tier.cta.map((c) => (
+                tier.cta.map((c, i) => (
                   <form key={c.plan} method="post" action="/api/billing/checkout">
                     <input type="hidden" name="plan" value={c.plan} />
-                    <button className="btn-primary" type="submit" style={{ width: '100%' }}>{c.label}</button>
+                    <button className={i === 0 ? 'btn-primary' : 'btn-ghost'} type="submit" style={{ width: '100%' }}>
+                      {c.label}
+                    </button>
                   </form>
                 ))
               ) : (
