@@ -8,6 +8,7 @@ const NAV = [
   { label: 'Flags', href: '/admin/flags' },
   { label: 'Adapters', href: '/admin/adapters' },
   { label: 'Data quality', href: '/admin/data-quality' },
+  { label: 'Dogfood', href: '/admin/dogfood' },
   { label: 'Audit log', href: '/admin/audit' },
 ]
 
