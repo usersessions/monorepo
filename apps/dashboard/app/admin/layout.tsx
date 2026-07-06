@@ -4,9 +4,11 @@ import { requireAdmin } from '@/lib/admin'
 const NAV = [
   { label: 'System', href: '/admin' },
   { label: 'Users', href: '/admin/users' },
+  { label: 'Billing', href: '/admin/billing' },
   { label: 'Flags', href: '/admin/flags' },
   { label: 'Adapters', href: '/admin/adapters' },
   { label: 'Data quality', href: '/admin/data-quality' },
+  { label: 'Audit log', href: '/admin/audit' },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
