@@ -4,6 +4,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Public: marketing, auth flow, shareable reports, pricing. /api routes self-authenticate (Bearer, cron secret, or webhook signature).
 const PUBLIC_PREFIXES = ['/home', '/login', '/signup', '/rx', '/auth', '/reports', '/pricing', '/api', '/terms', '/privacy', '/support']
 
+/** Security headers on every response, including redirects. CSP is deferred until
+ *  nonce handling for Next.js inline chunks is validated in a local build. */
+function withSecurityHeaders(res: NextResponse): NextResponse {
+  res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
+  res.headers.set('X-Frame-Options', 'DENY')
+  res.headers.set('X-Content-Type-Options', 'nosniff')
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  return res
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -35,10 +46,10 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     // Logged-out visitors hitting the root see marketing; anything else asks them to sign in.
     url.pathname = path === '/' ? '/home' : '/login'
-    return NextResponse.redirect(url)
+    return withSecurityHeaders(NextResponse.redirect(url))
   }
 
-  return response
+  return withSecurityHeaders(response)
 }
 
 export const config = {
