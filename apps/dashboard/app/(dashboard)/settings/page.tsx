@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { updateProfile, saveNotificationPrefs } from './actions'
 import { UsageMeter } from '@/components/UpgradePrompt'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
+import { listTransactions } from '@/lib/billing/paystack'
 
 export default async function SettingsPage({
   searchParams,
@@ -17,12 +18,17 @@ export default async function SettingsPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email, plan, notif_weekly_digest, notif_link_alerts, notif_new_platforms')
+    .select('full_name, email, plan, paystack_customer_code, notif_weekly_digest, notif_link_alerts, notif_new_platforms')
     .eq('id', user!.id)
     .single()
 
   const plan = profile?.plan ?? 'free'
   const limits = limitsFor(plan)
+
+  const transactions =
+    plan !== 'free' && profile?.paystack_customer_code
+      ? await listTransactions(profile.paystack_customer_code)
+      : []
 
   const [{ count: productCount }, { count: launchesThisMonth }, { count: visibilityQueryCount }] =
     await Promise.all([
@@ -157,6 +163,43 @@ export default async function SettingsPage({
           <form action="/api/billing/cancel" method="post">
             <button className="btn-ghost" type="submit">Cancel subscription</button>
           </form>
+        )}
+
+        {plan !== 'free' && (
+          <div className="flex flex-col" style={{ gap: 'var(--space-sm)' }}>
+            <p className="font-mono-label">Billing history</p>
+            {transactions.length === 0 ? (
+              <p className="font-mono-micro">No payments recorded yet.</p>
+            ) : (
+              <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Date', 'Amount', 'Status', 'Channel'].map((h) => (
+                      <th key={h} className="font-mono-label" style={{ textAlign: 'left', paddingBottom: 'var(--space-sm)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((t) => (
+                    <tr key={t.reference} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td className="font-mono-micro" style={{ padding: 'var(--space-sm) 0' }}>
+                        {t.paidAt ? new Date(t.paidAt).toISOString().slice(0, 10) : '—'}
+                      </td>
+                      <td className="font-mono-data">
+                        {(t.amountSubunit / 100).toFixed(2)} {t.currency}
+                      </td>
+                      <td>
+                        <span className={t.status === 'success' ? 'status-live' : t.status === 'failed' ? 'status-dead' : 'status-pending'}>
+                          {t.status}
+                        </span>
+                      </td>
+                      <td className="font-mono-micro">{t.channel ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         )}
       </section>
 

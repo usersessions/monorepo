@@ -20,10 +20,16 @@ export async function POST(request: Request) {
 
   const form = await request.formData()
   const plan = String(form.get('plan') ?? '') as PaidPlanKey
-  if (!PAID_PLANS.includes(plan)) return NextResponse.json({ error: 'INVALID_PLAN' }, { status: 400 })
+  // Failures 303 back to /pricing with a readable banner — a form POST must
+  // never strand the user on a raw JSON response.
+  if (!PAID_PLANS.includes(plan)) {
+    return NextResponse.redirect(`${origin}/pricing?checkout_error=invalid_plan`, 303)
+  }
 
   const code = planCode(plan)
-  if (!code) return NextResponse.json({ error: 'BILLING_NOT_CONFIGURED' }, { status: 503 })
+  if (!code) {
+    return NextResponse.redirect(`${origin}/pricing?checkout_error=not_configured`, 303)
+  }
 
   const { data: profile } = await supabase.from('profiles').select('email').eq('id', user.id).single()
   if (!profile?.email) return NextResponse.redirect(`${origin}/login`, 303)
@@ -34,7 +40,9 @@ export async function POST(request: Request) {
     userId: user.id,
     callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? origin}/?billing=success`,
   })
-  if (!result) return NextResponse.json({ error: 'CHECKOUT_FAILED' }, { status: 502 })
+  if (!result) {
+    return NextResponse.redirect(`${origin}/pricing?checkout_error=failed`, 303)
+  }
 
   return NextResponse.redirect(result.authorizationUrl, 303)
 }

@@ -91,3 +91,46 @@ export async function disableSubscription(code: string, emailToken: string): Pro
     return false
   }
 }
+
+export interface BillingTransaction {
+  reference: string
+  amountSubunit: number
+  currency: string
+  status: string
+  paidAt: string | null
+  channel: string | null
+}
+
+/**
+ * Last payments for a customer, for the Settings billing history.
+ * Paystack's /transaction list filters by numeric customer ID, so we resolve
+ * the stored customer code first. Read-only; ALWAYS fails soft to [] — a
+ * Paystack outage must never take down the Settings page.
+ */
+export async function listTransactions(customerCode: string, limit = 12): Promise<BillingTransaction[]> {
+  const secret = process.env.PAYSTACK_SECRET_KEY
+  if (!secret) return []
+  const headers = { Authorization: `Bearer ${secret}` }
+  try {
+    const custRes = await fetch(`${API}/customer/${encodeURIComponent(customerCode)}`, { headers })
+    if (!custRes.ok) return []
+    const cust = await custRes.json()
+    const customerId = cust?.data?.id
+    if (!customerId) return []
+
+    const txRes = await fetch(`${API}/transaction?customer=${customerId}&perPage=${limit}`, { headers })
+    if (!txRes.ok) return []
+    const tx = await txRes.json()
+    const rows: any[] = Array.isArray(tx?.data) ? tx.data : []
+    return rows.map((t) => ({
+      reference: String(t?.reference ?? ''),
+      amountSubunit: Number(t?.amount ?? 0),
+      currency: String(t?.currency ?? ''),
+      status: String(t?.status ?? 'unknown'),
+      paidAt: t?.paid_at ?? null,
+      channel: t?.channel ?? null,
+    }))
+  } catch {
+    return []
+  }
+}

@@ -32,15 +32,41 @@ const TIERS = [
   },
 ]
 
-export default async function PricingPage() {
+const CHECKOUT_ERRORS: Record<string, string> = {
+  not_configured: 'Payments are not fully configured yet — checkout is temporarily unavailable. Nothing was charged.',
+  failed: 'Our payment provider could not start this checkout. Nothing was charged — please try again in a minute or contact support.',
+  invalid_plan: 'That plan selection was not recognized. Please pick a plan below.',
+}
+
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout_error?: string }>
+}) {
   // Real 404 while the flag is off — never a "coming soon" page (BUILD_SPEC §11).
   if (!(await isEnabled('pricing_page'))) notFound()
+
+  const params = await searchParams
+  const errorMessage = params.checkout_error ? CHECKOUT_ERRORS[params.checkout_error] : null
 
   return (
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: 'var(--space-2xl) var(--space-lg)' }}>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
         Get your product found
       </h1>
+
+      {errorMessage && (
+        <div
+          style={{
+            border: '1px solid var(--red)',
+            borderRadius: 'var(--rounded-sm)',
+            padding: 'var(--space-sm) var(--space-md)',
+            marginBottom: 'var(--space-lg)',
+          }}
+        >
+          <p className="font-mono-label" style={{ color: 'var(--red)' }}>{errorMessage}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-lg)' }}>
         {TIERS.map((tier) => (
