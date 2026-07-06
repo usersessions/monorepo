@@ -6,6 +6,7 @@ import { RealtimeRefresh } from '@/components/RealtimeRefresh'
 import { SidebarNav } from '@/components/SidebarNav'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/components/CommandPalette'
+import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -25,13 +26,52 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const initial = displayName.trim().charAt(0).toUpperCase() || '·'
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col md:flex-row min-h-screen">
       <ExtensionBridge />
       <RealtimeRefresh userId={user.id} />
       <CommandPalette />
+      <KeyboardShortcuts />
+
+      {/* Mobile top bar — the fixed sidebar is hidden below md */}
+      <header
+        className="md:hidden"
+        style={{ background: 'var(--ink-2)', borderBottom: '1px solid var(--border)', padding: 'var(--space-sm) var(--space-md)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link
+            href="/"
+            className="italic"
+            style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--paper)', textDecoration: 'none' }}
+          >
+            usersessions
+          </Link>
+          <span className="font-mono-micro">{profile?.plan ?? 'free'}</span>
+        </div>
+        <nav aria-label="Primary" style={{ display: 'flex', gap: 'var(--space-md)', overflowX: 'auto', paddingTop: 'var(--space-sm)' }}>
+          {[
+            ['Overview', '/'],
+            ['Campaigns', '/campaigns'],
+            ['Listings', '/listings'],
+            ['Platforms', '/platforms'],
+            ['Analytics', '/analytics'],
+            ['Competitors', '/competitors'],
+            ['Notifications', '/notifications'],
+            ['Settings', '/settings'],
+          ].map(([label, href]) => (
+            <Link key={href} href={href} className="font-mono-label" style={{ color: 'var(--paper)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              {label}
+            </Link>
+          ))}
+          {profile?.role === 'admin' && (
+            <Link href="/admin" className="font-mono-label" style={{ color: 'var(--amber)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Admin
+            </Link>
+          )}
+        </nav>
+      </header>
 
       <aside
-        className="flex flex-col shrink-0"
+        className="hidden md:flex flex-col shrink-0"
         style={{
           width: 240,
           background: 'var(--ink-2)',

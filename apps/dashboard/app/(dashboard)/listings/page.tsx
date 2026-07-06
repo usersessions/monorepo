@@ -42,7 +42,12 @@ export default async function ListingsPage({
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
-      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Listings</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Listings</h1>
+        <a className="btn-ghost" style={{ textDecoration: 'none' }} href="/api/listings/export">
+          Export CSV
+        </a>
+      </div>
 
       {/* Filter bar — plain GET form, no client JS needed */}
       <form method="get" className="card card--dense flex" style={{ gap: 'var(--space-md)', alignItems: 'center', flexWrap: 'wrap' }}>

@@ -37,14 +37,26 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   return (
     <div className="site-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
       {!running && run?.status !== 'done' && run?.status !== 'plan_limit' && run?.status !== 'sync_error' && (
-        <button
-          className="btn-primary"
-          onClick={launch}
-          disabled={!connected || !ready}
-          title={!ready ? 'Approve your copy first' : 'Submits live; failures are reported per platform'}
-        >
-          Launch campaign
-        </button>
+        <>
+          <button
+            className="btn-primary"
+            onClick={launch}
+            disabled={!connected || !ready}
+            title={!ready ? 'Approve your copy first' : 'Submits live; failures are reported per platform'}
+          >
+            Launch campaign
+          </button>
+          {!connected && (
+            <p className="font-mono-micro" style={{ color: 'var(--amber)' }}>
+              Connect first — sign in on the dashboard and keep the tab open.
+            </p>
+          )}
+          {connected && !ready && (
+            <p className="font-mono-micro">
+              Generate and approve your listing copy above — Launch unlocks after approval.
+            </p>
+          )}
+        </>
       )}
 
       {running && (

@@ -10,6 +10,7 @@ const NAV: { label: string; href: string }[] = [
   { label: 'Platforms', href: '/platforms' },
   { label: 'Analytics', href: '/analytics' },
   { label: 'Competitors', href: '/competitors' },
+  { label: 'Notifications', href: '/notifications' },
   { label: 'Settings', href: '/settings' },
 ]
 
