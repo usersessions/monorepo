@@ -10,8 +10,11 @@ import type { CopyResponse, GeneratedCopy, PlatformCategory, SiteData } from '@u
 
 const WEDGE_CATEGORIES: PlatformCategory[] = ['ai', 'startup']
 
-const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+// Model is env-configurable. Default tracks a CURRENT Flash model:
+// gemini-1.5-flash was retired upstream and 404s, which surfaced to users
+// as a generic 'copy generation failed'.
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 function buildPrompt(site: SiteData): string {
   return [
@@ -51,15 +54,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch(`${GEMINI_URL}?key=${key}`, {
+    const res = await fetch(GEMINI_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Key in a header, never in the URL — URLs end up in logs.
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(site) }] }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.7 },
       }),
     })
-    if (!res.ok) throw new Error(`gemini ${res.status}`)
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '')
+      throw new Error(`gemini ${res.status} (model=${GEMINI_MODEL}): ${bodyText.slice(0, 300)}`)
+    }
 
     const payload = await res.json()
     const text: string = payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]'

@@ -30,6 +30,8 @@ export async function generateCopy(site: SiteData): Promise<CopyResponse> {
     if (res.status === 401) throw new Error('Session expired — open the dashboard to reconnect.')
     if (code === 'AI_NOT_CONFIGURED')
       throw new Error('AI copy is not configured on the server yet (Gemini key missing) — contact support.')
+    if (code === 'GENERATION_FAILED')
+      throw new Error('The AI provider rejected the request — usually a key or model issue on the server. The server logs have the exact reason.')
     throw new Error('Copy generation failed — try again in a moment.')
   }
   return (await res.json()) as CopyResponse
