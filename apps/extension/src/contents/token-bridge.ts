@@ -11,12 +11,13 @@ export const config: PlasmoCSConfig = {
 }
 
 /**
- * Token bridge content script: receives the Supabase access token the dashboard posts via
- * window.postMessage (ExtensionBridge) and forwards it to the background worker over
- * INTERNAL messaging — no extension ID required, so sign-in connects for packed,
- * unpacked and dev installs alike. Matches every domain the dashboard deploys to
- * (apex, www, beta, Vercel previews, localhost): the #1 cause of "not connected"
- * is the dashboard running on a domain this script does not inject into.
+ * Token bridge content script — TWO-WAY HANDSHAKE.
+ * The dashboard may post the token BEFORE this script injects (document_idle),
+ * so a one-shot listener loses the message. Protocol:
+ *   1. On injection, announce BRIDGE_READY → the dashboard re-posts the token.
+ *   2. On SET_TOKEN, store via the background worker, then ack TOKEN_RECEIVED
+ *      so the dashboard stops its retry loop.
+ * No extension ID required — works for packed, unpacked and dev installs.
  */
 window.addEventListener('message', (event) => {
   if (event.source !== window || event.origin !== window.location.origin) return
@@ -27,5 +28,18 @@ window.addEventListener('message', (event) => {
     typeof data.token !== 'string'
   )
     return
-  void chrome.runtime.sendMessage({ type: 'SET_TOKEN', token: data.token })
+
+  Promise.resolve(chrome.runtime.sendMessage({ type: 'SET_TOKEN', token: data.token }))
+    .then(() => {
+      window.postMessage(
+        { source: 'usersessions-extension', type: 'TOKEN_RECEIVED' },
+        window.location.origin
+      )
+    })
+    .catch(() => {
+      // Background worker asleep or reloading — the dashboard retry loop covers this.
+    })
 })
+
+// Announce readiness: covers the case where the dashboard posted before we injected.
+window.postMessage({ source: 'usersessions-extension', type: 'BRIDGE_READY' }, window.location.origin)

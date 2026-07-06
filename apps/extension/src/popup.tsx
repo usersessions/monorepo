@@ -113,9 +113,15 @@ function IndexPopup() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    chrome.runtime.sendMessage({ type: 'GET_STATE' }, (res) => {
-      setConnected(Boolean(res?.connected))
-    })
+    // Poll connection state so the header flips to 'connected' live while the
+    // popup is open (e.g. right after signing in on the dashboard in another tab).
+    const refreshConnected = () =>
+      chrome.runtime.sendMessage({ type: 'GET_STATE' }, (res) => {
+        setConnected(Boolean(res?.connected))
+      })
+    refreshConnected()
+    const interval = setInterval(refreshConnected, 2_000)
+
     // Restore an in-progress session so closing the popup never loses work.
     chrome.storage.local.get(['siteData', 'approvedCopy']).then(({ siteData, approvedCopy }) => {
       if (siteData) setSite(siteData as SiteData)
@@ -124,6 +130,8 @@ function IndexPopup() {
         setApproved(true)
       }
     })
+
+    return () => clearInterval(interval)
   }, [])
 
   const analyze = () => {
