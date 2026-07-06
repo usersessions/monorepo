@@ -238,6 +238,38 @@ export default async function SettingsPage({
         </Link>
       </section>
 
+      {/* Danger zone */}
+      <section className="card flex flex-col" style={{ gap: 'var(--space-md)', borderColor: 'var(--red)' }}>
+        <h2 className="font-mono-label" style={{ color: 'var(--red)' }}>Danger zone</h2>
+        <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
+          <p className="font-sans-label" style={{ color: 'var(--paper)' }}>Export your data</p>
+          <p className="font-mono-micro">Download everything we hold about you as JSON — profile, products, campaigns, listings, scores.</p>
+          <a className="font-mono-micro" style={{ color: 'var(--primary)', textDecoration: 'none' }} href="/api/account/export">
+            Download export →
+          </a>
+        </div>
+        <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
+          <p className="font-sans-label" style={{ color: 'var(--paper)' }}>Delete account</p>
+          <p className="font-mono-micro">
+            Permanent. Removes your profile, products, campaigns, listings, and scores. Listings already published on external platforms stay on those platforms.
+          </p>
+          <form action="/api/account/delete" method="post" className="flex" style={{ gap: 'var(--space-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              className="input-field"
+              style={{ width: 'auto' }}
+              name="confirm"
+              required
+              pattern="DELETE"
+              placeholder='Type "DELETE" to confirm'
+              autoComplete="off"
+            />
+            <button className="btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} type="submit">
+              Delete my account
+            </button>
+          </form>
+        </div>
+      </section>
+
       {/* Session */}
       <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Session</h2>
