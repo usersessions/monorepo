@@ -51,6 +51,27 @@ export function CompetitorScanner({ initialScans }: { initialScans: Scan[] }) {
     }
   }
 
+  // Saved watches feed the automated cron scanner (plan-gated cadence).
+  const [watched, setWatched] = useState<Record<string, boolean>>({})
+  const watchCompetitor = async (s: Scan) => {
+    const key = `${s.query}|${s.competitor_url}`
+    try {
+      const res = await fetch('/api/competitors/watch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: s.query,
+          competitorName: s.competitor_name,
+          competitorUrl: s.competitor_url,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save the watch. Please try again.')
+      setWatched((prev) => ({ ...prev, [key]: true }))
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
       <div className="card flex flex-col" style={{ gap: 'var(--space-md)' }}>
@@ -122,6 +143,14 @@ export function CompetitorScanner({ initialScans }: { initialScans: Scan[] }) {
                     {s.mentioned ? 'Mentioned' : 'Not mentioned'}
                   </span>
                   {s.rank && <span className="font-mono-micro">Rank: {s.rank}</span>}
+                  <button
+                    className="btn-ghost"
+                    style={{ marginLeft: 'auto' }}
+                    onClick={() => watchCompetitor(s)}
+                    disabled={Boolean(watched[`${s.query}|${s.competitor_url}`])}
+                  >
+                    {watched[`${s.query}|${s.competitor_url}`] ? 'Watching ✓' : 'Watch this competitor'}
+                  </button>
                 </div>
                 {s.snippet && (
                   <p className="font-sans-body" style={{ fontStyle: 'italic', color: 'var(--muted-2)', marginTop: 'var(--space-xs)' }}>

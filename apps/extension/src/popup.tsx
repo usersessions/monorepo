@@ -144,6 +144,88 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   )
 }
 
+/** Founder profile: human-provided data adapters may fill into forms — never invented. */
+function FounderProfileCard() {
+  const [founderName, setFounderName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [pricingModel, setPricingModel] = useState('')
+  const [tags, setTags] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    chrome.storage.local.get('founderProfile').then(({ founderProfile }) => {
+      const p =
+        (founderProfile as {
+          founderName?: string
+          contactEmail?: string
+          pricingModel?: string
+          tags?: string[]
+        }) ?? {}
+      setFounderName(p.founderName ?? '')
+      setContactEmail(p.contactEmail ?? '')
+      setPricingModel(p.pricingModel ?? '')
+      setTags((p.tags ?? []).join(', '))
+    })
+  }, [])
+
+  const save = async () => {
+    await chrome.storage.local.set({
+      founderProfile: {
+        founderName: founderName.trim(),
+        contactEmail: contactEmail.trim(),
+        pricingModel,
+        tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+      },
+    })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2_000)
+  }
+
+  return (
+    <div className="card card--dense site-card">
+      <p className="font-mono-label">Founder profile — used to fill submission forms</p>
+      <input
+        className="input-field"
+        value={founderName}
+        onChange={(e) => { setFounderName(e.target.value); setSaved(false) }}
+        placeholder="Your name"
+        aria-label="Founder name"
+      />
+      <input
+        className="input-field"
+        type="email"
+        value={contactEmail}
+        onChange={(e) => { setContactEmail(e.target.value); setSaved(false) }}
+        placeholder="Contact email"
+        aria-label="Contact email"
+      />
+      <select
+        className="input-field"
+        value={pricingModel}
+        onChange={(e) => { setPricingModel(e.target.value); setSaved(false) }}
+        aria-label="Pricing model"
+      >
+        <option value="">Pricing model…</option>
+        <option value="free">Free</option>
+        <option value="freemium">Freemium</option>
+        <option value="paid">Paid</option>
+        <option value="free trial">Free trial</option>
+        <option value="open source">Open source</option>
+      </select>
+      <input
+        className="input-field"
+        value={tags}
+        onChange={(e) => { setTags(e.target.value); setSaved(false) }}
+        placeholder="Tags, comma-separated (overrides detected keywords)"
+        aria-label="Tags"
+      />
+      <button className="btn-ghost" onClick={save}>
+        {saved ? 'Saved ✓' : 'Save profile'}
+      </button>
+    </div>
+  )
+}
+
 const STEPS = ['Install', 'Launch', 'Watch'] as const // verbatim plan — BUILD_SPEC §2
 const CATEGORY_LABELS: Record<string, string> = {
   ai: 'AI tool indexes',
@@ -321,6 +403,8 @@ function IndexPopup() {
           {error}
         </p>
       )}
+
+      <FounderProfileCard />
 
       <LaunchPanel connected={connected} ready={approved} />
 

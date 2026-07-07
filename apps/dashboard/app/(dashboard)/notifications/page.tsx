@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { PushToggle } from '@/components/PushToggle'
 import { markAllRead, markRead } from './actions'
 
 const KIND_COLOR: Record<string, string> = {
@@ -9,6 +10,7 @@ const KIND_COLOR: Record<string, string> = {
   email_verification_needed: 'var(--amber)',
   visibility_change: 'var(--cyan)',
   new_platforms: 'var(--cyan)',
+  competitor_scan: 'var(--cyan)',
 }
 
 export default async function NotificationsPage({
@@ -44,6 +46,8 @@ export default async function NotificationsPage({
         <a className="font-mono-label" style={{ color: params.filter !== 'unread' ? 'var(--primary)' : 'var(--muted-2)', textDecoration: 'none' }} href="/notifications">All</a>
         <a className="font-mono-label" style={{ color: params.filter === 'unread' ? 'var(--primary)' : 'var(--muted-2)', textDecoration: 'none' }} href="/notifications?filter=unread">Unread</a>
       </div>
+
+      <PushToggle />
 
       <div className="card card--dense" aria-live="polite">
         {!notifications || notifications.length === 0 ? (
