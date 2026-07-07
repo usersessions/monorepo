@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { GeneratedCopy, PlatformResult, SiteData, TelemetryBatch } from '@usersessions/shared'
 
 import { generateCopy, sendTelemetry } from './brain'
+import { AgentPanel } from './agent/AgentPanel'
 
 import './style.css'
 
