@@ -409,6 +409,8 @@ function IndexPopup() {
 
       <LaunchPanel connected={connected} ready={approved} />
 
+      <AgentPanel connected={connected} ready={approved} />
+
       <footer className="font-mono-micro popup-footer">Get your product found</footer>
     </div>
   )
