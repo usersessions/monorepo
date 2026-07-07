@@ -96,19 +96,43 @@ async function startCampaign(requestedSimulated: boolean): Promise<CampaignRunSt
 
 function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve) => {
-    const timeout = setTimeout(() => {
-      chrome.tabs.onUpdated.removeListener(listener)
-      resolve()
-    }, 20_000)
-    const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
-      if (id === tabId && info.status === 'complete') {
-        clearTimeout(timeout)
+    chrome.tabs.get(tabId).then((tab) => {
+      if (tab.status === 'complete') return resolve()
+      
+      const timeout = setTimeout(() => {
         chrome.tabs.onUpdated.removeListener(listener)
         resolve()
+      }, 20_000)
+      
+      const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
+        if (id === tabId && info.status === 'complete') {
+          clearTimeout(timeout)
+          chrome.tabs.onUpdated.removeListener(listener)
+          resolve()
+        }
+      }
+      chrome.tabs.onUpdated.addListener(listener)
+    })
+  })
+}
+
+async function sendMessageWithRetry(tabId: number, message: any, retries = 5, delayMs = 1000): Promise<any> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await chrome.tabs.sendMessage(tabId, message)
+      if (res === undefined && chrome.runtime.lastError) {
+        throw new Error(chrome.runtime.lastError.message)
+      }
+      return res
+    } catch (err: any) {
+      if (i === retries - 1) throw err
+      if (String(err).includes('Receiving end does not exist') || String(err).includes('establish connection')) {
+        await new Promise((r) => setTimeout(r, delayMs))
+      } else {
+        throw err
       }
     }
-    chrome.tabs.onUpdated.addListener(listener)
-  })
+  }
 }
 
 function toResult(platformId: string, outcome: AdapterOutcome, simulated: boolean): PlatformResult {
@@ -192,7 +216,7 @@ async function processNext(): Promise<void> {
     try {
       const tab = await chrome.tabs.create({ url: adapter.submitUrl, active: true })
       await waitForTabLoad(tab.id!)
-      const outcome = (await chrome.tabs.sendMessage(tab.id!, {
+      const outcome = (await sendMessageWithRetry(tab.id!, {
         type: 'RUN_ADAPTER',
         steps: adapter.steps,
         context,
