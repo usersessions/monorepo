@@ -21,7 +21,9 @@ export default async function PlatformsPage() {
   const sorted = [...(platforms ?? [])].sort(
     (a, b) => Number(b.quality_score ?? b.editorial_score ?? 0) - Number(a.quality_score ?? a.editorial_score ?? 0)
   )
-  const liveCount = sorted.filter((p) => p.active).length
+  const verifiedLive = sorted.filter((p) => p.active && p.live_verified).length
+  const simOnly = sorted.filter((p) => p.active && !p.live_verified).length
+  const pendingCount = sorted.length - verifiedLive - simOnly
   const categories = [...new Set(sorted.map((p) => p.category))]
 
   return (
@@ -32,9 +34,14 @@ export default async function PlatformsPage() {
           The launch network. Quality values marked “est.” are editorial estimates until enough real
           submission data exists to compute the Platform Quality Score.
         </p>
+        <p className="font-sans-body" style={{ maxWidth: 640, color: 'var(--muted-2)' }}>
+          Platforms marked “simulation only” can be selected for test runs, but nothing is posted
+          anywhere until that platform’s adapter passes a verified live submission.
+        </p>
         <p className="font-mono-data">
-          <span style={{ color: 'var(--green)' }}>{liveCount} live</span>
-          <span style={{ color: 'var(--muted-2)' }}> · {sorted.length - liveCount} pending</span>
+          <span style={{ color: 'var(--green)' }}>{verifiedLive} live</span>
+          <span style={{ color: 'var(--amber)' }}> · {simOnly} simulation only</span>
+          <span style={{ color: 'var(--muted-2)' }}> · {pendingCount} pending</span>
         </p>
       </header>
 
@@ -54,8 +61,15 @@ export default async function PlatformsPage() {
                       <span className="font-sans-label" style={{ flex: 1, color: 'var(--paper)' }}>
                         {p.name}
                       </span>
-                      {p.active ? (
+                      {p.active && p.live_verified ? (
                         <span className="status-live">live</span>
+                      ) : p.active ? (
+                        <span
+                          className="status-pending"
+                          title="Adapter not yet verified against the live site — campaigns run in simulation and post nothing"
+                        >
+                          simulation only
+                        </span>
                       ) : (
                         <span className="status-pending">coming soon</span>
                       )}
