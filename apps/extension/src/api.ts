@@ -39,3 +39,24 @@ export async function postCampaign(payload: CampaignPayload): Promise<PostCampai
     return { ok: false, error: 'FAILED' }
   }
 }
+
+/**
+ * Per-platform live verification map (adapter_verifications, migration 0020) — set by
+ * the user in the dashboard after reviewing a simulated run. FAIL-CLOSED: a missing
+ * token or any error returns {} so every platform stays in simulation.
+ */
+export async function fetchVerifications(): Promise<Record<string, boolean>> {
+  const { accessToken } = await chrome.storage.local.get('accessToken')
+  if (!accessToken) return {}
+
+  try {
+    const res = await fetch(`${DASHBOARD_URL}/api/platforms/verify`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!res.ok) return {}
+    const body = (await res.json()) as { verifications?: Record<string, boolean> }
+    return body.verifications ?? {}
+  } catch {
+    return {}
+  }
+}
