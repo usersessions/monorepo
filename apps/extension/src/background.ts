@@ -1,7 +1,7 @@
 import { appendUtm } from '@usersessions/shared'
 import type { BridgeMessage, GeneratedCopy, PlatformResult, SiteData } from '@usersessions/shared'
 
-import { postCampaign } from './api'
+import { fetchVerifications, postCampaign } from './api'
 import { ADAPTERS, getAdapter } from './adapters/registry'
 import type { AdapterOutcome, FounderProfile, RunContext } from './adapters/types'
 
@@ -43,7 +43,10 @@ export interface CampaignRunState {
   campaignId?: string
   productId?: string
   startedAt?: string
+  /** True when the user explicitly requested a simulation run. */
   simulated: boolean
+  /** Per-platform live verification (adapter_verifications via dashboard). Missing/false → simulation. */
+  verified: Record<string, boolean>
   queue: string[]
   currentPlatform?: string
   pending?: PendingAction
@@ -53,7 +56,7 @@ export interface CampaignRunState {
 const STATE_KEY = 'campaignState'
 const ALARM_NEXT = 'campaign-next'
 const ALARM_SYNC = 'campaign-sync-retry'
-const IDLE: CampaignRunState = { status: 'idle', simulated: true, queue: [], results: [] }
+const IDLE: CampaignRunState = { status: 'idle', simulated: true, verified: {}, queue: [], results: [] }
 
 async function getState(): Promise<CampaignRunState> {
   const stored = await chrome.storage.local.get(STATE_KEY)
@@ -69,6 +72,14 @@ const JITTER_MAX_MS = 30_000
 const nextDelayMs = (simulated: boolean): number =>
   simulated ? 2_000 : RATE_LIMIT_MIN_MS + Math.floor(Math.random() * JITTER_MAX_MS)
 
+/**
+ * Effective mode for ONE platform: a requested simulation simulates everything;
+ * otherwise only adapters the user verified in the dashboard run live (M6, now
+ * per-platform). FAIL-CLOSED: a missing map entry means simulation.
+ */
+const simFor = (state: CampaignRunState, platformId: string): boolean =>
+  state.simulated || !(state.verified ?? {})[platformId]
+
 // ---------- Campaign loop ----------
 async function startCampaign(requestedSimulated: boolean): Promise<CampaignRunState> {
   const { siteData, approvedCopy, productIdByUrl } = await chrome.storage.local.get([
@@ -82,9 +93,13 @@ async function startCampaign(requestedSimulated: boolean): Promise<CampaignRunSt
     return { ...IDLE, status: 'idle' } // popup guards this; defensive here
   }
 
-  // M6 GATE ENFORCED: live mode is refused until every queued adapter is verified.
-  const allVerified = ADAPTERS.every((a) => a.verified)
-  const simulated = requestedSimulated || !allVerified
+  // M6 GATE, PER-PLATFORM: an adapter runs live only when the user verified it in the
+  // dashboard (adapter_verifications) or the registry itself is verified by proof.
+  // Unverified adapters in the same campaign still run in simulation — fail-closed.
+  const dbVerified = await fetchVerifications()
+  const verified: Record<string, boolean> = {}
+  for (const a of ADAPTERS) verified[a.platformId] = a.verified || dbVerified[a.platformId] === true
+  const simulated = requestedSimulated
 
   // Stable product id per landing-page URL.
   const ids = (productIdByUrl as Record<string, string> | undefined) ?? {}
@@ -99,6 +114,7 @@ async function startCampaign(requestedSimulated: boolean): Promise<CampaignRunSt
     productId: ids[site.url],
     startedAt: new Date().toISOString(),
     simulated,
+    verified,
     queue: ADAPTERS.map((a) => a.platformId),
     results: [],
   }
@@ -243,15 +259,16 @@ async function settleOutcome(
   }
 
   const adapter = getAdapter(platformId)
+  const sim = simFor(state, platformId)
   const result = toResult(
     platformId,
     outcome,
-    state.simulated,
+    sim,
     Boolean(adapter?.requirements?.requiresEmailVerification)
   )
 
   // Proof shot: on live success, capture the post-submit page for the user's records.
-  if (!state.simulated && outcome.outcome === 'submitted' && tabId !== undefined) {
+  if (!sim && outcome.outcome === 'submitted' && tabId !== undefined) {
     try {
       const tab = await chrome.tabs.get(tabId)
       const shot = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
@@ -263,7 +280,7 @@ async function settleOutcome(
 
   // No dead tabs: simulation tabs always close; live tabs close on failure.
   // Email-verification and submitted tabs stay open briefly for the user; failures never linger.
-  if (tabId !== undefined && (state.simulated || result.status === 'failed')) void chrome.tabs.remove(tabId)
+  if (tabId !== undefined && (sim || result.status === 'failed')) void chrome.tabs.remove(tabId)
 
   state.results = [...state.results, result]
   state.currentPlatform = undefined
@@ -273,7 +290,7 @@ async function settleOutcome(
   void chrome.action.setBadgeText({ text: '' })
 
   if (state.status === 'running') {
-    chrome.alarms.create(ALARM_NEXT, { when: Date.now() + nextDelayMs(state.simulated) })
+    chrome.alarms.create(ALARM_NEXT, { when: Date.now() + nextDelayMs(sim) })
   }
 }
 
@@ -358,7 +375,8 @@ async function processNext(): Promise<void> {
   }
 
   // Context-aware asset generation: hero shot for platforms that require a gallery image.
-  if (adapter.requirements?.requiresScreenshot && !state.simulated) {
+  const sim = simFor(state, platformId)
+  if (adapter.requirements?.requiresScreenshot && !sim) {
     const shot = await captureProductHero(site.url, true)
     if (shot) await storeScreenshot(`${state.campaignId}:${platformId}:product`, shot)
   }
@@ -372,7 +390,7 @@ async function processNext(): Promise<void> {
       type: 'RUN_ADAPTER',
       steps: adapter.steps,
       context,
-      simulated: state.simulated,
+      simulated: sim,
       resumeFrom: 0,
       assets: await assetsFor(state.campaignId!, platformId),
     })) as AdapterOutcome
@@ -434,7 +452,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             type: 'RUN_ADAPTER',
             steps: adapter?.steps ?? [],
             context,
-            simulated: s.simulated,
+            simulated: simFor(s, p.platformId),
             resumeFrom: p.nextStep,
             assets: await assetsFor(s.campaignId!, p.platformId),
           })) as AdapterOutcome

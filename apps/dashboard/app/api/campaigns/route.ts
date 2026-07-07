@@ -148,6 +148,27 @@ export async function POST(request: Request) {
     return bad('INVALID_PAYLOAD', 400)
   }
 
+  // ---- Realtime notification: one summary row per synced campaign (toaster + /notifications) ----
+  const emailPending = payload.results.filter((r) => r.status === 'awaiting_email_verification').length
+  const failedCount = payload.results.filter((r) => r.status === 'failed').length
+  const okCount = payload.results.length - failedCount
+  const { error: notifyError } = await db.from('notifications').insert({
+    user_id: user.id,
+    kind: emailPending > 0 ? 'email_verification_needed' : 'campaign_synced',
+    title: isSimulated
+      ? `Simulation finished: ${okCount}/${payload.results.length} platforms filled`
+      : `Campaign synced: ${okCount}/${payload.results.length} platforms submitted`,
+    body:
+      [
+        failedCount > 0 ? `${failedCount} failed` : null,
+        emailPending > 0 ? `${emailPending} awaiting email verification` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || null,
+  })
+  // Notification failure must not fail the ingest.
+  if (notifyError) console.error('[campaigns] notification insert failed:', notifyError)
+
   // ---- Synchronous score recompute: the dashboard must feel instant ----
   try {
     await computeDistributionScore(user.id, payload.productId)

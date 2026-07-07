@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
 import { RealtimeRefresh } from '@/components/RealtimeRefresh'
+import { NotificationToaster } from '@/components/NotificationToaster'
 import { SidebarNav } from '@/components/SidebarNav'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/components/CommandPalette'
@@ -29,6 +30,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex flex-col md:flex-row min-h-screen">
       <ExtensionBridge />
       <RealtimeRefresh userId={user.id} />
+      <NotificationToaster userId={user.id} />
       <CommandPalette />
       <KeyboardShortcuts />
 
