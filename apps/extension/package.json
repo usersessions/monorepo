@@ -23,6 +23,7 @@
   },
   "manifest": {
     "permissions": ["activeTab", "scripting", "tabs", "storage", "alarms"],
+    "host_permissions": ["<all_urls>"],
     "externally_connectable": {
       "matches": ["https://usersessions.io/*", "https://www.usersessions.io/*", "http://localhost:3000/*"]
     }

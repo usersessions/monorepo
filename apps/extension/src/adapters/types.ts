@@ -1,4 +1,4 @@
-import type { PlatformCategory } from '@usersessions/shared'
+import type { PlatformCategory, PlatformRequirements } from '@usersessions/shared'
 
 /**
  * Declarative adapters: each platform is a list of steps executed by ONE generic runner
@@ -21,9 +21,17 @@ export type FieldRef =
   | 'socialTwitter'
   | 'socialLinkedIn'
   | 'socialGitHub'
+  /** Human-entered value from the pause/resume flow (e.g. an OTP the user read from their own inbox). */
+  | 'userInput'
 
 export type AdapterStep =
   | { op: 'fill'; selector: string; value: FieldRef }
+  /**
+   * Semantic fill: no selector. The runner scores every visible field by its label,
+   * aria attributes, placeholder, and name/id tokens and fills the best match.
+   * An empty resolved value is skipped — the engine never invents data.
+   */
+  | { op: 'smartFill'; field: FieldRef; hint?: string }
   | { op: 'click'; selector: string }
   /**
    * Choose an option in a native <select>. Provide 'value' (a FieldRef) or 'option'
@@ -38,6 +46,13 @@ export type AdapterStep =
    */
   | { op: 'next'; selector: string; expect: string; timeoutMs?: number }
   | { op: 'waitFor'; selector: string; timeoutMs?: number }
+  /**
+   * Explicit human hand-off (assisted automation, BUILD_SPEC §1): pauses the run with
+   * 'message' shown in the popup. For 'otp', the popup collects a code into the
+   * 'userInput' FieldRef and the run resumes at the NEXT step. The extension never
+   * reads an inbox or solves a CAPTCHA itself.
+   */
+  | { op: 'awaitUser'; reason: 'otp' | 'captcha' | 'email_verification'; message: string }
   /** The final submit — SKIPPED in simulation mode. */
   | { op: 'submit'; selector: string }
 
@@ -45,6 +60,8 @@ export interface PlatformAdapter {
   platformId: string
   category: PlatformCategory
   submitUrl: string
+  /** What this platform's flow demands — drives screenshot capture and status mapping. */
+  requirements?: PlatformRequirements
   /**
    * M6 GATE, ENFORCED IN CODE: live (non-simulated) runs are refused while false.
    * Flip to true ONLY after a real submission has been verified against the live site.
@@ -78,10 +95,13 @@ export interface RunContext {
   tags: string[]
   pricingModel: string
   socialLinks: { twitter?: string; linkedin?: string; github?: string }
+  /** Human-entered value from a pause/resume round-trip; empty on first run. */
+  userInput: string
 }
 
 export type AdapterOutcome =
   | { outcome: 'filled' } // simulation success: every field located and filled, submit skipped
   | { outcome: 'submitted' }
-  | { outcome: 'captcha' } // human needed — assisted automation (BUILD_SPEC §1)
+  /** Run paused for the human; 'nextStep' is where to resume once they've acted. */
+  | { outcome: 'needs_human'; reason: 'captcha' | 'otp' | 'email_verification'; message: string; nextStep: number }
   | { outcome: 'failed'; error: string }

@@ -24,6 +24,18 @@ export type SubmissionStatus =
 
 export type PlatformCategory = 'ai' | 'startup' | 'saas' | 'dev'
 
+/** Per-platform submission requirements, declared on each extension adapter (context-aware automation). */
+export interface PlatformRequirements {
+  /** Platform mandates a product screenshot/gallery image. */
+  requiresScreenshot?: boolean
+  /** Submission form is only reachable via OAuth/social login. */
+  requiresSocialAuth?: boolean
+  /** An account must exist before the form is reachable — the extension hands signup to the human, never creates it. */
+  requiresAccount?: boolean
+  /** Platform confirms listings by email — successful live submits become awaiting_email_verification. */
+  requiresEmailVerification?: boolean
+}
+
 /** Emitted by every extension adapter, one per platform per campaign. */
 export interface PlatformResult {
   platformId: string
