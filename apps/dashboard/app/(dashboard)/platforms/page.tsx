@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { PlatformVerifyButton } from '@/components/PlatformVerifyButton'
 
 const PLAN_ORDER: Record<string, number> = { free: 0, founder: 1, agency: 2 }
 const CATEGORY_LABELS: Record<string, string> = {
@@ -14,15 +15,22 @@ export default async function PlatformsPage() {
     supabase.from('platforms').select('*'),
     supabase.auth.getUser(),
   ])
-  const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user!.id).single()
+  const [{ data: profile }, { data: verifications }] = await Promise.all([
+    supabase.from('profiles').select('plan').eq('id', user!.id).single(),
+    supabase.from('adapter_verifications').select('platform_id, verified').eq('user_id', user!.id),
+  ])
   const userPlanRank = PLAN_ORDER[profile?.plan ?? 'free'] ?? 0
+  const verifiedByUser: Record<string, boolean> = {}
+  for (const v of verifications ?? []) verifiedByUser[v.platform_id] = Boolean(v.verified)
 
   // Quality-sorted (computed first, else labeled editorial estimate)
   const sorted = [...(platforms ?? [])].sort(
     (a, b) => Number(b.quality_score ?? b.editorial_score ?? 0) - Number(a.quality_score ?? a.editorial_score ?? 0)
   )
-  const verifiedLive = sorted.filter((p) => p.active && p.live_verified).length
-  const simOnly = sorted.filter((p) => p.active && !p.live_verified).length
+  const isLive = (p: { id: string; active: boolean; live_verified: boolean }) =>
+    p.active && (p.live_verified || verifiedByUser[p.id] === true)
+  const verifiedLive = sorted.filter(isLive).length
+  const simOnly = sorted.filter((p) => p.active && !isLive(p)).length
   const pendingCount = sorted.length - verifiedLive - simOnly
   const categories = [...new Set(sorted.map((p) => p.category))]
 
@@ -61,7 +69,7 @@ export default async function PlatformsPage() {
                       <span className="font-sans-label" style={{ flex: 1, color: 'var(--paper)' }}>
                         {p.name}
                       </span>
-                      {p.active && p.live_verified ? (
+                      {isLive(p) ? (
                         <span className="status-live">live</span>
                       ) : p.active ? (
                         <span
@@ -99,6 +107,10 @@ export default async function PlatformsPage() {
                     ) : (
                       <span className="font-mono-micro">included in your plan</span>
                     )}
+
+                    {p.active && !locked ? (
+                      <PlatformVerifyButton platformId={p.id} verified={verifiedByUser[p.id] === true} />
+                    ) : null}
                   </div>
                 )
               })}
