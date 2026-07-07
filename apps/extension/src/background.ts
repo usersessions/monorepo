@@ -158,6 +158,16 @@ async function storeScreenshot(key: string, dataUrl: string): Promise<void> {
   await chrome.storage.local.set({ screenshots: map })
 }
 
+/** Captured media for this platform run, re-readable on resume (data URLs). */
+async function assetsFor(campaignId: string, platformId: string): Promise<Record<string, string>> {
+  const { screenshots } = await chrome.storage.local.get('screenshots')
+  const map = (screenshots as Record<string, string> | undefined) ?? {}
+  const assets: Record<string, string> = {}
+  const hero = map[`${campaignId}:${platformId}:product`]
+  if (hero) assets.productHero = hero
+  return assets
+}
+
 /**
  * Captures the hero (top viewport) of the founder's landing page for platforms that
  * require a gallery image. Git-repo URLs are skipped unless the platform explicitly
@@ -364,6 +374,7 @@ async function processNext(): Promise<void> {
       context,
       simulated: state.simulated,
       resumeFrom: 0,
+      assets: await assetsFor(state.campaignId!, platformId),
     })) as AdapterOutcome
     await settleOutcome(platformId, tabId, outcome, context)
   } catch (err) {
@@ -425,6 +436,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             context,
             simulated: s.simulated,
             resumeFrom: p.nextStep,
+            assets: await assetsFor(s.campaignId!, p.platformId),
           })) as AdapterOutcome
           await settleOutcome(p.platformId, p.tabId, outcome, context)
         } catch (err) {

@@ -1,5 +1,5 @@
 import type { PlasmoCSConfig } from 'plasmo'
-import type { AdapterOutcome, AdapterStep, FieldRef, RunContext } from '../adapters/types'
+import type { AdapterOutcome, AdapterStep, FieldRef, RunAssets, RunContext } from '../adapters/types'
 
 export const config: PlasmoCSConfig = {
   matches: ['<all_urls>'],
@@ -165,7 +165,8 @@ async function runSteps(
   steps: AdapterStep[],
   ctx: RunContext,
   simulated: boolean,
-  startAt: number
+  startAt: number,
+  assets: RunAssets
 ): Promise<AdapterOutcome> {
   for (let i = startAt; i < steps.length; i++) {
     const step = steps[i]
@@ -230,6 +231,26 @@ async function runSteps(
         if (el.checked !== want) el.click()
         break
       }
+      case 'upload': {
+        const dataUrl = assets[step.asset]
+        if (!dataUrl) {
+          if (step.required) return { outcome: 'failed', error: `no ${step.asset} asset available for upload` }
+          break // optional media: skip rather than block the submission
+        }
+        const input = document.querySelector<HTMLInputElement>(step.selector)
+        if (!input) return { outcome: 'failed', error: `missing file input ${step.selector}` }
+        try {
+          const blob = await (await fetch(dataUrl)).blob()
+          const file = new File([blob], `${step.asset}.png`, { type: 'image/png' })
+          const dt = new DataTransfer()
+          dt.items.add(file)
+          input.files = dt.files
+          input.dispatchEvent(new Event('change', { bubbles: true }))
+        } catch (err) {
+          return { outcome: 'failed', error: `upload failed: ${String(err)}` }
+        }
+        break
+      }
       case 'next': {
         // Wizard navigation: advance, then PROVE the next step rendered before continuing.
         const btn = document.querySelector<HTMLElement>(step.selector)
@@ -270,7 +291,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       msg.steps as AdapterStep[],
       msg.context as RunContext,
       Boolean(msg.simulated),
-      typeof msg.resumeFrom === 'number' ? msg.resumeFrom : 0
+      typeof msg.resumeFrom === 'number' ? msg.resumeFrom : 0,
+      (msg.assets as RunAssets) ?? {}
     ).then(sendResponse)
     return true // async
   }

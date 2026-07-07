@@ -41,6 +41,12 @@ export type AdapterStep =
   /** Set a checkbox/radio to a state (default: checked). */
   | { op: 'check'; selector: string; checked?: boolean }
   /**
+   * Upload a captured asset into a file input. Cropping/resizing (1:1 logo, 16:9 hero)
+   * is a TODO on the capture engine; the raw hero shot is used until then. Missing
+   * optional assets are skipped so a submission is never blocked on media.
+   */
+  | { op: 'upload'; selector: string; asset: 'productHero' | 'logo'; required?: boolean }
+  /**
    * Multi-step wizard navigation: click 'selector' (e.g. a Next button), then wait
    * for 'expect' to appear so the next step is confirmed rendered before continuing.
    */
@@ -105,6 +111,12 @@ export interface RunContext {
   socialLinks: { twitter?: string; linkedin?: string; github?: string }
   /** Human-entered value from a pause/resume round-trip; empty on first run. */
   userInput: string
+}
+
+/** Captured media handed to the runner alongside the context (data URLs). */
+export interface RunAssets {
+  productHero?: string
+  logo?: string
 }
 
 export type AdapterOutcome =
