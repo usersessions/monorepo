@@ -1,10 +1,16 @@
+import { Suspense } from 'react'
 import { requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
 import FreshnessTimestamp from '@/components/admin/FreshnessTimestamp'
 import MetricCard, { type Metric } from '@/components/admin/MetricCard'
 import RealtimeIndicator from '@/components/admin/RealtimeIndicator'
 import RefreshButton from '@/components/admin/RefreshButton'
+import SkeletonMetricCard from '@/components/admin/SkeletonMetricCard'
+import SkeletonTable from '@/components/admin/SkeletonTable'
 import TimeRangeToggle from '@/components/admin/TimeRangeToggle'
+import CronSection from '@/components/admin/sections/CronSection'
+import PlatformHealthSection from '@/components/admin/sections/PlatformHealthSection'
+import SystemHealthSection from '@/components/admin/sections/SystemHealthSection'
 
 // List prices (BUILD_SPEC §11). MRR here is an estimate computed from active paid
 // plan rows — annual subscribers are counted at monthly list price. Paystack is
@@ -39,7 +45,6 @@ export default async function AdminSystemPage({
   const prevRangeStart = new Date(Date.now() - 2 * rangeMs)
 
   const [
-    { data: cronLogs },
     { count: pendingAdapters },
     { count: queuedResubs },
     { count: userCount },
@@ -52,7 +57,6 @@ export default async function AdminSystemPage({
     { count: runningCampaigns },
     { data: rangeProfiles },
   ] = await Promise.all([
-    db.from('cron_logs').select('job_name, status, detail, ran_at').order('ran_at', { ascending: false }).limit(20),
     db.from('adapter_runs').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
     db.from('resubmission_queue').select('*', { count: 'exact', head: true }).eq('status', 'queued'),
     db.from('profiles').select('*', { count: 'exact', head: true }),
@@ -80,12 +84,6 @@ export default async function AdminSystemPage({
 
   const usersPrev = (userCount ?? 0) - (signupsRange ?? 0)
 
-  // Latest run per job
-  const latestByJob = new Map<string, NonNullable<typeof cronLogs>[number]>()
-  for (const log of cronLogs ?? []) {
-    if (!latestByJob.has(log.job_name)) latestByJob.set(log.job_name, log)
-  }
-
   // Deltas needing plan/revenue history stay null (grey dash) until revenue_events accrues data.
   const metrics: Metric[] = [
     { label: 'MRR', value: `$${mrr.toLocaleString()}`, sub: 'Estimated from active plan rows', delta: null, period: range },
@@ -111,26 +109,31 @@ export default async function AdminSystemPage({
       </div>
       <FreshnessTimestamp generatedAt={new Date().toISOString()} />
 
+      <Suspense
+        fallback={
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: 'var(--space-md)' }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonMetricCard key={i} />
+            ))}
+          </div>
+        }
+      >
+        <SystemHealthSection />
+      </Suspense>
+
       <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-md)' }}>
         {metrics.map((m) => (
           <MetricCard key={m.label} {...m} />
         ))}
       </div>
 
-      <div className="card card--dense">
-        <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Cron jobs — last runs</p>
-        {latestByJob.size === 0 ? (
-          <p className="font-sans-body">No cron runs logged yet.</p>
-        ) : (
-          [...latestByJob.values()].map((log) => (
-            <div key={log.job_name} className="flex" style={{ gap: 'var(--space-md)', borderTop: '1px solid var(--border)', padding: 'var(--space-sm) 0' }}>
-              <span className="font-mono-data" style={{ flex: 1 }}>{log.job_name}</span>
-              <span className={log.status === 'ok' ? 'status-live' : 'status-dead'}>{log.status}</span>
-              <span className="font-mono-micro">{new Date(log.ran_at).toISOString().replace('T', ' ').slice(0, 16)}</span>
-            </div>
-          ))
-        )}
-      </div>
+      <Suspense fallback={<SkeletonTable rows={5} />}>
+        <CronSection />
+      </Suspense>
+
+      <Suspense fallback={<SkeletonTable rows={4} />}>
+        <PlatformHealthSection />
+      </Suspense>
     </div>
   )
 }
