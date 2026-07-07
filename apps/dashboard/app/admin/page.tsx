@@ -3,8 +3,8 @@ import { requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
 import FreshnessTimestamp from '@/components/admin/FreshnessTimestamp'
 import MetricCard, { type Metric } from '@/components/admin/MetricCard'
-import PageHeader from '@/components/admin/PageHeader'
 import RealtimeIndicator from '@/components/admin/RealtimeIndicator'
+import RefreshButton from '@/components/admin/RefreshButton'
 import SkeletonMetricCard from '@/components/admin/SkeletonMetricCard'
 import SkeletonTable from '@/components/admin/SkeletonTable'
 import TimeRangeToggle from '@/components/admin/TimeRangeToggle'
@@ -102,10 +102,14 @@ export default async function AdminSystemPage({
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
-      <PageHeader title="System" exportDataset="cron_logs">
-        <TimeRangeToggle />
-        <RealtimeIndicator />
-      </PageHeader>
+      <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>System</h1>
+        <div className="flex" style={{ alignItems: 'center', gap: 'var(--space-md)' }}>
+          <TimeRangeToggle />
+          <RealtimeIndicator />
+          <RefreshButton />
+        </div>
+      </div>
       <FreshnessTimestamp generatedAt={new Date().toISOString()} />
 
       <AdminAlertFeed />

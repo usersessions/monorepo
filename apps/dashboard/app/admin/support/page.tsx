@@ -1,6 +1,5 @@
 import { requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import PageHeader from '@/components/admin/PageHeader'
 
 const STATUS_CLS: Record<string, string> = {
   open: 'status-pending',
@@ -41,7 +40,7 @@ export default async function AdminSupportPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
-      <PageHeader title="Support" exportDataset="support_tickets" />
+      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Support</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-md)' }}>
         {cards.map((c) => (
