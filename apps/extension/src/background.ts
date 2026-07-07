@@ -7,8 +7,9 @@ import type { AdapterOutcome, FounderProfile, RunContext } from './adapters/type
 
 /**
  * Background service worker — MV3-SAFE BY CONSTRUCTION:
- * all campaign state lives in chrome.storage.local and step delays use chrome.alarms,
- * so pause/resume and in-flight campaigns survive worker restarts (BUILD_SPEC §7).
+ * all campaign state (including a run paused for the human) lives in
+ * chrome.storage.local and step delays use chrome.alarms, so pause/resume and
+ * in-flight campaigns survive worker restarts (BUILD_SPEC §7).
  */
 
 // ---------- Auth token bridge (dashboard ExtensionBridge → here) ----------
@@ -26,14 +27,26 @@ chrome.runtime.onMessageExternal.addListener(
 )
 
 // ---------- Campaign state ----------
+/** A run paused for the human: CAPTCHA, OTP, or email confirmation (assisted automation, BUILD_SPEC §1). */
+export interface PendingAction {
+  platformId: string
+  tabId: number
+  nextStep: number
+  reason: 'captcha' | 'otp' | 'email_verification'
+  message: string
+  needsInput: boolean
+  context: RunContext
+}
+
 export interface CampaignRunState {
-  status: 'idle' | 'running' | 'paused' | 'awaiting_captcha' | 'done' | 'plan_limit' | 'sync_error'
+  status: 'idle' | 'running' | 'paused' | 'awaiting_user_action' | 'done' | 'plan_limit' | 'sync_error'
   campaignId?: string
   productId?: string
   startedAt?: string
   simulated: boolean
   queue: string[]
   currentPlatform?: string
+  pending?: PendingAction
   results: PlatformResult[]
 }
 
@@ -98,12 +111,12 @@ function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve) => {
     chrome.tabs.get(tabId).then((tab) => {
       if (tab.status === 'complete') return resolve()
-      
+
       const timeout = setTimeout(() => {
         chrome.tabs.onUpdated.removeListener(listener)
         resolve()
       }, 20_000)
-      
+
       const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
         if (id === tabId && info.status === 'complete') {
           clearTimeout(timeout)
@@ -135,15 +148,122 @@ async function sendMessageWithRetry(tabId: number, message: any, retries = 5, de
   }
 }
 
-function toResult(platformId: string, outcome: AdapterOutcome, simulated: boolean): PlatformResult {
+// ---------- Screenshots (context-aware asset engine) ----------
+const GIT_HOST = /^https?:\/\/(www\.)?(github\.com|gitlab\.com|bitbucket\.org)\//i
+
+async function storeScreenshot(key: string, dataUrl: string): Promise<void> {
+  const { screenshots } = await chrome.storage.local.get('screenshots')
+  const map = (screenshots as Record<string, string> | undefined) ?? {}
+  map[key] = dataUrl
+  await chrome.storage.local.set({ screenshots: map })
+}
+
+/**
+ * Captures the hero (top viewport) of the founder's landing page for platforms that
+ * require a gallery image. Git-repo URLs are skipped unless the platform explicitly
+ * requires a shot — a code listing makes a bad gallery image.
+ */
+async function captureProductHero(productUrl: string, required: boolean): Promise<string | undefined> {
+  if (GIT_HOST.test(productUrl) && !required) return undefined
+  try {
+    const tab = await chrome.tabs.create({ url: productUrl, active: true }) // captureVisibleTab needs the active tab
+    await waitForTabLoad(tab.id!)
+    await new Promise((r) => setTimeout(r, 1_000)) // let hero imagery paint
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
+    void chrome.tabs.remove(tab.id!)
+    return dataUrl
+  } catch {
+    return undefined // asset capture is best-effort; the submission proceeds without it
+  }
+}
+
+function toResult(
+  platformId: string,
+  outcome: AdapterOutcome,
+  simulated: boolean,
+  requiresEmailVerification: boolean
+): PlatformResult {
   switch (outcome.outcome) {
     case 'filled':
-    case 'submitted':
       return { platformId, status: 'submitted', simulated }
-    case 'captcha':
-      return { platformId, status: 'failed', simulated, error: 'CAPTCHA — needs a human, rerun with the tab open' }
+    case 'submitted':
+      return {
+        platformId,
+        // Platforms that confirm by email are NOT 'submitted' yet — surface the truth.
+        status: requiresEmailVerification && !simulated ? 'awaiting_email_verification' : 'submitted',
+        simulated,
+      }
+    case 'needs_human': // reached only when a pause is finalized unresolved (skip)
+      return { platformId, status: 'failed', simulated, error: `needs you: ${outcome.message}` }
     case 'failed':
       return { platformId, status: 'failed', simulated, error: outcome.error }
+  }
+}
+
+/**
+ * Central outcome handler for first runs AND resumed runs.
+ * needs_human → park the campaign, badge the icon, focus the tab, wait for the human.
+ * Anything else → finalize the platform result, tidy tabs, schedule the next platform.
+ */
+async function settleOutcome(
+  platformId: string,
+  tabId: number | undefined,
+  outcome: AdapterOutcome,
+  context: RunContext
+): Promise<void> {
+  const state = await getState()
+
+  if (outcome.outcome === 'needs_human' && tabId !== undefined) {
+    state.status = 'awaiting_user_action'
+    state.currentPlatform = platformId
+    state.pending = {
+      platformId,
+      tabId,
+      nextStep: outcome.nextStep,
+      reason: outcome.reason,
+      message: outcome.message,
+      needsInput: outcome.reason === 'otp',
+      context,
+    }
+    await setState(state)
+    void chrome.action.setBadgeText({ text: '!' })
+    void chrome.action.setBadgeBackgroundColor({ color: '#B45309' })
+    void chrome.tabs.update(tabId, { active: true }) // put the human exactly where they're needed
+    return
+  }
+
+  const adapter = getAdapter(platformId)
+  const result = toResult(
+    platformId,
+    outcome,
+    state.simulated,
+    Boolean(adapter?.requirements?.requiresEmailVerification)
+  )
+
+  // Proof shot: on live success, capture the post-submit page for the user's records.
+  if (!state.simulated && outcome.outcome === 'submitted' && tabId !== undefined) {
+    try {
+      const tab = await chrome.tabs.get(tabId)
+      const shot = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
+      await storeScreenshot(`${state.campaignId}:${platformId}:proof`, shot)
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  // No dead tabs: simulation tabs always close; live tabs close on failure.
+  // Email-verification and submitted tabs stay open briefly for the user; failures never linger.
+  if (tabId !== undefined && (state.simulated || result.status === 'failed')) void chrome.tabs.remove(tabId)
+
+  state.results = [...state.results, result]
+  state.currentPlatform = undefined
+  state.pending = undefined
+  if (state.status === 'awaiting_user_action') state.status = 'running'
+  await setState(state)
+  void chrome.action.setBadgeText({ text: '' })
+
+  if (state.status === 'running') {
+    chrome.alarms.create(ALARM_NEXT, { when: Date.now() + nextDelayMs(state.simulated) })
   }
 }
 
@@ -202,56 +322,53 @@ async function processNext(): Promise<void> {
     'approvedCopy',
     'founderProfile',
   ])
-  const site = siteData as SiteData
+  const site = siteData as SiteData | undefined
   const copy = (approvedCopy as GeneratedCopy[]) ?? []
   const profile = (founderProfile as FounderProfile | undefined) ?? {}
 
-  let result: PlatformResult
-  if (!adapter || !site) {
-    result = { platformId, status: 'failed', simulated: state.simulated, error: 'no adapter or site data' }
-  } else {
-    const categoryCopy = copy.find((c) => c.category === adapter.category) ?? copy[0]
-    const context: RunContext = {
-      title: site.title,
-      url: appendUtm(site.url, state.campaignId!), // UTM on every URL before submission (BUILD_SPEC §7)
-      tagline: site.tagline ?? categoryCopy?.hook ?? '',
-      hook: categoryCopy?.hook ?? '',
-      body: categoryCopy?.body ?? '',
-      founderName: profile.founderName ?? '',
-      contactEmail: profile.contactEmail ?? '',
-      category: adapter.category,
-      tags: site.keywords ?? [],
-      pricingModel: profile.pricingModel ?? '',
-      socialLinks: profile.socialLinks ?? {},
-    }
-    let tabId: number | undefined
-    try {
-      const tab = await chrome.tabs.create({ url: adapter.submitUrl, active: true })
-      tabId = tab.id
-      await waitForTabLoad(tab.id!)
-      const outcome = (await sendMessageWithRetry(tab.id!, {
-        type: 'RUN_ADAPTER',
-        steps: adapter.steps,
-        context,
-        simulated: state.simulated,
-      })) as AdapterOutcome
-      result = toResult(platformId, outcome, state.simulated)
-      // No dead tabs: simulation tabs always close; live tabs close on failure.
-      // A CAPTCHA outcome keeps its tab open on purpose — the human solves it there.
-      if (tabId && (state.simulated || outcome.outcome === 'failed')) void chrome.tabs.remove(tabId)
-    } catch (err) {
-      result = { platformId, status: 'failed', simulated: state.simulated, error: String(err) }
-      if (tabId) void chrome.tabs.remove(tabId) // never leave a broken, unfilled tab behind
-    }
+  const categoryCopy = copy.find((c) => c.category === adapter?.category) ?? copy[0]
+  const context: RunContext = {
+    title: site?.title ?? '',
+    url: site ? appendUtm(site.url, state.campaignId!) : '', // UTM on every URL before submission (BUILD_SPEC §7)
+    tagline: site?.tagline ?? categoryCopy?.hook ?? '',
+    hook: categoryCopy?.hook ?? '',
+    body: categoryCopy?.body ?? '',
+    founderName: profile.founderName ?? '',
+    contactEmail: profile.contactEmail ?? '',
+    category: adapter?.category ?? '',
+    tags: site?.keywords ?? [],
+    pricingModel: profile.pricingModel ?? '',
+    socialLinks: profile.socialLinks ?? {},
+    userInput: '',
   }
 
-  const latest = await getState()
-  latest.results = [...latest.results, result]
-  latest.currentPlatform = undefined
-  await setState(latest)
+  if (!adapter || !site) {
+    await settleOutcome(platformId, undefined, { outcome: 'failed', error: 'no adapter or site data' }, context)
+    return
+  }
 
-  if (latest.status === 'running') {
-    chrome.alarms.create(ALARM_NEXT, { when: Date.now() + nextDelayMs(latest.simulated) })
+  // Context-aware asset generation: hero shot for platforms that require a gallery image.
+  if (adapter.requirements?.requiresScreenshot && !state.simulated) {
+    const shot = await captureProductHero(site.url, true)
+    if (shot) await storeScreenshot(`${state.campaignId}:${platformId}:product`, shot)
+  }
+
+  let tabId: number | undefined
+  try {
+    const tab = await chrome.tabs.create({ url: adapter.submitUrl, active: true })
+    tabId = tab.id
+    await waitForTabLoad(tab.id!)
+    const outcome = (await sendMessageWithRetry(tab.id!, {
+      type: 'RUN_ADAPTER',
+      steps: adapter.steps,
+      context,
+      simulated: state.simulated,
+      resumeFrom: 0,
+    })) as AdapterOutcome
+    await settleOutcome(platformId, tabId, outcome, context)
+  } catch (err) {
+    if (tabId !== undefined) void chrome.tabs.remove(tabId) // never leave a broken, unfilled tab behind
+    await settleOutcome(platformId, undefined, { outcome: 'failed', error: String(err) }, context)
   }
 }
 
@@ -278,11 +395,62 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       }
       case 'START_CAMPAIGN': {
         const current = await getState()
-        if (current.status === 'running') {
+        if (current.status === 'running' || current.status === 'awaiting_user_action') {
           sendResponse({ state: current })
           break
         }
         sendResponse({ state: await startCampaign(Boolean(msg.simulated)) })
+        break
+      }
+      case 'RESUME_USER_ACTION': {
+        // The human acted (solved CAPTCHA / read their OWN email and typed the code).
+        const s = await getState()
+        if (s.status !== 'awaiting_user_action' || !s.pending) {
+          sendResponse({ state: s })
+          break
+        }
+        const p = s.pending
+        const adapter = getAdapter(p.platformId)
+        s.status = 'running'
+        await setState(s)
+        void chrome.action.setBadgeText({ text: '' })
+        const context: RunContext = {
+          ...p.context,
+          userInput: typeof msg.userInput === 'string' ? msg.userInput : '',
+        }
+        try {
+          const outcome = (await sendMessageWithRetry(p.tabId, {
+            type: 'RUN_ADAPTER',
+            steps: adapter?.steps ?? [],
+            context,
+            simulated: s.simulated,
+            resumeFrom: p.nextStep,
+          })) as AdapterOutcome
+          await settleOutcome(p.platformId, p.tabId, outcome, context)
+        } catch (err) {
+          await settleOutcome(p.platformId, p.tabId, { outcome: 'failed', error: String(err) }, context)
+        }
+        sendResponse({ state: await getState() })
+        break
+      }
+      case 'SKIP_USER_ACTION': {
+        const s = await getState()
+        if (s.status !== 'awaiting_user_action' || !s.pending) {
+          sendResponse({ state: s })
+          break
+        }
+        const p = s.pending
+        s.status = 'running'
+        await setState(s)
+        void chrome.action.setBadgeText({ text: '' })
+        // Honest failure; the tab stays open so the human can finish by hand if they want.
+        await settleOutcome(
+          p.platformId,
+          undefined,
+          { outcome: 'failed', error: `skipped: ${p.message}` },
+          p.context
+        )
+        sendResponse({ state: await getState() })
         break
       }
       case 'PAUSE': {
@@ -314,6 +482,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         await setState({ ...IDLE })
         await chrome.alarms.clear(ALARM_NEXT)
         await chrome.alarms.clear(ALARM_SYNC)
+        void chrome.action.setBadgeText({ text: '' })
         sendResponse({ state: await getState() })
         break
       }

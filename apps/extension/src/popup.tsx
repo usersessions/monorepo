@@ -10,6 +10,7 @@ interface RunView {
   simulated: boolean
   queue: string[]
   currentPlatform?: string
+  pending?: { platformId: string; message: string; reason: string; needsInput: boolean }
   results: PlatformResult[]
 }
 
@@ -32,11 +33,20 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   const reset = () => chrome.runtime.sendMessage({ type: 'RESET_CAMPAIGN' }, () => refresh())
   const retrySync = () => chrome.runtime.sendMessage({ type: 'RETRY_SYNC' }, () => refresh())
 
+  const [userInput, setUserInput] = useState('')
+  const resumeAction = () =>
+    chrome.runtime.sendMessage({ type: 'RESUME_USER_ACTION', userInput }, () => {
+      setUserInput('')
+      refresh()
+    })
+  const skipAction = () => chrome.runtime.sendMessage({ type: 'SKIP_USER_ACTION' }, () => refresh())
+
   const running = run?.status === 'running' || run?.status === 'paused'
+  const waiting = run?.status === 'awaiting_user_action'
 
   return (
     <div className="site-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-      {!running && run?.status !== 'done' && run?.status !== 'plan_limit' && run?.status !== 'sync_error' && (
+      {!running && !waiting && run?.status !== 'done' && run?.status !== 'plan_limit' && run?.status !== 'sync_error' && (
         <>
           <button
             className="btn-primary"
@@ -67,6 +77,31 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
             {' · '}
             {run?.queue.length ?? 0} remaining
           </p>
+        </div>
+      )}
+
+      {/* Human hand-off: CAPTCHA / OTP / email confirmation — the extension paused, you finish this bit. */}
+      {waiting && run?.pending && (
+        <div className="card card--dense site-card">
+          <span className="status-pending">needs you</span>
+          <p className="font-mono-micro">
+            {run.pending.platformId}: {run.pending.message}
+          </p>
+          {run.pending.needsInput && (
+            <input
+              className="input-field"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Paste the code from your email"
+              aria-label="Verification code"
+            />
+          )}
+          <button className="btn-primary" onClick={resumeAction}>
+            Done — continue
+          </button>
+          <button className="btn-ghost" onClick={skipAction}>
+            Skip this platform
+          </button>
         </div>
       )}
 
