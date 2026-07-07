@@ -172,17 +172,30 @@ async function runSteps(
     switch (step.op) {
       case 'waitFor': {
         const el = await waitFor(step.selector, step.timeoutMs ?? 10_000)
-        if (!el) return { outcome: 'failed', error: `timeout waiting for ${step.selector}` }
+        if (!el) {
+          // Auth walls and slow wizards: hand to the human instead of failing; resume re-checks this step.
+          if (step.elseAwaitUser) {
+            return {
+              outcome: 'needs_human',
+              reason: step.elseAwaitUser.reason,
+              message: step.elseAwaitUser.message,
+              nextStep: i,
+            }
+          }
+          return { outcome: 'failed', error: `timeout waiting for ${step.selector}` }
+        }
         break
       }
       case 'fill': {
         const el = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(step.selector)
         if (!el) return { outcome: 'failed', error: `missing field ${step.selector}` }
-        setNativeValue(el, resolveValue(step.value, ctx))
+        const raw = resolveValue(step.value, ctx)
+        setNativeValue(el, step.maxLen ? raw.slice(0, step.maxLen) : raw)
         break
       }
       case 'smartFill': {
-        const value = resolveValue(step.field, ctx)
+        const raw = resolveValue(step.field, ctx)
+        const value = step.maxLen ? raw.slice(0, step.maxLen) : raw
         if (!value) break // nothing approved for this field — skip, never invent data
         const el = findFieldFor(step.field, step.hint)
         if (!el) return { outcome: 'failed', error: `could not locate a '${step.field}' field on this form` }

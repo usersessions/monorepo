@@ -32,7 +32,7 @@ export interface PendingAction {
   platformId: string
   tabId: number
   nextStep: number
-  reason: 'captcha' | 'otp' | 'email_verification'
+  reason: 'captcha' | 'otp' | 'email_verification' | 'login'
   message: string
   needsInput: boolean
   context: RunContext
@@ -336,7 +336,7 @@ async function processNext(): Promise<void> {
     founderName: profile.founderName ?? '',
     contactEmail: profile.contactEmail ?? '',
     category: adapter?.category ?? '',
-    tags: site?.keywords ?? [],
+    tags: profile.tags?.length ? profile.tags : site?.keywords ?? [],
     pricingModel: profile.pricingModel ?? '',
     socialLinks: profile.socialLinks ?? {},
     userInput: '',

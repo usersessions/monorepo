@@ -25,13 +25,13 @@ export type FieldRef =
   | 'userInput'
 
 export type AdapterStep =
-  | { op: 'fill'; selector: string; value: FieldRef }
+  | { op: 'fill'; selector: string; value: FieldRef; maxLen?: number }
   /**
    * Semantic fill: no selector. The runner scores every visible field by its label,
    * aria attributes, placeholder, and name/id tokens and fills the best match.
    * An empty resolved value is skipped — the engine never invents data.
    */
-  | { op: 'smartFill'; field: FieldRef; hint?: string }
+  | { op: 'smartFill'; field: FieldRef; hint?: string; maxLen?: number }
   | { op: 'click'; selector: string }
   /**
    * Choose an option in a native <select>. Provide 'value' (a FieldRef) or 'option'
@@ -45,14 +45,20 @@ export type AdapterStep =
    * for 'expect' to appear so the next step is confirmed rendered before continuing.
    */
   | { op: 'next'; selector: string; expect: string; timeoutMs?: number }
-  | { op: 'waitFor'; selector: string; timeoutMs?: number }
+  | {
+      op: 'waitFor'
+      selector: string
+      timeoutMs?: number
+      /** Auth walls: if the element never appears, pause for the human instead of failing; resume re-checks this step. */
+      elseAwaitUser?: { reason: 'captcha' | 'otp' | 'email_verification' | 'login'; message: string }
+    }
   /**
    * Explicit human hand-off (assisted automation, BUILD_SPEC §1): pauses the run with
    * 'message' shown in the popup. For 'otp', the popup collects a code into the
    * 'userInput' FieldRef and the run resumes at the NEXT step. The extension never
    * reads an inbox or solves a CAPTCHA itself.
    */
-  | { op: 'awaitUser'; reason: 'otp' | 'captcha' | 'email_verification'; message: string }
+  | { op: 'awaitUser'; reason: 'otp' | 'captcha' | 'email_verification' | 'login'; message: string }
   /** The final submit — SKIPPED in simulation mode. */
   | { op: 'submit'; selector: string }
 
@@ -79,6 +85,8 @@ export interface FounderProfile {
   founderName?: string
   contactEmail?: string
   pricingModel?: string
+  /** Founder-chosen tags; override page-detected keywords when present. */
+  tags?: string[]
   socialLinks?: { twitter?: string; linkedin?: string; github?: string }
 }
 
@@ -103,5 +111,5 @@ export type AdapterOutcome =
   | { outcome: 'filled' } // simulation success: every field located and filled, submit skipped
   | { outcome: 'submitted' }
   /** Run paused for the human; 'nextStep' is where to resume once they've acted. */
-  | { outcome: 'needs_human'; reason: 'captcha' | 'otp' | 'email_verification'; message: string; nextStep: number }
+  | { outcome: 'needs_human'; reason: 'captcha' | 'otp' | 'email_verification' | 'login'; message: string; nextStep: number }
   | { outcome: 'failed'; error: string }
