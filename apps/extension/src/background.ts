@@ -531,6 +531,26 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         }
         break
       }
+      case 'START_AGENT': {
+        const { startAgentSession } = await import('./agent/orchestrator')
+        sendResponse(await startAgentSession(String(msg.platformId ?? '')))
+        break
+      }
+      case 'RESUME_AGENT': {
+        const { resumeAgentSession } = await import('./agent/orchestrator')
+        sendResponse(await resumeAgentSession(String(msg.sessionId ?? '')))
+        break
+      }
+      case 'ABORT_AGENT': {
+        const { abortAgentSession } = await import('./agent/orchestrator')
+        sendResponse(await abortAgentSession(String(msg.sessionId ?? '')))
+        break
+      }
+      case 'GET_AGENT_SESSIONS': {
+        const { listAgentSessions } = await import('./agent/orchestrator')
+        sendResponse({ sessions: await listAgentSessions() })
+        break
+      }
       default:
         sendResponse({ ok: false, error: 'Unknown message type.' })
     }

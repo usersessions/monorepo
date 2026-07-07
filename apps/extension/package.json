@@ -22,7 +22,7 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "permissions": ["activeTab", "scripting", "tabs", "storage", "alarms"],
+    "permissions": ["activeTab", "scripting", "tabs", "storage", "alarms", "notifications"],
     "host_permissions": ["<all_urls>"],
     "externally_connectable": {
       "matches": ["https://usersessions.io/*", "https://www.usersessions.io/*", "http://localhost:3000/*"]
