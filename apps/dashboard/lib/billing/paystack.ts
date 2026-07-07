@@ -36,7 +36,10 @@ export async function initializeTransaction(input: {
   callbackUrl: string
 }): Promise<{ authorizationUrl: string } | null> {
   const secret = process.env.PAYSTACK_SECRET_KEY
-  if (!secret) return null
+  if (!secret) {
+    console.error('[Billing] Missing PAYSTACK_SECRET_KEY')
+    return null
+  }
 
   try {
     const res = await fetch(`${API}/transaction/initialize`, {
@@ -49,11 +52,22 @@ export async function initializeTransaction(input: {
         callback_url: input.callbackUrl,
       }),
     })
-    if (!res.ok) return null
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error(`[Billing] Paystack API rejected initialization (Status: ${res.status}):`, errorText)
+      return null
+    }
+    
     const payload = await res.json()
     const url = payload?.data?.authorization_url
-    return typeof url === 'string' ? { authorizationUrl: url } : null
-  } catch {
+    if (typeof url !== 'string') {
+      console.error('[Billing] Paystack returned success but no authorization_url:', payload)
+      return null
+    }
+    return { authorizationUrl: url }
+  } catch (err) {
+    console.error('[Billing] Exception during Paystack initialization:', err)
     return null
   }
 }
