@@ -26,6 +26,22 @@ function resolveValue(ref: string, ctx: RunContext): string {
       return ctx.hook
     case 'body':
       return ctx.body
+    case 'founderName':
+      return ctx.founderName
+    case 'contactEmail':
+      return ctx.contactEmail
+    case 'category':
+      return ctx.category
+    case 'tags':
+      return ctx.tags.join(', ')
+    case 'pricingModel':
+      return ctx.pricingModel
+    case 'socialTwitter':
+      return ctx.socialLinks.twitter ?? ''
+    case 'socialLinkedIn':
+      return ctx.socialLinks.linkedin ?? ''
+    case 'socialGitHub':
+      return ctx.socialLinks.github ?? ''
     default:
       return ''
   }
@@ -77,6 +93,36 @@ async function runSteps(
         const el = document.querySelector<HTMLElement>(step.selector)
         if (!el) return { outcome: 'failed', error: `missing element ${step.selector}` }
         el.click()
+        break
+      }
+      case 'select': {
+        const el = document.querySelector<HTMLSelectElement>(step.selector)
+        if (!el) return { outcome: 'failed', error: `missing select ${step.selector}` }
+        const wanted = (step.option ?? resolveValue(step.value ?? '', ctx)).trim().toLowerCase()
+        const match = Array.from(el.options).find(
+          (o) => o.value.trim().toLowerCase() === wanted || o.text.trim().toLowerCase() === wanted
+        )
+        if (!match) return { outcome: 'failed', error: `no option '${wanted}' in ${step.selector}` }
+        const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set
+        setter ? setter.call(el, match.value) : (el.value = match.value)
+        el.dispatchEvent(new Event('input', { bubbles: true }))
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+        break
+      }
+      case 'check': {
+        const el = document.querySelector<HTMLInputElement>(step.selector)
+        if (!el) return { outcome: 'failed', error: `missing checkbox ${step.selector}` }
+        const want = step.checked ?? true
+        if (el.checked !== want) el.click()
+        break
+      }
+      case 'next': {
+        // Wizard navigation: advance, then PROVE the next step rendered before continuing.
+        const btn = document.querySelector<HTMLElement>(step.selector)
+        if (!btn) return { outcome: 'failed', error: `missing wizard control ${step.selector}` }
+        btn.click()
+        const el = await waitFor(step.expect, step.timeoutMs ?? 10_000)
+        if (!el) return { outcome: 'failed', error: `wizard step did not render: ${step.expect}` }
         break
       }
       case 'submit': {

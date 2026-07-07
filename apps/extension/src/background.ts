@@ -3,7 +3,7 @@ import type { BridgeMessage, GeneratedCopy, PlatformResult, SiteData } from '@us
 
 import { postCampaign } from './api'
 import { ADAPTERS, getAdapter } from './adapters/registry'
-import type { AdapterOutcome, RunContext } from './adapters/types'
+import type { AdapterOutcome, FounderProfile, RunContext } from './adapters/types'
 
 /**
  * Background service worker — MV3-SAFE BY CONSTRUCTION:
@@ -197,9 +197,14 @@ async function processNext(): Promise<void> {
   await setState(state)
 
   const adapter = getAdapter(platformId)
-  const { siteData, approvedCopy } = await chrome.storage.local.get(['siteData', 'approvedCopy'])
+  const { siteData, approvedCopy, founderProfile } = await chrome.storage.local.get([
+    'siteData',
+    'approvedCopy',
+    'founderProfile',
+  ])
   const site = siteData as SiteData
   const copy = (approvedCopy as GeneratedCopy[]) ?? []
+  const profile = (founderProfile as FounderProfile | undefined) ?? {}
 
   let result: PlatformResult
   if (!adapter || !site) {
@@ -212,9 +217,17 @@ async function processNext(): Promise<void> {
       tagline: site.tagline ?? categoryCopy?.hook ?? '',
       hook: categoryCopy?.hook ?? '',
       body: categoryCopy?.body ?? '',
+      founderName: profile.founderName ?? '',
+      contactEmail: profile.contactEmail ?? '',
+      category: adapter.category,
+      tags: site.keywords ?? [],
+      pricingModel: profile.pricingModel ?? '',
+      socialLinks: profile.socialLinks ?? {},
     }
+    let tabId: number | undefined
     try {
       const tab = await chrome.tabs.create({ url: adapter.submitUrl, active: true })
+      tabId = tab.id
       await waitForTabLoad(tab.id!)
       const outcome = (await sendMessageWithRetry(tab.id!, {
         type: 'RUN_ADAPTER',
@@ -223,9 +236,12 @@ async function processNext(): Promise<void> {
         simulated: state.simulated,
       })) as AdapterOutcome
       result = toResult(platformId, outcome, state.simulated)
-      if (state.simulated && tab.id) void chrome.tabs.remove(tab.id) // tidy up simulation tabs
+      // No dead tabs: simulation tabs always close; live tabs close on failure.
+      // A CAPTCHA outcome keeps its tab open on purpose — the human solves it there.
+      if (tabId && (state.simulated || outcome.outcome === 'failed')) void chrome.tabs.remove(tabId)
     } catch (err) {
       result = { platformId, status: 'failed', simulated: state.simulated, error: String(err) }
+      if (tabId) void chrome.tabs.remove(tabId) // never leave a broken, unfilled tab behind
     }
   }
 
