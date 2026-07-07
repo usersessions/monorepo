@@ -8,6 +8,9 @@ import RefreshButton from '@/components/admin/RefreshButton'
 import SkeletonMetricCard from '@/components/admin/SkeletonMetricCard'
 import SkeletonTable from '@/components/admin/SkeletonTable'
 import TimeRangeToggle from '@/components/admin/TimeRangeToggle'
+import AdminAlertFeed from '@/components/admin/AdminAlertFeed'
+import QuickActionsBar from '@/components/admin/QuickActionsBar'
+import AdminInsights from '@/components/admin/sections/AdminInsights'
 import CronSection from '@/components/admin/sections/CronSection'
 import PlatformHealthSection from '@/components/admin/sections/PlatformHealthSection'
 import SystemHealthSection from '@/components/admin/sections/SystemHealthSection'
@@ -108,6 +111,13 @@ export default async function AdminSystemPage({
         </div>
       </div>
       <FreshnessTimestamp generatedAt={new Date().toISOString()} />
+
+      <AdminAlertFeed />
+      <QuickActionsBar />
+
+      <Suspense fallback={null}>
+        <AdminInsights />
+      </Suspense>
 
       <Suspense
         fallback={

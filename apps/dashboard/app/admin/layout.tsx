@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import AdminSearch from '@/components/admin/AdminSearch'
 
 const NAV = [
   { label: 'System', href: '/admin' },
@@ -31,6 +32,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           usersessions
         </span>
         <span className="font-mono-label" style={{ color: 'var(--amber)' }}>Admin Mode</span>
+
+        <AdminSearch />
 
         <nav className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
           {NAV.map((item) => (
