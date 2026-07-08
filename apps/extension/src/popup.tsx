@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import type { GeneratedCopy, PlatformResult, SiteData, TelemetryBatch } from '@usersessions/shared'
 
 import { generateCopy, sendTelemetry } from './brain'
+import { fetchFounderProfile } from './api'
 import { AgentPanel } from './agent/AgentPanel'
 
 import './style.css'
+
+const DASHBOARD_URL = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://usersessions.io'
 
 interface RunView {
   status: string
