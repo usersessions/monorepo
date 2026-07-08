@@ -299,6 +299,7 @@ async function settleOutcome(
   if (state.status === 'awaiting_user_action') state.status = 'running'
   await setState(state)
   void chrome.action.setBadgeText({ text: '' })
+  void chrome.notifications.clear('needs-you')
 
   if (state.status === 'running') {
     chrome.alarms.create(ALARM_NEXT, { when: Date.now() + nextDelayMs(sim) })
