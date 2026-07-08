@@ -255,6 +255,17 @@ async function settleOutcome(
     void chrome.action.setBadgeText({ text: '!' })
     void chrome.action.setBadgeBackgroundColor({ color: '#B45309' })
     void chrome.tabs.update(tabId, { active: true }) // put the human exactly where they're needed
+    // System notification too — the badge is invisible when the user is in another app.
+    const iconPath = chrome.runtime.getManifest().icons?.['128']
+    if (iconPath) {
+      void chrome.notifications.create('needs-you', {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL(iconPath),
+        title: `${platformId} needs you`,
+        message: outcome.message,
+        priority: 2,
+      })
+    }
     return
   }
 
