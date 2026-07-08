@@ -18,9 +18,18 @@ interface RunView {
   results: PlatformResult[]
 }
 
-/** Launch + live progress. Live mode stays locked until adapters are verified (M6 gate, enforced in background). */
+const resultBadge = (status: string) =>
+  status === 'failed' ? 'status-dead' : status === 'submitted' ? 'status-live' : 'status-pending'
+
+/**
+ * Launch + live progress. Two explicit paths, no hidden fallbacks:
+ * - Test run: fills every form in simulation, submits nothing — safe to preview.
+ * - Launch: submits live on platforms verified in the dashboard; unverified
+ *   platforms still run in simulation (fail-closed, enforced in background).
+ */
 function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean }) {
   const [run, setRun] = useState<RunView | null>(null)
+  const [hasContactEmail, setHasContactEmail] = useState(true)
 
   const refresh = () =>
     chrome.runtime.sendMessage({ type: 'GET_STATE' }, (res) => setRun(res?.state ?? null))
@@ -28,12 +37,14 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   useEffect(() => {
     refresh()
     const interval = setInterval(refresh, 1000)
+    chrome.storage.local.get('founderProfile').then(({ founderProfile }) => {
+      setHasContactEmail(Boolean((founderProfile as { contactEmail?: string } | undefined)?.contactEmail))
+    })
     return () => clearInterval(interval)
   }, [])
 
-  const launch = () =>
-    // Request live mode; the background falls back to simulation only if any adapter is unverified.
-    chrome.runtime.sendMessage({ type: 'START_CAMPAIGN', simulated: false }, () => refresh())
+  const launch = (simulated: boolean) =>
+    chrome.runtime.sendMessage({ type: 'START_CAMPAIGN', simulated }, () => refresh())
   const reset = () => chrome.runtime.sendMessage({ type: 'RESET_CAMPAIGN' }, () => refresh())
   const retrySync = () => chrome.runtime.sendMessage({ type: 'RETRY_SYNC' }, () => refresh())
 
@@ -47,19 +58,33 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
 
   const running = run?.status === 'running' || run?.status === 'paused'
   const waiting = run?.status === 'awaiting_user_action'
+  const finished = run?.status === 'done' || run?.status === 'plan_limit' || run?.status === 'sync_error'
 
   return (
     <div className="site-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-      {!running && !waiting && run?.status !== 'done' && run?.status !== 'plan_limit' && run?.status !== 'sync_error' && (
+      {!running && !waiting && !finished && (
         <>
           <button
             className="btn-primary"
-            onClick={launch}
+            onClick={() => launch(false)}
             disabled={!connected || !ready}
-            title={!ready ? 'Approve your copy first' : 'Submits live; failures are reported per platform'}
+            title={!ready ? 'Approve your copy first' : 'Submits live on verified platforms; every failure is reported honestly'}
           >
             Launch campaign
           </button>
+          <button
+            className="btn-ghost"
+            onClick={() => launch(true)}
+            disabled={!connected || !ready}
+            title={!ready ? 'Approve your copy first' : 'Fills every form without submitting — nothing is posted anywhere'}
+          >
+            Test run (no submissions)
+          </button>
+          <p className="font-mono-micro">
+            Test run previews every platform safely — forms are filled, nothing is submitted.
+            Launch submits for real on platforms you’ve verified on the dashboard; everything
+            else stays in simulation.
+          </p>
           {!connected && (
             <p className="font-mono-micro" style={{ color: 'var(--amber)' }}>
               Connect first — sign in on the dashboard and keep the tab open.
@@ -70,12 +95,18 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
               Generate and approve your listing copy above — Launch unlocks after approval.
             </p>
           )}
+          {connected && ready && !hasContactEmail && (
+            <p className="font-mono-micro" style={{ color: 'var(--amber)' }}>
+              Tip: add your contact email in the founder profile above — several platforms
+              require one to accept a submission.
+            </p>
+          )}
         </>
       )}
 
       {running && (
         <div className="card card--dense site-card">
-          <span className="status-running">running</span>
+          <span className="status-running">{run?.simulated ? 'test run' : 'live run'}</span>
           <p className="font-mono-micro">
             {run?.currentPlatform ? `submitting: ${run.currentPlatform}` : 'pacing…'}
             {' · '}
@@ -113,12 +144,24 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
         <div className="card card--dense site-card">
           {run!.results.map((r) => (
             <p key={r.platformId} className="font-mono-micro">
-              <span className={r.status === 'failed' ? 'status-dead' : 'status-pending'}>{r.status}</span>{' '}
-              {r.platformId}
+              <span className={resultBadge(r.status)}>{r.status}</span> {r.platformId}
+              {r.simulated ? ' (test)' : ''}
               {r.error ? ` — ${r.error}` : ''}
             </p>
           ))}
         </div>
+      )}
+
+      {run?.status === 'done' && run.simulated && (
+        <a
+          className="font-mono-micro"
+          style={{ color: 'var(--primary)' }}
+          href={`${DASHBOARD_URL}/platforms`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Test looks good? Enable live mode on the dashboard →
+        </a>
       )}
 
       {run?.status === 'plan_limit' && (
@@ -139,7 +182,7 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
         </>
       )}
 
-      {(run?.status === 'done' || run?.status === 'plan_limit' || run?.status === 'sync_error') && (
+      {finished && (
         <button className="btn-ghost" onClick={reset}>
           Start another run
         </button>
@@ -148,16 +191,22 @@ function LaunchPanel({ connected, ready }: { connected: boolean; ready: boolean 
   )
 }
 
-/** Founder profile: human-provided data adapters may fill into forms — never invented. */
-function FounderProfileCard() {
+/**
+ * Founder profile: auto-filled from the dashboard account (signup data is
+ * reused, never re-typed). Local edits always win over remote values, and
+ * everything stays editable — adapters only fill what the human approved.
+ */
+function FounderProfileCard({ connected }: { connected: boolean }) {
   const [founderName, setFounderName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [pricingModel, setPricingModel] = useState('')
   const [tags, setTags] = useState('')
   const [saved, setSaved] = useState(false)
+  const [autoFilled, setAutoFilled] = useState(false)
 
   useEffect(() => {
-    chrome.storage.local.get('founderProfile').then(({ founderProfile }) => {
+    let cancelled = false
+    chrome.storage.local.get('founderProfile').then(async ({ founderProfile }) => {
       const p =
         (founderProfile as {
           founderName?: string
@@ -165,12 +214,35 @@ function FounderProfileCard() {
           pricingModel?: string
           tags?: string[]
         }) ?? {}
-      setFounderName(p.founderName ?? '')
-      setContactEmail(p.contactEmail ?? '')
+
+      let name = p.founderName ?? ''
+      let email = p.contactEmail ?? ''
+
+      // Incomplete local profile + connected → pull signup data from the dashboard.
+      if (connected && (!name || !email)) {
+        const remote = await fetchFounderProfile()
+        if (remote && !cancelled) {
+          name = name || remote.founderName || ''
+          email = email || remote.contactEmail || ''
+          if (name || email) {
+            setAutoFilled(true)
+            await chrome.storage.local.set({
+              founderProfile: { ...p, founderName: name, contactEmail: email },
+            })
+          }
+        }
+      }
+
+      if (cancelled) return
+      setFounderName(name)
+      setContactEmail(email)
       setPricingModel(p.pricingModel ?? '')
       setTags((p.tags ?? []).join(', '))
     })
-  }, [])
+    return () => {
+      cancelled = true
+    }
+  }, [connected])
 
   const save = async () => {
     await chrome.storage.local.set({
@@ -188,6 +260,9 @@ function FounderProfileCard() {
   return (
     <div className="card card--dense site-card">
       <p className="font-mono-label">Founder profile — used to fill submission forms</p>
+      {autoFilled && (
+        <p className="font-mono-micro">Auto-filled from your dashboard account — edit anytime.</p>
+      )}
       <input
         className="input-field"
         value={founderName}
@@ -230,7 +305,6 @@ function FounderProfileCard() {
   )
 }
 
-const STEPS = ['Install', 'Launch', 'Watch'] as const // verbatim plan — BUILD_SPEC §2
 const CATEGORY_LABELS: Record<string, string> = {
   ai: 'AI tool indexes',
   startup: 'Startup launch platforms',
@@ -238,6 +312,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function IndexPopup() {
   const [connected, setConnected] = useState(false)
+  const [launched, setLaunched] = useState(false)
   const [site, setSite] = useState<SiteData | null>(null)
   const [originals, setOriginals] = useState<GeneratedCopy[]>([])
   const [drafts, setDrafts] = useState<GeneratedCopy[]>([])
@@ -246,19 +321,22 @@ function IndexPopup() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Poll connection state so the header flips to 'connected' live while the
-    // popup is open (e.g. right after signing in on the dashboard in another tab).
-    const refreshConnected = () =>
+    // Poll connection + run state so the header and step strip stay live while
+    // the popup is open (e.g. right after signing in on the dashboard).
+    const refreshState = () =>
       chrome.runtime.sendMessage({ type: 'GET_STATE' }, (res) => {
         setConnected(Boolean(res?.connected))
+        setLaunched(res?.state?.status === 'done')
       })
-    refreshConnected()
-    const interval = setInterval(refreshConnected, 2_000)
+    refreshState()
+    const interval = setInterval(refreshState, 2_000)
 
     // Restore an in-progress session so closing the popup never loses work.
+    // Approved copy is only restored alongside its site data — the background
+    // clears it whenever a different URL is analyzed, so the pair stays in sync.
     chrome.storage.local.get(['siteData', 'approvedCopy']).then(({ siteData, approvedCopy }) => {
       if (siteData) setSite(siteData as SiteData)
-      if (approvedCopy) {
+      if (siteData && approvedCopy) {
         setDrafts(approvedCopy as GeneratedCopy[])
         setApproved(true)
       }
@@ -326,7 +404,13 @@ function IndexPopup() {
     void sendTelemetry(batch)
   }
 
-  const dashboardUrl = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://usersessions.io'
+  // The in-popup journey, checked off from real state — mirrors the dashboard onboarding.
+  const steps = [
+    { label: 'Connect', done: connected },
+    { label: 'Analyze', done: Boolean(site) },
+    { label: 'Approve', done: approved },
+    { label: 'Launch', done: launched },
+  ]
 
   return (
     <div className="popup">
@@ -337,11 +421,11 @@ function IndexPopup() {
         </span>
       </header>
 
-      <div className="steps font-mono-label">
-        {STEPS.map((step, i) => (
-          <span key={step}>
-            {i + 1}. {step}
-            {i < STEPS.length - 1 ? ' → ' : ''}
+      <div className="steps font-mono-label" aria-label="Progress">
+        {steps.map((step, i) => (
+          <span key={step.label} style={{ color: step.done ? 'var(--green)' : undefined }}>
+            {step.done ? '✓' : `${i + 1}.`} {step.label}
+            {i < steps.length - 1 ? ' → ' : ''}
           </span>
         ))}
       </div>
@@ -349,7 +433,7 @@ function IndexPopup() {
       {!connected && (
         <p className="font-sans-body">
           Sign in on the{' '}
-          <a href={dashboardUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
+          <a href={DASHBOARD_URL} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
             dashboard
           </a>{' '}
           to connect this extension.
@@ -408,7 +492,7 @@ function IndexPopup() {
         </p>
       )}
 
-      <FounderProfileCard />
+      <FounderProfileCard connected={connected} />
 
       <LaunchPanel connected={connected} ready={approved} />
 
