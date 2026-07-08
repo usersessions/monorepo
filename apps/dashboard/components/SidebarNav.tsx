@@ -15,9 +15,28 @@ const NAV: { label: string; href: string }[] = [
   { label: 'Settings', href: '/settings' },
 ]
 
-export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
+export interface OnboardingProgress {
+  done: number
+  total: number
+}
+
+// "Get started 2/4" while onboarding is in progress, "✓ Get started" once complete.
+export function onboardingLabel(onboarding?: OnboardingProgress): string {
+  if (!onboarding) return 'Get started'
+  if (onboarding.done >= onboarding.total) return '✓ Get started'
+  return `Get started ${onboarding.done}/${onboarding.total}`
+}
+
+export function SidebarNav({
+  isAdmin,
+  onboarding,
+}: {
+  isAdmin: boolean
+  onboarding?: OnboardingProgress
+}) {
   const pathname = usePathname()
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
+  const complete = onboarding ? onboarding.done >= onboarding.total : false
 
   return (
     <nav className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
@@ -27,8 +46,9 @@ export function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
           href={item.href}
           className={`nav-link${isActive(item.href) ? ' nav-link--active' : ''}`}
           aria-current={isActive(item.href) ? 'page' : undefined}
+          style={item.href === '/onboarding' && complete ? { color: 'var(--green)' } : undefined}
         >
-          {item.label}
+          {item.href === '/onboarding' ? onboardingLabel(onboarding) : item.label}
         </Link>
       ))}
       {isAdmin && (

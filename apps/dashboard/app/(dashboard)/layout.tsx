@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
 import { RealtimeRefresh } from '@/components/RealtimeRefresh'
 import { NotificationToaster } from '@/components/NotificationToaster'
-import { SidebarNav } from '@/components/SidebarNav'
+import { SidebarNav, onboardingLabel } from '@/components/SidebarNav'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/components/CommandPalette'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
@@ -16,11 +16,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, plan, full_name, email')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { count: productCount }, { count: campaignCount }, { count: liveCount }] =
+    await Promise.all([
+      supabase.from('profiles').select('role, plan, full_name, email').eq('id', user.id).single(),
+      supabase.from('products').select('*', { count: 'exact', head: true }),
+      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['live', 'indexed']),
+    ])
+
+  // Mirrors the four steps on /onboarding — progress derives from real data only.
+  const onboardingFlags = [
+    (campaignCount ?? 0) > 0, // extension installed (campaigns only come from it)
+    (productCount ?? 0) > 0, // product added
+    (campaignCount ?? 0) > 0, // first campaign launched
+    (liveCount ?? 0) > 0, // first live listing
+  ]
+  const onboarding = { done: onboardingFlags.filter(Boolean).length, total: onboardingFlags.length }
 
   const displayName = profile?.full_name ?? profile?.email ?? user.email ?? ''
   const email = profile?.email ?? user.email ?? ''
@@ -51,7 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
         <nav aria-label="Primary" style={{ display: 'flex', gap: 'var(--space-md)', overflowX: 'auto', paddingTop: 'var(--space-sm)' }}>
           {[
-            ['Get started', '/onboarding'],
+            [onboardingLabel(onboarding), '/onboarding'],
             ['Overview', '/'],
             ['Campaigns', '/campaigns'],
             ['Listings', '/listings'],
@@ -91,7 +105,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           usersessions
         </Link>
 
-        <SidebarNav isAdmin={profile?.role === 'admin'} />
+        <SidebarNav isAdmin={profile?.role === 'admin'} onboarding={onboarding} />
 
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
           <p className="font-mono-micro" style={{ paddingLeft: 'var(--space-xs)', opacity: 0.4 }}>

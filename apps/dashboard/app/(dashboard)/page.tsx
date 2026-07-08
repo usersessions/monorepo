@@ -1,16 +1,38 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { TrendChart } from '@/components/TrendChart'
 import { UpgradePrompt, UsageMeter } from '@/components/UpgradePrompt'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
-
-const STEPS = ['Install', 'Launch', 'Watch'] as const
+import DeltaBadge from '@/components/admin/DeltaBadge'
+import Sparkline from '@/components/admin/Sparkline'
+import TimeRangeToggle from '@/components/admin/TimeRangeToggle'
+import FreshnessTimestamp from '@/components/admin/FreshnessTimestamp'
+import RealtimeIndicator from '@/components/admin/RealtimeIndicator'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-export default async function OverviewPage() {
+const RANGES = ['24h', '7d', '30d', '90d'] as const
+type Range = (typeof RANGES)[number]
+const RANGE_DAYS: Record<Range, number> = { '24h': 1, '7d': 7, '30d': 30, '90d': 90 }
+
+function pctChange(current: number, previous: number): number | null {
+  if (previous === 0) return null
+  return ((current - previous) / Math.abs(previous)) * 100
+}
+
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>
+}) {
+  const { range: rangeParam } = await searchParams
+  const range: Range = RANGES.includes(rangeParam as Range) ? (rangeParam as Range) : '30d'
+  const days = RANGE_DAYS[range]
+  const rangeStart = new Date(Date.now() - days * DAY_MS).toISOString()
+  const prevStart = new Date(Date.now() - 2 * days * DAY_MS).toISOString()
+  const generatedAt = new Date().toISOString()
+
   const supabase = await createClient()
-  const ninetyDaysAgo = new Date(Date.now() - 90 * DAY_MS).toISOString()
-  const thirtyDaysAgo = new Date(Date.now() - 30 * DAY_MS).toISOString()
 
   const {
     data: { user },
@@ -39,6 +61,8 @@ export default async function OverviewPage() {
     { count: productCount },
     { count: launchesThisMonth },
     { count: visibilityQueryCount },
+    { count: newSubmissions },
+    { count: prevSubmissions },
   ] = await Promise.all([
     supabase.from('campaigns').select('*', { count: 'exact', head: true }),
     supabase.from('submissions').select('*', { count: 'exact', head: true }),
@@ -55,10 +79,13 @@ export default async function OverviewPage() {
     supabase
       .from('distribution_scores')
       .select('score, computed_at')
-      .gte('computed_at', ninetyDaysAgo)
+      .gte('computed_at', prevStart)
       .order('computed_at', { ascending: true })
-      .limit(180),
-    supabase.from('visibility_checks').select('mentioned').gte('checked_at', thirtyDaysAgo),
+      .limit(360),
+    supabase
+      .from('visibility_checks')
+      .select('mentioned, checked_at')
+      .gte('checked_at', prevStart),
     supabase
       .from('submissions')
       .select('platform_id, status, created_at')
@@ -76,20 +103,53 @@ export default async function OverviewPage() {
       .eq('simulated', false)
       .gte('started_at', monthStartIso()),
     supabase.from('visibility_queries').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', rangeStart),
+    supabase
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', prevStart)
+      .lt('created_at', rangeStart),
   ])
 
-  const checks = visibilityChecks ?? []
-  const mentionRate =
-    checks.length > 0
-      ? Math.round((checks.filter((c) => c.mentioned).length / checks.length) * 100)
-      : null
+  // AI visibility: mention rate inside the selected range vs the window before it.
+  const allChecks = visibilityChecks ?? []
+  const curChecks = allChecks.filter((c) => (c.checked_at as string) >= rangeStart)
+  const prevChecks = allChecks.filter((c) => (c.checked_at as string) < rangeStart)
+  const rateOf = (list: typeof allChecks) =>
+    list.length > 0 ? Math.round((list.filter((c) => c.mentioned).length / list.length) * 100) : null
+  const mentionRate = rateOf(curChecks)
+  const prevMentionRate = rateOf(prevChecks)
+  const mentionDelta =
+    mentionRate != null && prevMentionRate != null ? pctChange(mentionRate, prevMentionRate) : null
 
+  // Distribution score: trend within the selected range, delta = first vs latest point.
   const trendPoints = (trend ?? []).map((p) => ({
     score: Number(p.score),
     computed_at: p.computed_at as string,
   }))
+  const rangedTrend = trendPoints.filter((p) => p.computed_at >= rangeStart)
+  const scoreDelta =
+    rangedTrend.length >= 2
+      ? pctChange(rangedTrend[rangedTrend.length - 1].score, rangedTrend[0].score)
+      : null
+  const sparkPoints = rangedTrend.map((p) => p.score)
+  const chartPoints = rangedTrend.length >= 2 ? rangedTrend : trendPoints
 
-  const doneByStep = [Boolean(campaignCount), Boolean(campaignCount), Boolean(submissionCount)]
+  // Listings momentum: submissions created this window vs the previous window.
+  const listingsDelta = pctChange(newSubmissions ?? 0, prevSubmissions ?? 0)
+
+  // Onboarding checklist — mirrors /onboarding, derived from real data only.
+  const onboardingSteps = [
+    { label: 'Install', done: Boolean(campaignCount) },
+    { label: 'Product', done: Boolean(productCount) },
+    { label: 'Launch', done: Boolean(campaignCount) },
+    { label: 'Live', done: Boolean(liveCount) },
+  ]
+  const onboardingDone = onboardingSteps.filter((s) => s.done).length
+
   const atProductLimit = limits.productSlots !== null && (productCount ?? 0) >= limits.productSlots
   const atLaunchLimit =
     limits.launchesPerProductPerMonth !== null &&
@@ -97,36 +157,52 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
-      {/* Greeting */}
+      {/* Greeting + range controls */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>{greeting}</h1>
-        {!campaignCount && (
-          <a
-            href="https://usersessions.io#install"
-            className="btn-primary"
-            style={{ textDecoration: 'none', fontSize: '0.875rem' }}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Install the extension →
-          </a>
-        )}
+        <div className="flex items-center" style={{ gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+          <RealtimeIndicator />
+          <TimeRangeToggle defaultRange="30d" />
+          {!campaignCount && (
+            <a
+              href="https://usersessions.io#install"
+              className="btn-primary"
+              style={{ textDecoration: 'none', fontSize: '0.875rem' }}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Install the extension →
+            </a>
+          )}
+        </div>
       </div>
 
-      {/* Progress: Install → Launch → Watch */}
-      <div className="card--dense card flex" style={{ gap: 'var(--space-lg)' }}>
-        {STEPS.map((step, i) => (
-          <div key={step} className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
-            <span
-              className="font-mono-label"
-              style={{ color: doneByStep[i] ? 'var(--green)' : 'var(--muted-2)' }}
-            >
-              {i + 1}. {step}
-            </span>
-            {i < STEPS.length - 1 && <span style={{ color: 'var(--muted-2)' }}>→</span>}
-          </div>
-        ))}
-      </div>
+      <FreshnessTimestamp generatedAt={generatedAt} />
+
+      {/* Onboarding checklist — visible until every step is done */}
+      {onboardingDone < onboardingSteps.length && (
+        <div className="card--dense card flex items-center" style={{ gap: 'var(--space-lg)', flexWrap: 'wrap' }}>
+          <span className="font-mono-label">Get started · {onboardingDone}/{onboardingSteps.length}</span>
+          {onboardingSteps.map((step, i) => (
+            <div key={step.label} className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
+              <span
+                className="font-mono-label"
+                style={{ color: step.done ? 'var(--green)' : 'var(--muted-2)' }}
+              >
+                {step.done ? '✓' : i + 1 + '.'} {step.label}
+              </span>
+              {i < onboardingSteps.length - 1 && <span style={{ color: 'var(--muted-2)' }}>→</span>}
+            </div>
+          ))}
+          <Link
+            href="/onboarding"
+            className="font-mono-micro"
+            style={{ color: 'var(--primary)', textDecoration: 'none', marginLeft: 'auto' }}
+          >
+            Continue →
+          </Link>
+        </div>
+      )}
 
       {/* Plan usage — only shown when on a capped plan or near a limit */}
       {(atProductLimit || atLaunchLimit || plan === 'free') && (
@@ -159,7 +235,11 @@ export default async function OverviewPage() {
           <p className="font-mono-label">Distribution Score</p>
           {latestScore ? (
             <>
-              <p className="font-serif-metric">{latestScore.score}</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)' }}>
+                <p className="font-serif-metric">{latestScore.score}</p>
+                {sparkPoints.length >= 2 && <Sparkline points={sparkPoints} width={60} height={24} />}
+              </div>
+              <DeltaBadge value={scoreDelta} period={range} />
               <p className="font-mono-micro">
                 computed {new Date(latestScore.computed_at).toISOString().slice(0, 10)}
               </p>
@@ -177,7 +257,8 @@ export default async function OverviewPage() {
           {mentionRate != null ? (
             <>
               <p className="font-serif-metric">{mentionRate}%</p>
-              <p className="font-mono-micro">of AI answers mention you · last 30 days · {checks.length} checks</p>
+              <DeltaBadge value={mentionDelta} period={range} />
+              <p className="font-mono-micro">of AI answers mention you · last {range} · {curChecks.length} checks</p>
             </>
           ) : (
             <>
@@ -192,7 +273,10 @@ export default async function OverviewPage() {
           {submissionCount ? (
             <>
               <p className="font-serif-metric">{liveCount ?? 0}</p>
-              <p className="font-mono-micro">live or indexed · of {submissionCount} submissions</p>
+              <DeltaBadge value={listingsDelta} period={range} />
+              <p className="font-mono-micro">
+                live or indexed · of {submissionCount} submissions · {newSubmissions ?? 0} new in last {range}
+              </p>
             </>
           ) : (
             <>
@@ -203,12 +287,12 @@ export default async function OverviewPage() {
         </div>
       </div>
 
-      {/* 90-day trend */}
+      {/* Score trend for the selected range */}
       <div className="card">
         <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>
-          Distribution Score · 90 days
+          Distribution Score · {rangedTrend.length >= 2 ? `last ${range}` : 'all time'}
         </p>
-        <TrendChart points={trendPoints} />
+        <TrendChart points={chartPoints} />
       </div>
 
       {(notifications ?? []).length > 0 && (

@@ -5,11 +5,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 const RANGES = ['24h', '7d', '30d', '90d'] as const
 
 // Segmented control writing ?range= so server components recompute aggregates.
-export default function TimeRangeToggle() {
+export default function TimeRangeToggle({ defaultRange = '7d' }: { defaultRange?: (typeof RANGES)[number] }) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
-  const active = params.get('range') ?? '7d'
+  const active = params.get('range') ?? defaultRange
 
   return (
     <div
