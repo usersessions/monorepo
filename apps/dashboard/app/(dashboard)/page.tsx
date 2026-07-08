@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { TrendChart } from '@/components/TrendChart'
 import { UpgradePrompt, UsageMeter } from '@/components/UpgradePrompt'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
+import { computeUserInsights } from '@/lib/user-insights'
+import InsightsPanel from '@/components/InsightsPanel'
 import DeltaBadge from '@/components/admin/DeltaBadge'
 import Sparkline from '@/components/admin/Sparkline'
 import TimeRangeToggle from '@/components/admin/TimeRangeToggle'
@@ -63,6 +65,8 @@ export default async function OverviewPage({
     { count: visibilityQueryCount },
     { count: newSubmissions },
     { count: prevSubmissions },
+    { count: deadCount },
+    { data: lastCampaign },
   ] = await Promise.all([
     supabase.from('campaigns').select('*', { count: 'exact', head: true }),
     supabase.from('submissions').select('*', { count: 'exact', head: true }),
@@ -112,6 +116,16 @@ export default async function OverviewPage({
       .select('*', { count: 'exact', head: true })
       .gte('created_at', prevStart)
       .lt('created_at', rangeStart),
+    supabase
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['failed', 'removed']),
+    supabase
+      .from('campaigns')
+      .select('started_at')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   // AI visibility: mention rate inside the selected range vs the window before it.
@@ -155,6 +169,24 @@ export default async function OverviewPage({
     limits.launchesPerProductPerMonth !== null &&
     (launchesThisMonth ?? 0) >= limits.launchesPerProductPerMonth * (productCount ?? 1)
 
+  // Insights (GAP 17) — computed from data already on this page.
+  const daysSinceLastLaunch = lastCampaign?.started_at
+    ? Math.floor((Date.now() - new Date(lastCampaign.started_at).getTime()) / DAY_MS)
+    : null
+  const launchesTotal = limits.launchesPerProductPerMonth * Math.max(productCount ?? 1, 1)
+  const queriesTotal = limits.visibilityQueriesPerProduct * Math.max(productCount ?? 1, 1)
+  const insights = computeUserInsights({
+    deadCount: deadCount ?? 0,
+    daysSinceLastLaunch,
+    mentionRate,
+    prevMentionRate,
+    usagePct: [
+      { label: 'Products', pct: limits.productSlots > 0 ? ((productCount ?? 0) / limits.productSlots) * 100 : 0 },
+      { label: 'Launches', pct: launchesTotal > 0 ? ((launchesThisMonth ?? 0) / launchesTotal) * 100 : 0 },
+      { label: 'Visibility queries', pct: queriesTotal > 0 ? ((visibilityQueryCount ?? 0) / queriesTotal) * 100 : 0 },
+    ],
+  })
+
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
       {/* Greeting + range controls */}
@@ -178,6 +210,8 @@ export default async function OverviewPage({
       </div>
 
       <FreshnessTimestamp generatedAt={generatedAt} />
+
+      {insights.length > 0 && <InsightsPanel insights={insights} />}
 
       {/* Onboarding checklist — visible until every step is done */}
       {onboardingDone < onboardingSteps.length && (

@@ -11,3 +11,35 @@ body {
   color: var(--paper);
   font-family: var(--font-sans);
 }
+
+/* Accessibility (GAP 22): visible focus ring, skip link, reduced motion */
+:focus-visible {
+  outline: 2px solid var(--primary, var(--amber));
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--ink-2);
+  color: var(--paper);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--rounded-sm);
+}
+
+.skip-link:focus {
+  left: var(--space-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { limitsFor } from '@/lib/tiers'
 import { ExtensionBridge } from '@/components/ExtensionBridge'
 import { RealtimeRefresh } from '@/components/RealtimeRefresh'
 import { NotificationToaster } from '@/components/NotificationToaster'
@@ -8,6 +9,9 @@ import { SidebarNav, onboardingLabel } from '@/components/SidebarNav'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/components/CommandPalette'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
+import { ProductSwitcher } from '@/components/ProductSwitcher'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { HelpWidget } from '@/components/HelpWidget'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -16,16 +20,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { count: productCount }, { count: campaignCount }, { count: liveCount }] =
-    await Promise.all([
-      supabase.from('profiles').select('role, plan, full_name, email').eq('id', user.id).single(),
-      supabase.from('products').select('*', { count: 'exact', head: true }),
-      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('submissions')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['live', 'indexed']),
-    ])
+  const [
+    { data: profile },
+    { count: productCount },
+    { count: campaignCount },
+    { count: liveCount },
+    { data: products },
+    { count: unreadCount },
+  ] = await Promise.all([
+    supabase.from('profiles').select('role, plan, full_name, email').eq('id', user.id).single(),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
+    supabase.from('campaigns').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['live', 'indexed']),
+    supabase.from('products').select('id, name').order('name').limit(20),
+    supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('read', false),
+  ])
 
   // Mirrors the four steps on /onboarding — progress derives from real data only.
   const onboardingFlags = [
@@ -39,9 +51,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const displayName = profile?.full_name ?? profile?.email ?? user.email ?? ''
   const email = profile?.email ?? user.email ?? ''
   const initial = displayName.trim().charAt(0).toUpperCase() || '·'
+  const productSlots = limitsFor(profile?.plan).productSlots
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
+      <a href="#main" className="skip-link">Skip to main content</a>
       <ExtensionBridge />
       <RealtimeRefresh userId={user.id} />
       <NotificationToaster userId={user.id} />
@@ -72,7 +86,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             ['Platforms', '/platforms'],
             ['Analytics', '/analytics'],
             ['Competitors', '/competitors'],
-            ['Notifications', '/notifications'],
+            [`Notifications${(unreadCount ?? 0) > 0 ? ` (${unreadCount})` : ''}`, '/notifications'],
             ['Settings', '/settings'],
           ].map(([label, href]) => (
             <Link key={href} href={href} className="font-mono-label" style={{ color: 'var(--paper)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
@@ -105,7 +119,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           usersessions
         </Link>
 
-        <SidebarNav isAdmin={profile?.role === 'admin'} onboarding={onboarding} />
+        <ProductSwitcher products={products ?? []} slotsTotal={productSlots} />
+
+        <SidebarNav
+          isAdmin={profile?.role === 'admin'}
+          onboarding={onboarding}
+          unreadCount={unreadCount ?? 0}
+        />
 
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
           <p className="font-mono-micro" style={{ paddingLeft: 'var(--space-xs)', opacity: 0.4 }}>
@@ -120,9 +140,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      <main className="flex-1" style={{ padding: 'var(--space-xl)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>{children}</div>
+      <main id="main" className="flex-1" style={{ padding: 'var(--space-xl)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <Breadcrumbs />
+          {children}
+        </div>
       </main>
+
+      <HelpWidget />
     </div>
   )
 }

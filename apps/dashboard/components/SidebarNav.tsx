@@ -30,9 +30,11 @@ export function onboardingLabel(onboarding?: OnboardingProgress): string {
 export function SidebarNav({
   isAdmin,
   onboarding,
+  unreadCount = 0,
 }: {
   isAdmin: boolean
   onboarding?: OnboardingProgress
+  unreadCount?: number
 }) {
   const pathname = usePathname()
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
@@ -49,6 +51,21 @@ export function SidebarNav({
           style={item.href === '/onboarding' && complete ? { color: 'var(--green)' } : undefined}
         >
           {item.href === '/onboarding' ? onboardingLabel(onboarding) : item.label}
+          {item.href === '/notifications' && unreadCount > 0 && (
+            <span
+              aria-label={`${unreadCount} unread notifications`}
+              className="font-mono-micro"
+              style={{
+                background: 'var(--primary, var(--amber))',
+                color: 'var(--ink)',
+                borderRadius: 999,
+                padding: '0 6px',
+                marginLeft: 6,
+              }}
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </Link>
       ))}
       {isAdmin && (
