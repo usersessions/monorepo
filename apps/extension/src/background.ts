@@ -418,6 +418,20 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_SYNC) void retrySync()
 })
 
+// Clicking the "needs you" notification jumps straight to the paused tab.
+chrome.notifications.onClicked.addListener((id) => {
+  if (id !== 'needs-you') return
+  void (async () => {
+    const state = await getState()
+    if (state.pending) {
+      const tab = await chrome.tabs.get(state.pending.tabId).catch(() => null)
+      if (tab?.windowId !== undefined) void chrome.windows.update(tab.windowId, { focused: true })
+      void chrome.tabs.update(state.pending.tabId, { active: true })
+    }
+    chrome.notifications.clear(id)
+  })()
+})
+
 // ---------- Popup ↔ background messaging ----------
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   void (async () => {
