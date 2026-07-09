@@ -94,6 +94,16 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
 - Extension state machine statuses (`idle/running/paused/awaiting_user_action/done/plan_limit/sync_error`)
   all have handlers and exits; alarms are cleared on RESET/PAUSE — no orphan alarm paths found.
 
+### FIXED: "Something went wrong" crash on the user dashboard — ACTUAL root cause (digest 2261792288)
+- Production log: `Error: Attempted to call onboardingLabel() from the server but onboardingLabel
+  is on the client.` The dashboard layout (a server component) called `onboardingLabel()` for the
+  mobile nav, but the function was exported from `components/SidebarNav.tsx` — a `'use client'`
+  module. In Next.js 15 client-module exports become client references; invoking one on the
+  server throws on EVERY dashboard request for signed-in users.
+- **Fix:** moved `onboardingLabel` + `OnboardingProgress` to a shared server-safe module
+  `lib/onboarding.ts`; layout and SidebarNav now both import from there.
+- The earlier null-session guard remains valid as a separate latent-crash fix.
+
 ### Billing diagnostics (live-payments readiness)
 - Verified: the code has NO test/live mode switch — mode is determined entirely by the
   `PAYSTACK_SECRET_KEY` prefix (`sk_test_` vs `sk_live_`) and the plan codes' mode.

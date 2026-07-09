@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { onboardingLabel, type OnboardingProgress } from '@/lib/onboarding'
 
 const NAV: { label: string; href: string }[] = [
   { label: 'Get started', href: '/onboarding' },
@@ -14,18 +15,6 @@ const NAV: { label: string; href: string }[] = [
   { label: 'Notifications', href: '/notifications' },
   { label: 'Settings', href: '/settings' },
 ]
-
-export interface OnboardingProgress {
-  done: number
-  total: number
-}
-
-// "Get started 2/4" while onboarding is in progress, "✓ Get started" once complete.
-export function onboardingLabel(onboarding?: OnboardingProgress): string {
-  if (!onboarding) return 'Get started'
-  if (onboarding.done >= onboarding.total) return '✓ Get started'
-  return `Get started ${onboarding.done}/${onboarding.total}`
-}
 
 export function SidebarNav({
   isAdmin,
