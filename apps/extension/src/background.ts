@@ -125,23 +125,29 @@ async function startCampaign(requestedSimulated: boolean): Promise<CampaignRunSt
 
 function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve) => {
-    chrome.tabs.get(tabId).then((tab) => {
-      if (tab.status === 'complete') return resolve()
+    chrome.tabs
+      .get(tabId)
+      .then((tab) => {
+        if (tab.status === 'complete') return resolve()
 
-      const timeout = setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(listener)
-        resolve()
-      }, 20_000)
-
-      const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
-        if (id === tabId && info.status === 'complete') {
-          clearTimeout(timeout)
+        const timeout = setTimeout(() => {
           chrome.tabs.onUpdated.removeListener(listener)
           resolve()
+        }, 20_000)
+
+        const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
+          if (id === tabId && info.status === 'complete') {
+            clearTimeout(timeout)
+            chrome.tabs.onUpdated.removeListener(listener)
+            resolve()
+          }
         }
-      }
-      chrome.tabs.onUpdated.addListener(listener)
-    })
+        chrome.tabs.onUpdated.addListener(listener)
+      })
+      .catch(() => {
+        // Tab may have been closed before we attached listeners.
+        resolve()
+      })
   })
 }
 
@@ -435,7 +441,8 @@ chrome.notifications.onClicked.addListener((id) => {
 // ---------- Popup ↔ background messaging ----------
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   void (async () => {
-    switch (msg?.type) {
+    try {
+      switch (msg?.type) {
       case 'SET_TOKEN': {
         // From the token-bridge content script — works without a stable extension ID.
         if (typeof msg.token === 'string') await chrome.storage.local.set({ accessToken: msg.token })
@@ -466,6 +473,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         }
         const p = s.pending
         const adapter = getAdapter(p.platformId)
+
+        // If the user closed the paused tab, fail this platform gracefully and continue.
+        const pausedTab = await chrome.tabs.get(p.tabId).catch(() => null)
+        if (!pausedTab?.id) {
+          await settleOutcome(
+            p.platformId,
+            undefined,
+            { outcome: 'failed', error: 'paused tab was closed before resume' },
+            p.context
+          )
+          sendResponse({ state: await getState() })
+          break
+        }
+
         s.status = 'running'
         await setState(s)
         void chrome.action.setBadgeText({ text: '' })
@@ -579,6 +600,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       }
       default:
         sendResponse({ ok: false, error: 'Unknown message type.' })
+      }
+    } catch (err) {
+      sendResponse({ ok: false, error: String(err) })
     }
   })()
   return true

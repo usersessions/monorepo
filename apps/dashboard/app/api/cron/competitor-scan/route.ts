@@ -11,7 +11,7 @@ export const maxDuration = 60
  * is gated by their (Paystack-backed) plan. A watch is only re-scanned once its
  * interval has elapsed, so the daily trigger is cheap.
  */
-const SCAN_INTERVAL_DAYS: Record<string, number> = { free: 30, founder: 7, agency: 1 }
+const SCAN_INTERVAL_DAYS: Record<string, number> = { founder: 7, agency: 1 }
 
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
@@ -85,8 +85,9 @@ export async function GET(request: Request) {
       const profile = profileById.get(watch.user_id)
       if (!profile) continue
 
-      // Plan-gated cadence: only scan once the user's interval has elapsed.
-      const intervalDays = SCAN_INTERVAL_DAYS[profile.plan] ?? SCAN_INTERVAL_DAYS.free
+      // Plan-gated execution: skip users whose plan does not allow competitor scans.
+      const intervalDays = SCAN_INTERVAL_DAYS[profile.plan]
+      if (!intervalDays) continue
       const { data: last } = await db
         .from('competitor_scans')
         .select('scanned_at')
