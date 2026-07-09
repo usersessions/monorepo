@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { updateProfile, saveNotificationPrefs } from './actions'
 import { UsageMeter } from '@/components/UpgradePrompt'
@@ -15,11 +16,12 @@ export default async function SettingsPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name, email, plan, paystack_customer_code, notif_weekly_digest, notif_link_alerts, notif_new_platforms')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
   const plan = profile?.plan ?? 'free'
@@ -107,7 +109,7 @@ export default async function SettingsPage({
       {/* Account */}
       <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Account</h2>
-        <p className="font-mono-data">{profile?.email ?? user!.email}</p>
+        <p className="font-mono-data">{profile?.email ?? user.email}</p>
         <p className="font-mono-micro">
           Sign-in is passwordless — magic links go to this address. To change it, contact support.
         </p>

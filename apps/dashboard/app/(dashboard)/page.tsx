@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { TrendChart } from '@/components/TrendChart'
 import { UpgradePrompt, UsageMeter } from '@/components/UpgradePrompt'
@@ -39,10 +40,11 @@ export default async function OverviewPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name, email, plan')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
   const plan = profile?.plan ?? 'free'

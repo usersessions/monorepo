@@ -65,6 +65,35 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
 - Workspace structure consistent (`apps/`, `packages/`, pnpm workspace layout).
 - All workspace packages define build scripts.
 
+## Logical-flow debugging pass (post-verification)
+
+### FIXED: "Something went wrong" crash on the user dashboard (Overview)
+- **Root cause:** `apps/dashboard/app/(dashboard)/page.tsx` called `user!.id` after
+  `supabase.auth.getUser()` with no null check. In the Next.js App Router the layout's
+  `redirect('/login')` does NOT stop the page from rendering (layout and page render in
+  parallel), so any request with a missing/expired/mid-refresh session made the Overview
+  throw `TypeError: Cannot read properties of null (reading 'id')` — caught by the global
+  `app/error.tsx` boundary as "Something went wrong / That was us, not you" with a ref digest.
+- **Fix:** explicit `if (!user) redirect('/login')` guard before any `user.id` access.
+- **Same latent bug fixed in:**
+  - `apps/dashboard/app/(dashboard)/settings/page.tsx`
+  - `apps/dashboard/app/(dashboard)/platforms/page.tsx`
+  (Competitors already had the guard — which is why that page never crashed.)
+
+### Verified already fixed upstream
+- The invalid `.eq('simulated', false)` filter on the `campaigns` count in Settings was
+  removed by the local verification push (campaigns has no `simulated` column); Settings
+  now matches Overview's launch-count logic.
+
+### Logical-flow scan results (no change needed)
+- Overview, layout, and onboarding derive onboarding progress with identical rules — consistent.
+- Overview "Install" step reuses `campaignCount` (same as onboarding page) — intentional per
+  code comment (campaigns can only originate from the extension).
+- `/api/campaigns` metering, tiers (`lib/tiers.ts`), and dashboard usage meters share the same
+  `limitsFor` source of truth — no drift.
+- Extension state machine statuses (`idle/running/paused/awaiting_user_action/done/plan_limit/sync_error`)
+  all have handlers and exits; alarms are cleared on RESET/PAUSE — no orphan alarm paths found.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

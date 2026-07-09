@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PlatformVerifyButton } from '@/components/PlatformVerifyButton'
 
@@ -15,9 +16,10 @@ export default async function PlatformsPage() {
     supabase.from('platforms').select('*'),
     supabase.auth.getUser(),
   ])
+  if (!user) redirect('/login')
   const [{ data: profile }, { data: verifications }] = await Promise.all([
-    supabase.from('profiles').select('plan').eq('id', user!.id).single(),
-    supabase.from('adapter_verifications').select('platform_id, verified').eq('user_id', user!.id),
+    supabase.from('profiles').select('plan').eq('id', user.id).single(),
+    supabase.from('adapter_verifications').select('platform_id, verified').eq('user_id', user.id),
   ])
   const userPlanRank = PLAN_ORDER[profile?.plan ?? 'free'] ?? 0
   const verifiedByUser: Record<string, boolean> = {}
