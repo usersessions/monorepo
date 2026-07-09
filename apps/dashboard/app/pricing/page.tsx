@@ -68,17 +68,19 @@ const PLAN_ENV_NAMES: Record<string, string> = {
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout_error?: string; cycle?: string; plan?: string }>
+  searchParams: Promise<{ checkout_error?: string; cycle?: string; plan?: string; reason?: string }>
 }) {
   // Real 404 while the flag is off — never a "coming soon" page (BUILD_SPEC §11).
   if (!(await isEnabled('pricing_page'))) notFound()
 
   const params = await searchParams
+  const reasonDetail =
+    params.checkout_error === 'failed' && params.reason ? ` Details: ${params.reason.slice(0, 180)}` : ''
   const errorMessage =
     params.checkout_error === 'not_configured' && params.plan && PLAN_ENV_NAMES[params.plan]
       ? `Checkout for “${params.plan}” is not configured on the server — the ${PLAN_ENV_NAMES[params.plan]} environment variable is missing or empty (set it in Vercel and redeploy). Nothing was charged.`
       : params.checkout_error
-        ? CHECKOUT_ERRORS[params.checkout_error]
+        ? `${CHECKOUT_ERRORS[params.checkout_error] ?? 'Checkout could not start. Nothing was charged.'}${reasonDetail}`
         : null
   const annual = params.cycle !== 'monthly' // annual is the default anchor
   const TIERS = tiersFor(annual)

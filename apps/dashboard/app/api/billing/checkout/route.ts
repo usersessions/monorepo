@@ -41,8 +41,12 @@ export async function POST(request: Request) {
     userId: user.id,
     callbackUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? origin}/?billing=success`,
   })
-  if (!result) {
-    return NextResponse.redirect(`${origin}/pricing?checkout_error=failed`, 303)
+  if (!('authorizationUrl' in result)) {
+    // Surface the provider's reason so /pricing can show an actionable banner.
+    return NextResponse.redirect(
+      `${origin}/pricing?checkout_error=failed&reason=${encodeURIComponent(result.error)}`,
+      303
+    )
   }
 
   return NextResponse.redirect(result.authorizationUrl, 303)

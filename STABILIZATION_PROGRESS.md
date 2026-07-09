@@ -94,6 +94,13 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
 - Extension state machine statuses (`idle/running/paused/awaiting_user_action/done/plan_limit/sync_error`)
   all have handlers and exits; alarms are cleared on RESET/PAUSE — no orphan alarm paths found.
 
+### Billing diagnostics (live-payments readiness)
+- Verified: the code has NO test/live mode switch — mode is determined entirely by the
+  `PAYSTACK_SECRET_KEY` prefix (`sk_test_` vs `sk_live_`) and the plan codes' mode.
+- `lib/billing/paystack.ts` / `api/billing/checkout` / `pricing` now propagate the exact
+  Paystack rejection reason (status + provider message) to the pricing banner instead of a
+  blind "could not start this checkout", so misconfigured keys/plan codes are self-diagnosing.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
