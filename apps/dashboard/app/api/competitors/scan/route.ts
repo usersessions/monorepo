@@ -10,8 +10,16 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { query, competitorName, competitorUrl } = await request.json()
-  if (!query || !competitorName || !competitorUrl) {
+  const { query, competitorName, competitorUrl } = (await request.json().catch(() => ({}))) as {
+    query?: unknown
+    competitorName?: unknown
+    competitorUrl?: unknown
+  }
+  if (
+    typeof query !== 'string' || !query.trim() || query.length > 500 ||
+    typeof competitorName !== 'string' || !competitorName.trim() || competitorName.length > 200 ||
+    typeof competitorUrl !== 'string' || !competitorUrl.trim() || competitorUrl.length > 500
+  ) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
   }
 
