@@ -110,6 +110,12 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
 - `lib/billing/paystack.ts` / `api/billing/checkout` / `pricing` now propagate the exact
   Paystack rejection reason (status + provider message) to the pricing banner instead of a
   blind "could not start this checkout", so misconfigured keys/plan codes are self-diagnosing.
+- **FIXED (provider 400: Invalid Amount Sent):** Paystack's `transaction/initialize` requires
+  an explicit `amount` even for plan subscriptions. `initializeTransaction` now looks up the
+  plan via `GET /plan/:code` and passes its amount through; the plan amount remains
+  authoritative on Paystack's side.
+- Resolved in production config (not code): Paystack IP whitelist cleared (provider 401:
+  "Your IP address is not allowed" from Vercel's dynamic egress IPs).
 
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are

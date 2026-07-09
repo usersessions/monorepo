@@ -42,11 +42,37 @@ export async function initializeTransaction(input: {
   }
 
   try {
+    // Paystack's transaction/initialize requires an explicit amount even when a
+    // plan is supplied ("Invalid Amount Sent" otherwise); the plan's own amount is
+    // authoritative, so we fetch it and pass it through. Paystack overrides the
+    // charge with the plan amount server-side regardless.
+    const planRes = await fetch(`${API}/plan/${encodeURIComponent(input.planCode)}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+    })
+    if (!planRes.ok) {
+      const planErr = await planRes.text()
+      console.error(`[Billing] Plan lookup failed for ${input.planCode} (Status: ${planRes.status}):`, planErr)
+      let planMsg = ''
+      try {
+        planMsg = String(JSON.parse(planErr)?.message ?? '')
+      } catch {
+        /* not JSON */
+      }
+      return { error: `plan lookup ${planRes.status}${planMsg ? `: ${planMsg.slice(0, 140)}` : ''}` }
+    }
+    const planPayload = await planRes.json()
+    const amount = Number(planPayload?.data?.amount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      console.error('[Billing] Plan has no valid amount:', planPayload)
+      return { error: 'plan_has_no_amount' }
+    }
+
     const res = await fetch(`${API}/transaction/initialize`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: input.email,
+        amount,
         plan: input.planCode,
         metadata: { user_id: input.userId },
         callback_url: input.callbackUrl,
