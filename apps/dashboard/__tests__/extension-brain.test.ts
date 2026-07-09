@@ -11,6 +11,7 @@ vi.stubGlobal('chrome', {
   storage: {
     local: {
       get: vi.fn().mockResolvedValue({ accessToken: 'test-token-abc' }),
+      remove: vi.fn(),
     },
   },
 })
@@ -55,6 +56,7 @@ beforeEach(() => {
     storage: {
       local: {
         get: vi.fn().mockResolvedValue({ accessToken: 'test-token-abc' }),
+        remove: vi.fn(),
       },
     },
   })

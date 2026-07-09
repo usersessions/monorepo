@@ -36,7 +36,6 @@ export default async function SettingsPage({
       supabase
         .from('campaigns')
         .select('*', { count: 'exact', head: true })
-        .eq('simulated', false)
         .gte('started_at', monthStartIso()),
       supabase.from('visibility_queries').select('*', { count: 'exact', head: true }),
     ])

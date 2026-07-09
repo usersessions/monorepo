@@ -309,7 +309,7 @@ export async function runAgentLoop(sessionId: string): Promise<void> {
 
     // 3. PLAN
     const planRes = await fetchPlan(session, perception)
-    if (!planRes.ok) {
+    if (planRes.ok === false) {
       if (planRes.error === 'AUTH') {
         await pauseSession(session, 'auth_required', 'Sign in on the dashboard to reconnect the agent, then resume.')
         return

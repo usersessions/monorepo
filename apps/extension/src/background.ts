@@ -331,7 +331,7 @@ async function syncCampaign(state: CampaignRunState): Promise<void> {
   })
   if (res.ok) {
     state.status = 'done'
-  } else if (res.error === 'PLAN_LIMIT_EXCEEDED') {
+  } else if (res.ok === false && res.error === 'PLAN_LIMIT_EXCEEDED') {
     state.status = 'plan_limit'
   } else {
     state.status = 'sync_error'
