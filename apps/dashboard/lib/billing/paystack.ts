@@ -117,6 +117,36 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
 }
 
 /**
+ * Recover the active subscription's code + email_token straight from Paystack.
+ * Self-healing fallback for cancellation when the subscription.create webhook
+ * never stored them (missed delivery, misconfigured webhook URL, etc.).
+ */
+export async function findActiveSubscription(
+  customerCode: string
+): Promise<{ subscriptionCode: string; emailToken: string } | null> {
+  const secret = process.env.PAYSTACK_SECRET_KEY
+  if (!secret) return null
+  const headers = { Authorization: `Bearer ${secret}` }
+  try {
+    const custRes = await fetch(`${API}/customer/${encodeURIComponent(customerCode)}`, { headers })
+    if (!custRes.ok) return null
+    const cust = await custRes.json()
+    const customerId = cust?.data?.id
+    if (!customerId) return null
+
+    const subRes = await fetch(`${API}/subscription?customer=${customerId}&perPage=20`, { headers })
+    if (!subRes.ok) return null
+    const subs = await subRes.json()
+    const rows: any[] = Array.isArray(subs?.data) ? subs.data : []
+    const active = rows.find((s) => ['active', 'non-renewing', 'attention'].includes(String(s?.status)))
+    if (!active?.subscription_code || !active?.email_token) return null
+    return { subscriptionCode: String(active.subscription_code), emailToken: String(active.email_token) }
+  } catch {
+    return null
+  }
+}
+
+/**
  * Turn off auto-renew (BUILD_SPEC §11: email_token stored for cancellation).
  * The subscription stays active until the end of the paid period — Paystack's
  * subscription/disable semantics, mirrored as subscription_status='non_renewing'.

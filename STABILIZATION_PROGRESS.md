@@ -114,6 +114,11 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
   an explicit `amount` even for plan subscriptions. `initializeTransaction` now looks up the
   plan via `GET /plan/:code` and passes its amount through; the plan amount remains
   authoritative on Paystack's side.
+- **FIXED (cancel/downgrade "Could not cancel automatically"):** cancellation depended on
+  `paystack_subscription_code` + `paystack_email_token` stored by the `subscription.create`
+  webhook; when that event is missed the cancel dead-ends. The cancel route now self-heals by
+  recovering the active subscription's code + email token live from Paystack via the stored
+  customer code (`findActiveSubscription`), persisting them, then disabling auto-renew.
 - Resolved in production config (not code): Paystack IP whitelist cleared (provider 401:
   "Your IP address is not allowed" from Vercel's dynamic egress IPs).
 
