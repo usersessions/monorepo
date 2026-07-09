@@ -27,7 +27,10 @@ export default async function NotificationsPage({
     .order('created_at', { ascending: false })
     .limit(100)
   if (params.filter === 'unread') query = query.eq('read', false)
-  const { data: notifications } = await query
+  const { data: notifications, error: notificationsError } = await query
+  if (notificationsError) {
+    throw new Error(`Failed to load notifications (${notificationsError.message})`)
+  }
 
   const unreadCount = (notifications ?? []).filter((n) => !n.read).length
 

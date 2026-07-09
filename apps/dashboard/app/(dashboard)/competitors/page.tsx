@@ -7,11 +7,15 @@ export default async function CompetitorsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: scans } = await supabase
+  const { data: scans, error: scansError } = await supabase
     .from('competitor_scans')
     .select('*')
     .order('scanned_at', { ascending: false })
     .limit(50)
+
+  if (scansError) {
+    throw new Error(`Failed to load competitor scans (${scansError.message})`)
+  }
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-xl)', maxWidth: 800 }}>

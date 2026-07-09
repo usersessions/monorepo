@@ -15,13 +15,17 @@ export default async function ListingsPage({
   const params = await searchParams
   const supabase = await createClient()
 
-  const [{ data: subs }, { data: platforms }] = await Promise.all([
+  const [{ data: subs, error: subsError }, { data: platforms, error: platformsError }] = await Promise.all([
     supabase
       .from('submissions')
       .select('id, platform_id, status, listing_url, simulated, created_at')
       .order('created_at', { ascending: false }),
     supabase.from('platforms').select('id, name, category, editorial_score, quality_score'),
   ])
+
+  if (subsError || platformsError) {
+    throw new Error(`Failed to load listings (${subsError?.message ?? platformsError?.message ?? 'unknown error'})`)
+  }
 
   const platformById = new Map((platforms ?? []).map((p) => [p.id, p]))
 

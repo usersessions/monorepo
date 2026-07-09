@@ -14,13 +14,17 @@ export default async function CampaignsPage({
   const params = await searchParams
   const supabase = await createClient()
 
-  const [{ data: campaigns }, { data: subs }] = await Promise.all([
+  const [{ data: campaigns, error: campaignsError }, { data: subs, error: subsError }] = await Promise.all([
     supabase
       .from('campaigns')
       .select('id, status, started_at, completed_at, products(name)')
       .order('started_at', { ascending: false }),
     supabase.from('submissions').select('campaign_id, platform_id, status, listing_url, simulated'),
   ])
+
+  if (campaignsError || subsError) {
+    throw new Error(`Failed to load campaigns (${campaignsError?.message ?? subsError?.message ?? 'unknown error'})`)
+  }
 
   const byCampaign = new Map<string, NonNullable<typeof subs>>()
   for (const s of subs ?? []) {
