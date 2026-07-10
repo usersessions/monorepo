@@ -90,19 +90,19 @@ function waitFor(selector: string, timeoutMs: number): Promise<Element | null> {
 // ---------- Semantic field detection (context-aware smartFill) ----------
 
 const FIELD_HINTS: Record<string, string[]> = {
-  title: ['product name', 'tool name', 'app name', 'startup name', 'title', 'name'],
-  url: ['website url', 'product url', 'website', 'homepage', 'url', 'link'],
-  tagline: ['tagline', 'subtitle', 'one-liner', 'one liner', 'short description'],
-  hook: ['tagline', 'headline', 'hook'],
-  body: ['full description', 'long description', 'description', 'about', 'tell us'],
-  founderName: ['your name', 'full name', 'maker name', 'founder', 'maker', 'first name'],
-  contactEmail: ['email address', 'e-mail', 'contact email', 'email'],
-  category: ['category', 'type of tool', 'type'],
-  tags: ['tags', 'keywords', 'topics'],
-  pricingModel: ['pricing model', 'pricing', 'price'],
-  socialTwitter: ['twitter', 'x profile', 'x.com'],
-  socialLinkedIn: ['linkedin'],
-  socialGitHub: ['github'],
+  title: ['product name', 'tool name', 'app name', 'startup name', 'project name', 'name of your', 'title', 'name'],
+  url: ['website url', 'product url', 'live url', 'demo url', 'website', 'homepage', 'link to', 'url', 'link'],
+  tagline: ['tagline', 'subtitle', 'one-liner', 'one liner', 'short description', 'elevator pitch', 'slogan', 'headline'],
+  hook: ['tagline', 'headline', 'hook', 'pitch'],
+  body: ['full description', 'long description', 'detailed description', 'description', 'about your', 'about', 'tell us', 'overview', 'summary', 'what does'],
+  founderName: ['your name', 'full name', 'maker name', 'founder', 'maker', 'first name', 'contact name'],
+  contactEmail: ['email address', 'e-mail', 'contact email', 'your email', 'email'],
+  category: ['category', 'categories', 'type of tool', 'topic', 'topics', 'type'],
+  tags: ['tags', 'keywords', 'topics', 'labels'],
+  pricingModel: ['pricing model', 'pricing', 'price', 'cost', 'is it free', 'free or paid', 'plan type'],
+  socialTwitter: ['twitter', 'x profile', 'x.com', 'x handle', 'twitter handle'],
+  socialLinkedIn: ['linkedin', 'linked in'],
+  socialGitHub: ['github', 'git hub', 'repository', 'repo'],
   userInput: ['verification code', 'one-time', 'otp', 'code'],
 }
 
@@ -120,12 +120,19 @@ function semanticText(el: Element): string {
   if (labelledBy) {
     for (const rid of labelledBy.split(/\s+/)) parts.push(document.getElementById(rid)?.textContent ?? '')
   }
-  for (const attr of ['aria-label', 'placeholder', 'name', 'id']) {
+  for (const attr of ['aria-label', 'placeholder', 'name', 'id', 'title', 'data-testid']) {
     const v = el.getAttribute(attr)
     if (v) parts.push(v)
   }
   const prev = el.previousElementSibling?.textContent
   if (prev) parts.push(prev.slice(0, 120))
+  // Visual-proximity fallback: the nearest heading/label-like text above the field's
+  // container. Handles forms where the label is a <div>/<span>, not a <label> tag.
+  const container = el.closest('div, section, fieldset, li')
+  const near = container?.querySelector('label, legend, h1, h2, h3, h4, p, span')
+  if (near?.textContent && !parts.join(' ').includes(near.textContent.trim())) {
+    parts.push(near.textContent.slice(0, 120))
+  }
   return parts.join(' ').toLowerCase().replace(/[\s_-]+/g, ' ')
 }
 
@@ -158,7 +165,23 @@ function findFieldFor(field: FieldRef, extraHint?: string): HTMLElement | null {
     if (el instanceof HTMLTextAreaElement && field === 'body') score += 25
     if (score > (best?.score ?? 0)) best = { el, score }
   }
+  // Positional tiebreak: on a form with one obvious primary text input, treat the first
+  // visible text input as the title when nothing else scored — many launch forms label
+  // their name field only visually. Still never invents data; value must be present.
+  if (!best && (field === 'title' || field === 'tagline')) {
+    const firstText = candidates.find(
+      (el) => el instanceof HTMLInputElement && (el.type === 'text' || el.type === '')
+    )
+    if (firstText) return firstText as HTMLElement
+  }
   return best ? (best.el as HTMLElement) : null
+}
+
+// Human-paced timing: legitimate rate-limiting/politeness, NOT bot-detection evasion.
+// A brief settle before typing and a small gap between field fills keeps the runner from
+// hammering forms faster than a person plausibly could.
+function humanPause(minMs: number, maxMs: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, minMs + Math.random() * (maxMs - minMs)))
 }
 
 async function runSteps(
@@ -170,6 +193,9 @@ async function runSteps(
 ): Promise<AdapterOutcome> {
   for (let i = startAt; i < steps.length; i++) {
     const step = steps[i]
+    if (i > startAt && (step.op === 'fill' || step.op === 'smartFill')) {
+      await humanPause(250, 700) // gap between successive field fills
+    }
     switch (step.op) {
       case 'waitFor': {
         const el = await waitFor(step.selector, step.timeoutMs ?? 10_000)
@@ -313,13 +339,15 @@ async function runSteps(
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'RUN_ADAPTER') {
-    void runSteps(
+    runSteps(
       msg.steps as AdapterStep[],
       msg.context as RunContext,
       Boolean(msg.simulated),
       typeof msg.resumeFrom === 'number' ? msg.resumeFrom : 0,
       (msg.assets as RunAssets) ?? {}
-    ).then(sendResponse)
+    )
+      .then(sendResponse)
+      .catch((err) => sendResponse({ outcome: 'failed', error: String(err) })) // never leave the port hanging
     return true // async
   }
 })

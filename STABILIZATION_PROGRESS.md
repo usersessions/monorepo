@@ -283,6 +283,28 @@ The TODO comments remaining inside `adapters/registry.ts` are documentation only
   endpoint `https://<domain>/api/webhooks/resend`, copy its signing secret into
   `RESEND_WEBHOOK_SECRET` on Vercel; verify the domain + DKIM/SPF/DMARC records.
 
+## Runner reliability (real fix for the extension failure log)
+The "could not locate a 'title' field" / "missing wizard control" failures were selector/
+detection gaps, NOT a bot-detection problem. Fixes (no registry.ts changes, no fingerprint
+spoofing, human-in-the-loop preserved):
+- Expanded `FIELD_HINTS` synonyms (product/tool/app/startup name, live/demo url, elevator
+  pitch, detailed description, is-it-free, x handle, repository, etc.).
+- `semanticText` now also reads `title`/`data-testid` and a visual-proximity heading/label
+  from the field's container — catches forms whose label is a div/span, not a <label>.
+- `smartFill` positional tiebreak: the first visible text input is used for title/tagline
+  when nothing else scores (value must still be present — never invents data).
+- Product Hunt "message channel closed" bug fixed: the RUN_ADAPTER listener now always
+  responds, including on throw (`.catch(() => sendResponse(failed))`).
+- Added honest human-paced gaps (250-700ms) between field fills as politeness/rate-limiting.
+
+### Explicitly NOT built (and why)
+A fingerprint/anti-detection evasion engine (webdriver-flag removal, canvas-noise, spoofed
+navigator.plugins, keystroke-mimicry to defeat bot detection) was requested but declined: it
+contradicts this product's own "assisted automation, never a spam tool / human-in-the-loop"
+spec, violates target-platform terms, and is self-defeating (evading directory bot-detection
+gets listings removed, destroying the Distribution Score that is the product's value). Auth /
+CAPTCHA / magic-link gates keep their graceful pause-for-human flow.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
