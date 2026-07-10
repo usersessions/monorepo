@@ -271,6 +271,18 @@ The TODO comments remaining inside `adapters/registry.ts` are documentation only
   support). Invoice-ready is covered by the payment-received receipt; a dedicated invoice PDF
   is a Paystack portal feature, not built here.
 
+## Email infrastructure (monitoring + fallbacks)
+- **Plain-text fallbacks (every email):** `sendEmail` now auto-derives a text part from the
+  HTML (`htmlToText`) unless an explicit `text` is provided — improves spam scoring and
+  accessibility for every template already shipped, with zero call-site changes.
+- **Resend event webhook:** `POST /api/webhooks/resend` — svix signature verification
+  (HMAC-SHA256 over `id.timestamp.payload`, 5-min replay window, fail-closed without
+  `RESEND_WEBHOOK_SECRET`) — logs sent/delivered/opened/clicked/bounced/complained into the
+  new `email_events` table (migration 0022, RLS service-role only).
+- **Ops to activate:** run migration 0022 in Supabase; in the Resend dashboard add the webhook
+  endpoint `https://<domain>/api/webhooks/resend`, copy its signing secret into
+  `RESEND_WEBHOOK_SECRET` on Vercel; verify the domain + DKIM/SPF/DMARC records.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
