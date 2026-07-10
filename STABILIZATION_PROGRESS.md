@@ -305,6 +305,23 @@ spec, violates target-platform terms, and is self-defeating (evading directory b
 gets listings removed, destroying the Distribution Score that is the product's value). Auth /
 CAPTCHA / magic-link gates keep their graceful pause-for-human flow.
 
+## Feature A: AI-Readable Landing Page Audit (AIO Audit) — SHIPPED
+- **Contracts (single source of truth):** `LandingPageAuditResult`, `AuditCategory`,
+  `AuditCategoryName`, `AuditResponse`, `AuditApiError` in `packages/shared/src/contracts.ts`.
+- **Migration 0023:** `landing_page_audits` (append-only, RLS select-own; inserts via service
+  role only after ownership + cadence checks).
+- **`POST /api/audit`:** auth + product-ownership validation; server-side fetch (12s timeout,
+  500KB cap, graceful FETCH_FAILED); 7 scored categories (H1 clarity [Gemini-refined when a key
+  is set, heuristic otherwise], FAQ, comparison, JSON-LD, social proof, pricing clarity, meta
+  description); overall 0-100; lowest-fraction category becomes topPriority. Cadence-gated
+  (1/week free+founder, 1/day pro+agency) returning PLAN_LIMIT_EXCEEDED, plus a rate-limit
+  backstop. No fabricated data.
+- **Dashboard `/audit`:** server page (honest empty states for no-product / no-URL) + client
+  `AuditRunner` scorecard (serif metric, DM Mono data, cyan=actionable / green/amber/red state
+  meters, top-priority callout, re-run button) + loading + error boundary. Added to sidebar nav.
+- Vocabulary honoured: “distribution / visibility / AI Answer Ownership”, no “SEO”/“backlinks”.
+- Features B/C/D NOT started (per the build order: A ships and is verified first).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

@@ -129,3 +129,46 @@ export function appendUtm(url: string, campaignId: string): string {
   const sep = url.includes('?') ? '&' : '?'
   return `${url}${sep}${utmQuery(campaignId)}`
 }
+
+/**
+ * AIO (AI Optimization) audit — how well AI assistants can understand and recommend
+ * a founder's landing page. THE ONLY home for these types (Feature A).
+ */
+export type AuditCategoryName =
+  | 'h1_clarity'
+  | 'faq_presence'
+  | 'comparison_content'
+  | 'structured_data'
+  | 'social_proof'
+  | 'pricing_clarity'
+  | 'meta_description'
+
+export interface AuditCategory {
+  name: AuditCategoryName
+  /** Human-readable label for the UI. */
+  label: string
+  score: number
+  max: number
+  /** What we observed. */
+  feedback: string
+  /** Actionable, specific fix. */
+  suggestion: string
+}
+
+export interface LandingPageAuditResult {
+  productId: string
+  url: string
+  overallScore: number // 0-100
+  categories: AuditCategory[]
+  /** The single highest-impact fix, surfaced prominently. */
+  topPriority: string
+  auditedAt: string // ISO
+}
+
+export type AuditApiError = 'UNAUTHORIZED' | 'INVALID_PAYLOAD' | 'FETCH_FAILED' | 'RATE_LIMITED' | 'PLAN_LIMIT_EXCEEDED'
+
+export interface AuditResponse {
+  ok: boolean
+  audit?: LandingPageAuditResult
+  error?: AuditApiError
+}
