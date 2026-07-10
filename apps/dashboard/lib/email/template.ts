@@ -88,6 +88,17 @@ export function metricCard(label: string, value: string, delta?: { text: string;
   return `<div style="background-color:${T.ink} !important;border:1px solid ${T.border};border-radius:4px;padding:16px;margin:0 0 8px;"><div style="font-family:${MONO};font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:${T.muted} !important;">${escapeHtml(label)}</div><div style="font-family:${SERIF};font-size:24px;color:${T.paper} !important;padding-top:4px;">${escapeHtml(value)}</div>${d}</div>`
 }
 
+/** 2-up grid of pre-built metricCard() HTML blocks (matches the digest/report layout). */
+export function metricGrid(cards: string[]): string {
+  const rows: string[] = []
+  for (let i = 0; i < cards.length; i += 2) {
+    rows.push(
+      `<tr><td width="48%" style="vertical-align:top;padding-right:4%;">${cards[i]}</td><td width="48%" style="vertical-align:top;">${cards[i + 1] ?? ''}</td></tr>`
+    )
+  }
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join('')}</table>`
+}
+
 /** Full email document: wordmark header → hero → body slot → CTA → footer. */
 export function renderEmail(input: {
   title: string

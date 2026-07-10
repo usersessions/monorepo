@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { computeDistributionScore } from '@/lib/distribution-score'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
+import { sendEmail } from '@/lib/email/resend'
+import { ctaButton, dataTable, renderEmail, statusBadge } from '@/lib/email/template'
 import type { CampaignPayload, CampaignResponse, SubmissionStatus } from '@usersessions/shared'
 
 /**
@@ -134,6 +136,29 @@ export async function POST(request: Request) {
     if ((launchesThisMonth ?? 0) >= limits.launchesPerProductPerMonth) {
       return bad('PLAN_LIMIT_EXCEEDED', 403)
     }
+
+    // Usage-limit warning: fire once when this launch crosses 80% of the monthly quota.
+    const usedPct = ((launchesThisMonth ?? 0) + 1) / limits.launchesPerProductPerMonth
+    if (usedPct >= 0.8) {
+      const { data: emailProfile } = await db.from('profiles').select('email').eq('id', user.id).maybeSingle()
+      if (emailProfile?.email) {
+        void sendEmail({
+          to: emailProfile.email,
+          subject: 'Approaching your monthly launch limit',
+          html: renderEmail({
+            title: 'Approaching your limit',
+            heroTitle: 'Approaching your launch limit',
+            heroSubtitle: `You're using ${Math.round(usedPct * 100)}% of this product's monthly launches.`,
+            bodyHtml: dataTable([
+              ['Used', String((launchesThisMonth ?? 0) + 1)],
+              ['Limit', String(limits.launchesPerProductPerMonth)],
+              ['Resets', new Date(new Date(monthStartIso()).setUTCMonth(new Date(monthStartIso()).getUTCMonth() + 1)).toISOString().slice(0, 10)],
+            ]),
+            cta: { label: 'Upgrade plan', href: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}/pricing` },
+          }),
+        })
+      }
+    }
   }
 
   // ---- Campaign upsert ----
@@ -187,6 +212,38 @@ export async function POST(request: Request) {
   })
   // Notification failure must not fail the ingest.
   if (notifyError) console.error('[campaigns] notification insert failed:', notifyError)
+
+  // ---- Campaign completed email — design-system, fail-soft, mirrors the in-app notification ----
+  if (payload.finishedAt) {
+    const { data: emailProfile } = await db.from('profiles').select('email').eq('id', user.id).maybeSingle()
+    if (emailProfile?.email) {
+      const rows = payload.results.map(
+        (r) =>
+          [
+            r.platformId,
+            r.status === 'failed'
+              ? statusBadge('dead', 'failed')
+              : r.status === 'submitted' || r.status === 'live' || r.status === 'indexed'
+                ? statusBadge('live', r.status)
+                : statusBadge('pending', r.status.replaceAll('_', ' ')),
+          ] as [string, string]
+      )
+      void sendEmail({
+        to: emailProfile.email,
+        subject: isSimulated ? 'Simulation finished' : 'Campaign complete',
+        html: renderEmail({
+          title: 'Campaign complete',
+          heroTitle: isSimulated ? 'Simulation finished' : 'Campaign complete',
+          heroSubtitle: `${okCount}/${payload.results.length} platforms ${isSimulated ? 'filled' : 'submitted'}.`,
+          bodyHtml: dataTable(rows, ['Platform', 'Result']),
+          cta: {
+            label: 'View campaign',
+            href: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}/campaigns`,
+          },
+        }),
+      })
+    }
+  }
 
   // ---- Synchronous score recompute: the dashboard must feel instant ----
   try {

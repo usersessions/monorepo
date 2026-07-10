@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { sendEmail } from '@/lib/email/resend'
+import { dataTable, escapeHtml, renderEmail } from '@/lib/email/template'
 
 const ADMIN_EMAIL = 'info@usersessions.io'
 
@@ -24,6 +26,13 @@ export async function GET(request: Request) {
     if (!error && data.user) {
       const email = (data.user.email ?? '').toLowerCase()
 
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle()
+      const isNewProfile = !existing
+
       await supabase
         .from('profiles')
         .upsert(
@@ -34,6 +43,38 @@ export async function GET(request: Request) {
           },
           { onConflict: 'id', ignoreDuplicates: true }
         )
+
+      // Welcome + internal new-signup alert — fire once, on first-ever profile creation.
+      if (isNewProfile) {
+        const name = (data.user.user_metadata?.full_name as string | undefined)?.split(' ')[0]
+        void sendEmail({
+          to: data.user.email ?? '',
+          subject: 'Welcome to usersessions',
+          html: renderEmail({
+            title: 'Welcome to usersessions',
+            heroTitle: `Welcome${name ? `, ${name}` : ''}.`,
+            heroSubtitle: "Your account is ready. Let's get your product visible everywhere that matters.",
+            bodyHtml:
+              '<p style="margin:0 0 8px;">Three steps: <strong>Install</strong> the extension, <strong>Launch</strong> your first campaign, <strong>Watch</strong> your Distribution Score climb.</p><p style="margin:0;">Your free plan includes one full live launch and 30 days of complete monitoring — plenty to see the whole loop work.</p>',
+            cta: { label: 'Open your dashboard', href: `${origin}/onboarding` },
+          }),
+        })
+        void sendEmail({
+          to: ADMIN_EMAIL,
+          subject: `New signup: ${data.user.email}`,
+          html: renderEmail({
+            title: 'New signup',
+            heroTitle: 'New signup',
+            heroSubtitle: 'A new user just joined usersessions.',
+            bodyHtml: dataTable([
+              ['Email', escapeHtml(data.user.email ?? '—')],
+              ['Name', escapeHtml((data.user.user_metadata?.full_name as string) ?? '—')],
+              ['Source', escapeHtml(data.user.app_metadata?.provider ?? 'email')],
+            ]),
+            cta: { label: 'View in admin', href: `${origin}/admin/users` },
+          }),
+        })
+      }
 
       // Admin role is pinned to the admin email — idempotent, via service role
       // (RLS keeps users from self-promoting).

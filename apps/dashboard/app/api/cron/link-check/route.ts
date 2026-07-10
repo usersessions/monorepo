@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { authorizeCron, logCron } from '@/lib/cron'
 import { computeDistributionScore } from '@/lib/distribution-score'
 import { createServiceClient } from '@/lib/supabase/server'
+import { sendEmail } from '@/lib/email/resend'
+import { ctaButton, dataTable, renderEmail } from '@/lib/email/template'
 import type { PlanId } from '@usersessions/shared'
 
 export const maxDuration = 60
@@ -66,6 +68,26 @@ export async function GET(request: Request) {
         if (promote) {
           stats.promoted++
           affectedCampaigns.add(sub.campaign_id)
+          const profile = sub.profiles as { plan?: PlanId; notif_link_alerts?: boolean } | null
+          if (profile?.notif_link_alerts !== false) {
+            const { data: p } = await db.from('profiles').select('email').eq('id', sub.user_id).maybeSingle()
+            if (p?.email) {
+              void sendEmail({
+                to: p.email,
+                subject: 'Your listing is live',
+                html: renderEmail({
+                  title: 'Listing live',
+                  heroTitle: 'Listing is live',
+                  heroSubtitle: `Your listing on ${sub.platform_id} is now verified reachable.`,
+                  bodyHtml: dataTable([
+                    ['Platform', sub.platform_id],
+                    ['Status', 'Live and indexed'],
+                  ]),
+                  cta: { label: 'View listing', href: sub.listing_url! },
+                }),
+              })
+            }
+          }
         }
         await db
           .from('submissions')
@@ -140,6 +162,26 @@ export async function GET(request: Request) {
             title: 'A listing went dead',
             body: `${sub.listing_url} has been unreachable for 48 hours. Queue a resubmission from Listings.`,
           })
+          const { data: p } = await db.from('profiles').select('email').eq('id', sub.user_id).maybeSingle()
+          if (p?.email) {
+            void sendEmail({
+              to: p.email,
+              subject: 'A listing was rejected or went dead',
+              html: renderEmail({
+                title: 'Listing needs attention',
+                heroTitle: 'A listing needs attention',
+                heroSubtitle: `${sub.platform_id} could not be reached for 48 hours.`,
+                bodyHtml: dataTable([
+                  ['Platform', sub.platform_id],
+                  ['Reason', 'Unreachable for 48+ hours'],
+                ]),
+                cta: {
+                  label: 'Fix and resubmit',
+                  href: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}/listings?status=removed`,
+                },
+              }),
+            })
+          }
         }
       }
     }

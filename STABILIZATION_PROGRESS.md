@@ -249,6 +249,28 @@ The TODO comments remaining inside `adapters/registry.ts` are documentation only
   listing live/rejected, usage warnings, security alerts) can now be added in minutes on the
   shared template.
 
+## Lifecycle emails (implemented, wired to real triggers)
+- **Welcome** — `auth/callback/route.ts`, fires once on first-ever profile creation
+  (detected via a pre-upsert existence check, not a fragile `ignoreDuplicates` return value).
+- **Admin new-signup alert** — same trigger, sent to the admin address.
+- **Campaign complete / simulation finished** — `api/campaigns/route.ts`, fires when a synced
+  payload includes `finishedAt`; mirrors the existing in-app notification with a per-platform
+  status table.
+- **Usage limit warning (80%)** — same route, fires once per launch that crosses 80% of the
+  product's monthly quota, before the hard 100% `PLAN_LIMIT_EXCEEDED` block.
+- **Listing live** — `cron/link-check/route.ts`, on `submitted → live` promotion.
+- **Listing rejected / dead** — same cron, on confirmed 48h dead-link (free-plan path; the
+  founder/agency auto-resubmit path keeps its existing distinct notification).
+- **Payment received / Payment failed** — already wired to the Paystack webhook (previous commit).
+- All new sends are `void`-fired (never block the response) and fail-soft (a Resend outage
+  never breaks ingestion, auth, or the cron).
+- **Deferred (needs infra, not templating):** security alert (new login) requires device/IP
+  fingerprinting and a known-devices table that do not exist yet — wiring it now would either
+  fire on every magic-link sign-in (noise) or require new schema. Support ticket created/resolved
+  emails are deferred until a support-ticket table/flow exists in this app (currently email-only
+  support). Invoice-ready is covered by the payment-received receipt; a dedicated invoice PDF
+  is a Paystack portal feature, not built here.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
