@@ -3,7 +3,7 @@
  * A type defined in either app that mirrors a concept here is a bug.
  */
 
-export type PlanId = 'free' | 'founder' | 'agency'
+export type PlanId = 'free' | 'founder' | 'pro' | 'agency'
 
 export type SubscriptionStatus =
   | 'none'

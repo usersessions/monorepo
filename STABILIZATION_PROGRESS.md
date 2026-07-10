@@ -122,6 +122,27 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
 - Resolved in production config (not code): Paystack IP whitelist cleared (provider 401:
   "Your IP address is not allowed" from Vercel's dynamic egress IPs).
 
+## Pricing restructure (research-backed, July 2026)
+- **New structure:** 3 self-serve cards (Free / Founder ⭐ $39 / Pro $99) + visually separated
+  **Agency & Enterprise callout** ("Custom pricing, from $299/mo") routing to the contact flow
+  (`/support`) instead of self-checkout — per 2026 benchmarks (demos outperform self-serve at
+  $200+; floor price increases qualified leads; enterprise as a 4th equal column distorts anchoring).
+- **New `pro` plan** wired end to end: `PlanId` in shared contracts, `PLAN_LIMITS` (10 products,
+  10 launches/product/mo, 15 visibility queries/product), Paystack plan keys
+  `PAYSTACK_PLAN_PRO_MONTHLY` / `PAYSTACK_PLAN_PRO_ANNUAL`, checkout `PAID_PLANS`,
+  webhook `planIdFromCode`, and platforms-page tier gating (free 0 < founder 1 < pro 2 < agency 3).
+- **Agency self-checkout removed from the page** (grandfathered subs keep working —
+  `agency_monthly` remains valid in checkout and webhook).
+- **Reason-mapped cancel flow** at `/settings/cancel`: one required question, ONE mapped save
+  offer (price/usage → downgrade to Founder; timing → 60-day pause via support; feature/other →
+  support), then one-click cancel always visible. Single-offer design keeps CA ARL compliance.
+- **Deferred (product decision + metering change):** free-tier reverse trial (1 full launch +
+  30 days of full monitoring, then decay to read-only). Requires signup-date-based metering in
+  /api/campaigns — tracked as the next pricing iteration.
+- **Ops prerequisites:** create live Paystack plans for Pro ($99 monthly / $990 annual) and set
+  the two new env vars in Vercel before the Pro buttons will checkout (until then they surface
+  the explicit not_configured banner naming the missing variable).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

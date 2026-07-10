@@ -8,11 +8,13 @@ import crypto from 'crypto'
 
 const API = 'https://api.paystack.co'
 
-export type PaidPlanKey = 'founder_monthly' | 'founder_annual' | 'agency_monthly'
+export type PaidPlanKey = 'founder_monthly' | 'founder_annual' | 'pro_monthly' | 'pro_annual' | 'agency_monthly'
 
 const PLAN_ENV: Record<PaidPlanKey, string> = {
   founder_monthly: 'PAYSTACK_PLAN_FOUNDER_MONTHLY',
   founder_annual: 'PAYSTACK_PLAN_FOUNDER_ANNUAL',
+  pro_monthly: 'PAYSTACK_PLAN_PRO_MONTHLY',
+  pro_annual: 'PAYSTACK_PLAN_PRO_ANNUAL',
   agency_monthly: 'PAYSTACK_PLAN_AGENCY_MONTHLY',
 }
 
@@ -21,10 +23,12 @@ export function planCode(key: PaidPlanKey): string | null {
 }
 
 /** Reverse mapping: Paystack plan_code → our PlanId, for webhook processing. */
-export function planIdFromCode(code: string | null | undefined): 'founder' | 'agency' | null {
+export function planIdFromCode(code: string | null | undefined): 'founder' | 'pro' | 'agency' | null {
   if (!code) return null
   if (code === process.env.PAYSTACK_PLAN_FOUNDER_MONTHLY || code === process.env.PAYSTACK_PLAN_FOUNDER_ANNUAL)
     return 'founder'
+  if (code === process.env.PAYSTACK_PLAN_PRO_MONTHLY || code === process.env.PAYSTACK_PLAN_PRO_ANNUAL)
+    return 'pro'
   if (code === process.env.PAYSTACK_PLAN_AGENCY_MONTHLY) return 'agency'
   return null
 }

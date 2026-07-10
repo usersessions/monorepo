@@ -6,11 +6,10 @@ import { MarketingFooter } from '@/components/MarketingFooter'
 export const dynamic = 'force-dynamic'
 
 /**
- * Pricing presentation, research-backed without touching the plan amounts:
- * annual-default toggle (anchors the lower monthly-equivalent, lifts LTV),
- * center-stage 'Most popular' on the middle tier, risk reversal via a
- * money-back guarantee, explicit USD. Checkout posts the SAME Paystack
- * plan codes as before — no billing changes, only conversion changes.
+ * Pricing — research-backed structure (see STABILIZATION_PROGRESS.md):
+ * 3 self-serve cards (Free / Founder⭐ / Pro) + a visually separated Agency &
+ * Enterprise callout that routes to the contact flow instead of self-checkout.
+ * Annual-default toggle, center 'Most popular', charm pricing, risk reversal.
  */
 function tiersFor(annual: boolean) {
   return [
@@ -30,7 +29,6 @@ function tiersFor(annual: boolean) {
       note: annual ? 'billed annually at $390 · save 17% (2 months free)' : 'or $32.50/mo billed annually',
       popular: true,
       features: ['3 products', '2 launches per product / month', 'Full monitoring + auto-resubmission', '5 AI Visibility queries / product, weekly', 'Weekly digest + new-platform drops'],
-      // BOTH cycles always purchasable; the toggle only changes which is primary.
       cta: annual
         ? [
             { label: 'Subscribe yearly — $390', plan: 'founder_annual' },
@@ -42,13 +40,21 @@ function tiersFor(annual: boolean) {
           ],
     },
     {
-      name: 'Agency',
-      price: '$199',
+      name: 'Pro',
+      price: annual ? '$82.50' : '$99',
       period: '/mo',
-      note: 'monthly billing',
+      note: annual ? 'billed annually at $990 · save 17% (2 months free)' : 'or $82.50/mo billed annually',
       popular: false,
-      features: ['15 client workspaces', 'Pooled launches, priority', 'White-label reports', '10 AI Visibility queries / product, weekly', 'API access when it ships'],
-      cta: [{ label: 'Subscribe monthly', plan: 'agency_monthly' }],
+      features: ['10 products', '10 launches per product / month', 'Everything in Founder', '15 AI Visibility queries / product', 'Daily competitor scans', 'Priority resubmission & support'],
+      cta: annual
+        ? [
+            { label: 'Subscribe yearly — $990', plan: 'pro_annual' },
+            { label: 'Or monthly at $99/mo', plan: 'pro_monthly' },
+          ]
+        : [
+            { label: 'Subscribe monthly — $99/mo', plan: 'pro_monthly' },
+            { label: 'Or yearly at $990 (save 17%)', plan: 'pro_annual' },
+          ],
     },
   ]
 }
@@ -62,6 +68,8 @@ const CHECKOUT_ERRORS: Record<string, string> = {
 const PLAN_ENV_NAMES: Record<string, string> = {
   founder_monthly: 'PAYSTACK_PLAN_FOUNDER_MONTHLY',
   founder_annual: 'PAYSTACK_PLAN_FOUNDER_ANNUAL',
+  pro_monthly: 'PAYSTACK_PLAN_PRO_MONTHLY',
+  pro_annual: 'PAYSTACK_PLAN_PRO_ANNUAL',
   agency_monthly: 'PAYSTACK_PLAN_AGENCY_MONTHLY',
 }
 
@@ -168,6 +176,31 @@ export default async function PricingPage({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Agency & Enterprise — sales-assisted, visually separated from self-serve cards */}
+      <div
+        className="card"
+        style={{
+          marginTop: 'var(--space-lg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 'var(--space-md)',
+          borderColor: 'var(--amber)',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', maxWidth: 640 }}>
+          <p className="font-mono-label" style={{ color: 'var(--amber)' }}>Agency &amp; Enterprise</p>
+          <p className="font-sans-body">
+            Custom pricing, from $299/mo — 15+ client workspaces, pooled priority launches,
+            white-label reports, custom AI Visibility volume, and dedicated support.
+          </p>
+        </div>
+        <Link href="/support" className="btn-primary" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          Talk to us →
+        </Link>
       </div>
 
       <p className="font-mono-micro" style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>

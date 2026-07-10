@@ -161,9 +161,9 @@ export default async function SettingsPage({
           </p>
         )}
         {plan !== 'free' && !params.cancelled && (
-          <form action="/api/billing/cancel" method="post">
-            <button className="btn-ghost" type="submit">Cancel subscription</button>
-          </form>
+          <Link href="/settings/cancel" className="btn-ghost" style={{ textDecoration: 'none', width: 'fit-content' }}>
+            Cancel subscription
+          </Link>
         )}
 
         {plan !== 'free' && (

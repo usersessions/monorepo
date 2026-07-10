@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PlatformVerifyButton } from '@/components/PlatformVerifyButton'
 
-const PLAN_ORDER: Record<string, number> = { free: 0, founder: 1, agency: 2 }
+const PLAN_ORDER: Record<string, number> = { free: 0, founder: 1, pro: 2, agency: 3 }
 const CATEGORY_LABELS: Record<string, string> = {
   ai: 'AI tool indexes',
   startup: 'Startup launch platforms',

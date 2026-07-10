@@ -3,7 +3,7 @@ import { isEnabled } from '@/lib/flags'
 import { initializeTransaction, planCode, type PaidPlanKey } from '@/lib/billing/paystack'
 import { createClient } from '@/lib/supabase/server'
 
-const PAID_PLANS: PaidPlanKey[] = ['founder_monthly', 'founder_annual', 'agency_monthly']
+const PAID_PLANS: PaidPlanKey[] = ['founder_monthly', 'founder_annual', 'pro_monthly', 'pro_annual', 'agency_monthly']
 
 export async function POST(request: Request) {
   // Flag-gated end to end: with billing off this endpoint does not exist in practice.
