@@ -97,51 +97,67 @@ describe('verifyWebhookSignature()', () => {
 })
 
 // --------------------------------------------------------------------------
-// initializeTransaction() — network call mocked
+// initializeTransaction() — network calls mocked (plan lookup + initialize)
 // --------------------------------------------------------------------------
 describe('initializeTransaction()', () => {
+  afterEach(() => vi.unstubAllGlobals())
 
-  it('returns the authorization URL on success', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ data: { authorization_url: 'https://paystack.com/pay/abc123' } }),
-    })
+  const input = {
+    email: 'founder@example.com',
+    planCode: 'PLN_founder_monthly',
+    userId: 'user-uuid-123',
+    callbackUrl: 'https://usersessions.io/?billing=success',
+  }
+
+  it('returns the authorization URL on success (plan lookup, then initialize)', async () => {
+    const mockFetch = vi
+      .fn()
+      // 1st call: GET /plan/:code — provides the amount Paystack requires
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { amount: 3900 } }) })
+      // 2nd call: POST /transaction/initialize
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { authorization_url: 'https://paystack.com/pay/abc123' } }),
+      })
     vi.stubGlobal('fetch', mockFetch)
 
-    const result = await initializeTransaction({
-      email: 'founder@example.com',
-      planCode: 'PLN_founder_monthly',
-      userId: 'user-uuid-123',
-      callbackUrl: 'https://usersessions.io/?billing=success',
-    })
-
+    const result = await initializeTransaction(input)
     expect(result).toEqual({ authorizationUrl: 'https://paystack.com/pay/abc123' })
-    expect(mockFetch).toHaveBeenCalledOnce()
-    vi.unstubAllGlobals()
+    expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 
-  it('returns null when PAYSTACK_SECRET_KEY is missing', async () => {
+  it('returns an error object when PAYSTACK_SECRET_KEY is missing', async () => {
     const original = process.env.PAYSTACK_SECRET_KEY
     delete process.env.PAYSTACK_SECRET_KEY
-    const result = await initializeTransaction({
-      email: 'founder@example.com',
-      planCode: 'PLN_founder_monthly',
-      userId: 'user-uuid-123',
-      callbackUrl: 'https://usersessions.io/?billing=success',
-    })
-    expect(result).toBeNull()
+    const result = await initializeTransaction(input)
+    expect(result).toEqual({ error: 'missing_secret_key' })
     process.env.PAYSTACK_SECRET_KEY = original
   })
 
-  it('returns null when Paystack API responds with a non-OK status', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
-    const result = await initializeTransaction({
-      email: 'founder@example.com',
-      planCode: 'PLN_founder_monthly',
-      userId: 'user-uuid-123',
-      callbackUrl: 'https://usersessions.io/?billing=success',
-    })
-    expect(result).toBeNull()
-    vi.unstubAllGlobals()
+  it('surfaces the provider message when initialize is rejected', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { amount: 3900 } }) })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ message: 'Invalid Amount Sent' }),
+      })
+    vi.stubGlobal('fetch', mockFetch)
+    const result = await initializeTransaction(input)
+    expect(result).toEqual({ error: 'provider 400: Invalid Amount Sent' })
+  })
+
+  it('surfaces a plan-lookup error when the plan cannot be fetched', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: async () => JSON.stringify({ message: 'Plan not found' }),
+      })
+    )
+    const result = await initializeTransaction(input)
+    expect(result).toEqual({ error: 'plan lookup 404: Plan not found' })
   })
 })
