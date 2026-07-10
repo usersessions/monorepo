@@ -6,3 +6,4 @@
 update platforms
 set active = true
 where active = false;
+ 
