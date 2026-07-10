@@ -12,13 +12,17 @@ export interface PlanLimits {
   lifetimeSubmissionCap: number | null
   /** AI Visibility queries tracked per product. */
   visibilityQueriesPerProduct: number
+  /** Reverse trial: days from signup during which live runs are allowed (null = always). */
+  trialDays: number | null
+  /** Reverse trial: lifetime cap on LIVE launches (distinct live campaigns; null = unlimited). */
+  lifetimeLaunchCap: number | null
 }
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
-  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: 3, visibilityQueriesPerProduct: 1 },
-  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5 },
-  pro: { productSlots: 10, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 15 },
-  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10 },
+  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 1, trialDays: 30, lifetimeLaunchCap: 1 },
+  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5, trialDays: null, lifetimeLaunchCap: null },
+  pro: { productSlots: 10, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 15, trialDays: null, lifetimeLaunchCap: null },
+  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10, trialDays: null, lifetimeLaunchCap: null },
 }
 
 export function limitsFor(plan: string | null | undefined): PlanLimits {

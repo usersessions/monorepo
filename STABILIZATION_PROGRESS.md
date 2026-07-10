@@ -143,6 +143,21 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
   the two new env vars in Vercel before the Pro buttons will checkout (until then they surface
   the explicit not_configured banner naming the missing variable).
 
+## Deferred items — now CLOSED
+- **Free-tier reverse trial (shipped):** `PlanLimits` gains `trialDays` + `lifetimeLaunchCap`;
+  free = 30 days of full live access from signup + 1 lifetime live launch (distinct live
+  campaigns, metered in /api/campaigns via non-simulated submissions). Lifetime 3-submission
+  cap removed; pricing card copy updated to match. Simulated runs remain always free.
+- **16:9 hero cropping (shipped):** `cropDataUrl` in the background worker (OffscreenCanvas +
+  createImageBitmap, MV3-safe) center-crops hero captures; falls back to the raw shot on error.
+- **Multi-image gallery uploads (shipped):** capture engine now also takes a second scrolled
+  shot (`chrome.scripting`); `RunAssets.productGallery` carries it; the runner's `upload` op
+  attaches every available shot to `multiple` file inputs. No registry step changes needed.
+- **Fuzzy multi-checkbox selection (shipped):** `smartFill` for `category`/`tags` now falls
+  back to ticking visible checkboxes whose labels match approved values when no text input
+  exists. No registry step changes needed.
+- Registry TODO comments remain as documentation only — registry.ts untouched per mandate.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

@@ -96,6 +96,25 @@ export async function POST(request: Request) {
 
   // ---- Metering (simulated runs are always free — they exist for safe adapter testing) ----
   if (!isSimulated) {
+    // Reverse trial: free accounts get full live access for trialDays from signup…
+    if (limits.trialDays !== null) {
+      const signup = new Date(user.created_at).getTime()
+      if (Number.isFinite(signup) && Date.now() - signup > limits.trialDays * 86_400_000) {
+        return bad('PLAN_LIMIT_EXCEEDED', 403)
+      }
+    }
+    // …and ONE full live launch (distinct live campaigns, current campaign excluded).
+    if (limits.lifetimeLaunchCap !== null) {
+      const { data: liveSubs } = await db
+        .from('submissions')
+        .select('campaign_id')
+        .eq('user_id', user.id)
+        .eq('simulated', false)
+        .neq('campaign_id', payload.campaignId)
+        .limit(500)
+      const liveCampaigns = new Set((liveSubs ?? []).map((s) => s.campaign_id)).size
+      if (liveCampaigns >= limits.lifetimeLaunchCap) return bad('PLAN_LIMIT_EXCEEDED', 403)
+    }
     if (limits.lifetimeSubmissionCap !== null) {
       const { count: realSubs } = await db
         .from('submissions')

@@ -41,9 +41,9 @@ export type AdapterStep =
   /** Set a checkbox/radio to a state (default: checked). */
   | { op: 'check'; selector: string; checked?: boolean }
   /**
-   * Upload a captured asset into a file input. Cropping/resizing (1:1 logo, 16:9 hero)
-   * is a TODO on the capture engine; the raw hero shot is used until then. Missing
-   * optional assets are skipped so a submission is never blocked on media.
+   * Upload a captured asset into a file input. Hero shots are auto-cropped to 16:9 by
+   * the capture engine; inputs accepting multiple files receive every captured gallery
+   * shot. Missing optional assets are skipped so a submission is never blocked on media.
    */
   | { op: 'upload'; selector: string; asset: 'productHero' | 'logo'; required?: boolean }
   /**
@@ -116,6 +116,8 @@ export interface RunContext {
 /** Captured media handed to the runner alongside the context (data URLs). */
 export interface RunAssets {
   productHero?: string
+  /** Second, scrolled gallery shot for platforms whose galleries expect 2+ images. */
+  productGallery?: string
   logo?: string
 }
 

@@ -19,7 +19,7 @@ function tiersFor(annual: boolean) {
       period: '',
       note: null as string | null,
       popular: false,
-      features: ['1 product', 'Competitor scan', 'AI copy generation', '3 platform submissions', '1 AI Visibility query, monthly'],
+      features: ['1 product', '1 full launch — every platform', '30 days of full monitoring + weekly AI visibility', 'Distribution Score + competitor scan', 'AI copy generation'],
       cta: null as { label: string; plan: string }[] | null,
     },
     {

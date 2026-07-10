@@ -187,25 +187,68 @@ async function assetsFor(campaignId: string, platformId: string): Promise<Record
   const assets: Record<string, string> = {}
   const hero = map[`${campaignId}:${platformId}:product`]
   if (hero) assets.productHero = hero
+  const second = map[`${campaignId}:${platformId}:product2`]
+  if (second) assets.productGallery = second
   return assets
 }
 
 /**
- * Captures the hero (top viewport) of the founder's landing page for platforms that
- * require a gallery image. Git-repo URLs are skipped unless the platform explicitly
+ * Captures gallery shots of the founder's landing page for platforms that require
+ * gallery images: a 16:9 top-anchored hero, plus a second scrolled shot for galleries
+ * that expect multiple images. Git-repo URLs are skipped unless the platform explicitly
  * requires a shot — a code listing makes a bad gallery image.
  */
-async function captureProductHero(productUrl: string, required: boolean): Promise<string | undefined> {
-  if (GIT_HOST.test(productUrl) && !required) return undefined
+async function captureProductShots(
+  productUrl: string,
+  required: boolean
+): Promise<{ hero?: string; second?: string }> {
+  if (GIT_HOST.test(productUrl) && !required) return {}
   try {
     const tab = await chrome.tabs.create({ url: productUrl, active: true }) // captureVisibleTab needs the active tab
     await waitForTabLoad(tab.id!)
     await new Promise((r) => setTimeout(r, 1_000)) // let hero imagery paint
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
+    const heroRaw = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
+    const hero = await cropDataUrl(heroRaw, 16 / 9)
+    let second: string | undefined
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id! },
+        func: () => window.scrollTo(0, window.innerHeight),
+      })
+      await new Promise((r) => setTimeout(r, 700))
+      second = await cropDataUrl(await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' }), 16 / 9)
+    } catch {
+      /* the second shot is a bonus, never a blocker */
+    }
     void chrome.tabs.remove(tab.id!)
-    return dataUrl
+    return { hero, second }
   } catch {
-    return undefined // asset capture is best-effort; the submission proceeds without it
+    return {} // asset capture is best-effort; the submission proceeds without it
+  }
+}
+
+/** Center-crop a PNG data URL to the given aspect ratio (top-anchored). Best-effort. */
+async function cropDataUrl(dataUrl: string, ratio: number): Promise<string> {
+  try {
+    const blob = await (await fetch(dataUrl)).blob()
+    const bmp = await createImageBitmap(blob)
+    let w = bmp.width
+    let h = bmp.height
+    if (w / h > ratio) w = Math.round(h * ratio)
+    else h = Math.round(w / ratio)
+    const canvas = new OffscreenCanvas(w, h)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return dataUrl
+    ctx.drawImage(bmp, Math.round((bmp.width - w) / 2), 0, w, h, 0, 0, w, h)
+    const out = await canvas.convertToBlob({ type: 'image/png' })
+    const buf = new Uint8Array(await out.arrayBuffer())
+    let bin = ''
+    for (let i = 0; i < buf.length; i += 0x8000) {
+      bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+    }
+    return `data:image/png;base64,${btoa(bin)}`
+  } catch {
+    return dataUrl // crop is best-effort; the raw shot still works
   }
 }
 
@@ -392,11 +435,12 @@ async function processNext(): Promise<void> {
     return
   }
 
-  // Context-aware asset generation: hero shot for platforms that require a gallery image.
+  // Context-aware asset generation: 16:9 hero + scrolled gallery shot where required.
   const sim = simFor(state, platformId)
   if (adapter.requirements?.requiresScreenshot && !sim) {
-    const shot = await captureProductHero(site.url, true)
-    if (shot) await storeScreenshot(`${state.campaignId}:${platformId}:product`, shot)
+    const shots = await captureProductShots(site.url, true)
+    if (shots.hero) await storeScreenshot(`${state.campaignId}:${platformId}:product`, shots.hero)
+    if (shots.second) await storeScreenshot(`${state.campaignId}:${platformId}:product2`, shots.second)
   }
 
   let tabId: number | undefined

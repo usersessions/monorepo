@@ -199,7 +199,26 @@ async function runSteps(
         const value = step.maxLen ? raw.slice(0, step.maxLen) : raw
         if (!value) break // nothing approved for this field — skip, never invent data
         const el = findFieldFor(step.field, step.hint)
-        if (!el) return { outcome: 'failed', error: `could not locate a '${step.field}' field on this form` }
+        if (!el) {
+          // Fuzzy checkbox fallback: category/tags widgets are often checkbox groups,
+          // not text inputs — tick every visible checkbox whose label matches a value.
+          if (step.field === 'category' || step.field === 'tags') {
+            const wanted = (step.field === 'tags' ? ctx.tags : [value])
+              .map((v) => v.trim().toLowerCase())
+              .filter(Boolean)
+            let ticked = 0
+            for (const box of Array.from(document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))) {
+              if (box.offsetParent === null) continue
+              const text = semanticText(box)
+              if (wanted.some((w) => text.includes(w))) {
+                if (!box.checked) box.click()
+                ticked++
+              }
+            }
+            if (ticked > 0) break
+          }
+          return { outcome: 'failed', error: `could not locate a '${step.field}' field on this form` }
+        }
         if (el instanceof HTMLSelectElement) {
           if (!setSelectValue(el, value)) {
             return { outcome: 'failed', error: `no option matching '${value}' in detected ${step.field} select` }
@@ -240,10 +259,17 @@ async function runSteps(
         const input = document.querySelector<HTMLInputElement>(step.selector)
         if (!input) return { outcome: 'failed', error: `missing file input ${step.selector}` }
         try {
-          const blob = await (await fetch(dataUrl)).blob()
-          const file = new File([blob], `${step.asset}.png`, { type: 'image/png' })
+          const urls: string[] = [dataUrl]
+          // Gallery inputs accepting multiple files receive every captured shot
+          // (platforms expecting 2-5 gallery images get hero + scrolled shot).
+          if (input.multiple && step.asset === 'productHero' && assets.productGallery) {
+            urls.push(assets.productGallery)
+          }
           const dt = new DataTransfer()
-          dt.items.add(file)
+          for (let f = 0; f < urls.length; f++) {
+            const blob = await (await fetch(urls[f])).blob()
+            dt.items.add(new File([blob], `${step.asset}-${f + 1}.png`, { type: 'image/png' }))
+          }
           input.files = dt.files
           input.dispatchEvent(new Event('change', { bubbles: true }))
         } catch (err) {
