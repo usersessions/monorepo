@@ -51,15 +51,16 @@ Traced every `dangerouslySetInnerHTML` usage:
 9 TODOs confirmed in executable extension source (8 in `adapters/registry.ts`, 1 in `adapters/types.ts`).
 All relate to adapter step data or capture-engine features:
 
-| Gap | Status | Risk | Next action |
-| --- | --- | --- | --- |
-| Image cropping (1:1 logo / 16:9 hero) | **Deferred** | Medium: platforms with strict image formats may reject the raw hero shot | Implement crop/resize in the capture engine (`background.ts` screenshot path); no registry change needed |
-| Raw hero image used until crop ships | **Deferred** (same root cause) | Medium | Same as above |
-| Multi-image gallery uploads (2–5 expected, 1 sent) | **Deferred** | Medium: submissions may be flagged incomplete on gallery-heavy platforms | Extend `RunAssets` + capture engine to produce multiple shots; registry `upload` steps unchanged |
-| Fuzzy multi-checkbox selection | **Deferred** | Low: category checkboxes may be left unticked on some platforms | Extend the generic runner (`contents/adapter-runner.ts`); step data unchanged |
+| Gap | Status | Resolution |
+| --- | --- | --- |
+| 16:9 hero cropping | **Shipped** | `cropDataUrl` (OffscreenCanvas, MV3-safe) center-crops hero captures in the background worker |
+| Raw hero fallback | **Resolved** | Crop failures fall back to the raw shot; a submission never blocks on media |
+| 1:1 logo asset | **Shipped** | `captureLogo` pulls apple-touch-icon → og:image → favicon and crops it square; assets flow through `RunAssets.logo` |
+| Multi-image gallery uploads | **Shipped** | Second scrolled capture; the runner's `upload` op attaches all shots to `multiple` file inputs |
+| Fuzzy multi-checkbox selection | **Shipped** | `smartFill` ticks label-matched checkboxes for category/tags groups when no text input exists |
 
-These are functional limitations, not crashes. None can be fully closed without either registry step-data
-changes (locked by mandate) or new capture-engine work, so they are formally deferred with owners' notes above.
+All capture-engine gaps are closed WITHOUT touching registry step data (mandate respected).
+The TODO comments remaining inside `adapters/registry.ts` are documentation only.
 
 ## Structure findings (verified, no action needed)
 - Workspace structure consistent (`apps/`, `packages/`, pnpm workspace layout).
@@ -157,6 +158,80 @@ changes (locked by mandate) or new capture-engine work, so they are formally def
   back to ticking visible checkboxes whose labels match approved values when no text input
   exists. No registry step changes needed.
 - Registry TODO comments remain as documentation only — registry.ts untouched per mandate.
+
+## How the system works end-to-end (launch reference)
+
+### 1. Connect
+- User signs in on the dashboard (Supabase magic link). `ExtensionBridge` (dashboard) hands the
+  Supabase access token to the extension via postMessage + `chrome.runtime.sendMessage`, with a
+  race-proof retry/ack handshake. Token refreshes are re-delivered automatically.
+
+### 2. Analyze & approve
+- On the founder's landing page, the extension's extract content script reads title,
+  description, keywords, and headings into `SiteData` (stored in `chrome.storage.local`).
+- The popup calls `POST /api/ai/copy` (Bearer-authed; Gemini key stays server-side) to generate
+  per-category listing copy. The founder edits and approves every word before anything runs.
+- Founder profile (name, email, tags, socials) auto-fills from `GET /api/profile` and is editable.
+
+### 3. Launch (campaign loop — background service worker)
+- `START_CAMPAIGN` builds `CampaignRunState` in `chrome.storage.local`; per-platform live/sim
+  mode is FAIL-CLOSED: an adapter runs live only if registry-verified or user-verified via
+  `adapter_verifications`. Requested simulations simulate everything.
+- Platforms run one at a time with human-mimicking pacing (45-75s live, 2s sim) via
+  `chrome.alarms` — the whole run survives MV3 worker restarts.
+- Per platform: a tab opens the submit URL; the capture engine (when the adapter needs media)
+  grabs a 16:9 hero, a scrolled gallery shot, and a 1:1 logo; the generic adapter-runner
+  executes the declarative steps (fill/smartFill/select/check/upload/next/waitFor/submit).
+  Simulation always stops before submit. CAPTCHA/OTP/login pause the run
+  (`awaiting_user_action`) with badge + system notification; the human acts, then resumes
+  (closed paused tabs fail gracefully and the campaign continues).
+
+### 4. Sync (the heartbeat)
+- Queue drained → `POST /api/campaigns` (Bearer + rate-limited): validates payload, verifies
+  product ownership (bootstraps the product on first run), METERS the plan (reverse-trial window
+  + lifetime live-launch cap for free; monthly launches per product for all), upserts the
+  campaign, inserts one submission row per platform, writes a notification, and recomputes the
+  Distribution Score synchronously. Failed syncs NEVER drop results — `sync_error` state retries
+  on an alarm, on demand, and on fresh tokens. `PLAN_LIMIT_EXCEEDED` is surfaced distinctly.
+
+### 5. Watch (dashboard + crons)
+- Realtime: Supabase publications drive `RealtimeRefresh` (server re-render) and
+  `NotificationToaster` the moment the extension syncs.
+- Crons (Bearer `CRON_SECRET`, all outcomes logged to `cron_logs`): link-check (48h dead-link
+  policy → resubmission queue), ai-visibility (weekly verbatim engine checks), competitor-scan
+  (plan-gated cadence: founder 7d / agency 1d; free skipped), platform-quality, weekly-digest.
+
+### 6. Billing lifecycle
+- Pricing: Free (reverse trial: 1 product, 1 full live launch, 30 days full monitoring) /
+  Founder $39 / Pro $99 (annual default, 17% off) + Agency/Enterprise → contact flow.
+- Checkout: `POST /api/billing/checkout` → plan lookup (amount) → Paystack authorization URL.
+  Failures redirect to /pricing with the provider's exact reason.
+- Webhook (HMAC-verified): charge.success / subscription.create (stores subscription_code +
+  email_token; auto-disables any PREVIOUS subscription so plan switches never double-bill) /
+  subscription.disable (downgrade to free) / invoice.payment_failed (status 'attention').
+- Cancel: /settings/cancel — one reason question, one mapped save offer (downgrade / pause /
+  support), one-click cancel; the API self-heals missing codes from Paystack before disabling.
+
+## Remaining gaps & pre-launch recommendations (honest list)
+1. **Adapter selectors are the #1 launch risk.** Registry selectors/URLs are locked and marked
+   PROVISIONAL in places — they can only be proven against the LIVE sites. Recommendation: run a
+   simulated campaign against all 15 platforms and a live run on 2-3 verified ones before launch.
+2. **Paystack webhook delivery is a single point of truth** for plan upgrades. Verify the LIVE
+   webhook URL and send a test event from the Paystack dashboard. (Cancel self-heals; upgrade
+   does not — a missed charge.success leaves a paying user on free.)
+3. **Plan-switch race:** the old-subscription auto-disable can race Paystack's own
+   subscription.disable event; worst case is status text, never double-billing. Acceptable, monitor.
+4. **Existing free users older than 30 days** lose live-launch access the moment the reverse
+   trial deploys (trial is measured from signup). If any real free users predate launch, decide
+   whether to grandfather them (e.g. measure from deploy date) before shipping.
+5. **Pro plan env vars** (`PAYSTACK_PLAN_PRO_MONTHLY/ANNUAL`) must exist in Vercel or Pro buttons
+   show the not-configured banner.
+6. **Extension review lag:** Chrome Web Store review takes days — submit the new build BEFORE the
+   marketing push. The dashboard can deploy independently.
+7. **Logo/gallery capture is best-effort** (favicon/og:image quality varies). Platforms with
+   strict image validation may still reject; the run fails honestly per-platform, never silently.
+8. **`vercel.json` cron schedules** must match the five cron routes; confirm they exist and
+   `CRON_SECRET` is set, or monitoring silently never runs (fail-closed by design).
 
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are

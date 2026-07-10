@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { planIdFromCode, verifyWebhookSignature } from '@/lib/billing/paystack'
+import { disableSubscription, planIdFromCode, verifyWebhookSignature } from '@/lib/billing/paystack'
 import { createServiceClient } from '@/lib/supabase/server'
 
 /**
@@ -74,6 +74,21 @@ export async function POST(request: Request) {
         const userId = await findUserId()
         if (!userId) break
         const plan = planIdFromCode(data.plan?.plan_code)
+        // Plan switch (upgrade or cancel-flow downgrade): turn off auto-renew on the
+        // PREVIOUS subscription so the user is never double-billed.
+        const { data: prev } = await db
+          .from('profiles')
+          .select('paystack_subscription_code, paystack_email_token')
+          .eq('id', userId)
+          .maybeSingle()
+        if (
+          prev?.paystack_subscription_code &&
+          prev.paystack_email_token &&
+          data.subscription_code &&
+          prev.paystack_subscription_code !== data.subscription_code
+        ) {
+          await disableSubscription(prev.paystack_subscription_code, prev.paystack_email_token)
+        }
         await db
           .from('profiles')
           .update({

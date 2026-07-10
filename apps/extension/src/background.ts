@@ -189,6 +189,8 @@ async function assetsFor(campaignId: string, platformId: string): Promise<Record
   if (hero) assets.productHero = hero
   const second = map[`${campaignId}:${platformId}:product2`]
   if (second) assets.productGallery = second
+  const logo = map[`${campaignId}:${platformId}:logo`]
+  if (logo) assets.logo = logo
   return assets
 }
 
@@ -201,7 +203,7 @@ async function assetsFor(campaignId: string, platformId: string): Promise<Record
 async function captureProductShots(
   productUrl: string,
   required: boolean
-): Promise<{ hero?: string; second?: string }> {
+): Promise<{ hero?: string; second?: string; logo?: string }> {
   if (GIT_HOST.test(productUrl) && !required) return {}
   try {
     const tab = await chrome.tabs.create({ url: productUrl, active: true }) // captureVisibleTab needs the active tab
@@ -220,10 +222,45 @@ async function captureProductShots(
     } catch {
       /* the second shot is a bonus, never a blocker */
     }
+    const logo = await captureLogo(tab.id!)
     void chrome.tabs.remove(tab.id!)
-    return { hero, second }
+    return { hero, second, logo }
   } catch {
     return {} // asset capture is best-effort; the submission proceeds without it
+  }
+}
+
+/** Blob → data URL inside the MV3 service worker (no FileReader available). */
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const buf = new Uint8Array(await blob.arrayBuffer())
+  let bin = ''
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+  return `data:${blob.type || 'image/png'};base64,${btoa(bin)}`
+}
+
+/** Best-effort 1:1 logo: apple-touch-icon → og:image → favicon, center-cropped square. */
+async function captureLogo(tabId: number): Promise<string | undefined> {
+  try {
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const link = (sel: string) => document.querySelector<HTMLLinkElement>(sel)?.href
+        return (
+          link('link[rel="apple-touch-icon"]') ||
+          link('link[rel="apple-touch-icon-precomposed"]') ||
+          document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content ||
+          link('link[rel="icon"]') ||
+          link('link[rel="shortcut icon"]') ||
+          null
+        )
+      },
+    })
+    if (!result) return undefined
+    const res = await fetch(String(result))
+    if (!res.ok) return undefined
+    return await cropDataUrl(await blobToDataUrl(await res.blob()), 1) // 1:1 logo
+  } catch {
+    return undefined // logo is always optional media
   }
 }
 
@@ -435,12 +472,15 @@ async function processNext(): Promise<void> {
     return
   }
 
-  // Context-aware asset generation: 16:9 hero + scrolled gallery shot where required.
+  // Context-aware asset generation: 16:9 hero + scrolled gallery shot + 1:1 logo where needed.
   const sim = simFor(state, platformId)
-  if (adapter.requirements?.requiresScreenshot && !sim) {
+  const needsMedia =
+    adapter.requirements?.requiresScreenshot || adapter.steps.some((s) => s.op === 'upload')
+  if (needsMedia && !sim) {
     const shots = await captureProductShots(site.url, true)
     if (shots.hero) await storeScreenshot(`${state.campaignId}:${platformId}:product`, shots.hero)
     if (shots.second) await storeScreenshot(`${state.campaignId}:${platformId}:product2`, shots.second)
+    if (shots.logo) await storeScreenshot(`${state.campaignId}:${platformId}:logo`, shots.logo)
   }
 
   let tabId: number | undefined
