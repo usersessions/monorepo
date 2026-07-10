@@ -233,6 +233,22 @@ The TODO comments remaining inside `adapters/registry.ts` are documentation only
 8. **`vercel.json` cron schedules** must match the five cron routes; confirm they exist and
    `CRON_SECRET` is set, or monitoring silently never runs (fail-closed by design).
 
+## Email Design System v1.0 (implemented)
+- New shared module `apps/dashboard/lib/email/template.ts`: dark-first 600px layout (ink/ink2
+  tokens, wordmark header, hero, footer with preference link + optional `EMAIL_POSTAL_ADDRESS`
+  for CAN-SPAM), plus components `dataTable`, `statusBadge`, `metricCard`, `ctaButton`, and
+  `escapeHtml`. Inline styles with `!important` colors + dark color-scheme metas per spec.
+- Refactored onto the system: **weekly digest** (metric cards + CTA) and **competitor scan**
+  (data table + status badges). Fixed an HTML-injection vector: competitor queries/names were
+  previously interpolated unescaped into email HTML.
+- New transactional emails wired into the Paystack webhook: **Payment received** (receipt
+  table) and **Payment failed** (dunning + Settings CTA). Both fail-soft.
+- Remaining from the email checklist (ops/dashboard, not repo code): Supabase Auth templates
+  (pasted in the Supabase dashboard), DKIM/SPF/DMARC records, Resend domain verification,
+  client-matrix + dark-mode testing, spam-score check. Additional lifecycle emails (welcome,
+  listing live/rejected, usage warnings, security alerts) can now be added in minutes on the
+  shared template.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

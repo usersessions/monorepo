@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizeCron, logCron } from '@/lib/cron'
 import { sendEmail } from '@/lib/email/resend'
+import { metricCard, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const maxDuration = 60
@@ -57,20 +58,20 @@ export async function GET(request: Request) {
       // Nothing happened → no email. An empty digest erodes trust faster than silence.
       if (newTotal === 0 && dead === 0) continue
 
-      const rows: string[] = []
-      if (latestScore) rows.push(`<tr><td style="padding:4px 12px 4px 0">Distribution Score</td><td><strong>${latestScore.score}</strong></td></tr>`)
-      if (newTotal > 0) rows.push(`<tr><td style="padding:4px 12px 4px 0">New submissions this week</td><td><strong>${newTotal}</strong> (${newLive} live)</td></tr>`)
-      if (dead > 0) rows.push(`<tr><td style="padding:4px 12px 4px 0">Listings that went dead</td><td><strong>${dead}</strong> — resubmit from Listings</td></tr>`)
-
-      const html = [
-        '<div style="font-family:Georgia,serif;max-width:520px">',
-        '<p style="font-style:italic;font-size:18px">usersessions</p>',
-        '<h2 style="font-weight:normal">Your week in distribution</h2>',
-        `<table style="font-family:monospace;font-size:14px">${rows.join('')}</table>`,
-        `<p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}">Open your dashboard</a></p>`,
-        '<p style="color:#888;font-size:12px">Get your product found — usersessions.io</p>',
-        '</div>',
+      const body = [
+        latestScore ? metricCard('Distribution Score', String(latestScore.score)) : '',
+        newTotal > 0
+          ? metricCard('New submissions this week', String(newTotal), { text: `${newLive} live`, positive: newLive > 0 })
+          : '',
+        dead > 0 ? metricCard('Listings gone dead', String(dead), { text: 'resubmit from Listings', positive: false }) : '',
       ].join('')
+      const html = renderEmail({
+        title: 'Your week in distribution',
+        heroTitle: 'Your week in distribution',
+        heroSubtitle: 'Only real numbers from your own week — nothing padded, nothing invented.',
+        bodyHtml: body,
+        cta: { label: 'Open your dashboard', href: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io' },
+      })
 
       const result = await sendEmail({ to: user.email, subject: 'Your week in distribution', html })
       if (result.ok) stats.sent++

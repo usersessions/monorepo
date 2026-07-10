@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { disableSubscription, planIdFromCode, verifyWebhookSignature } from '@/lib/billing/paystack'
+import { sendEmail } from '@/lib/email/resend'
+import { dataTable, escapeHtml, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
 
 /**
@@ -67,6 +69,28 @@ export async function POST(request: Request) {
           ...(data.currency ? { currency: data.currency } : {}),
           paystack_reference: data.reference ?? null,
         })
+        // Payment receipt — design-system email, always fail-soft.
+        if (data.customer?.email) {
+          const amount = typeof data.amount === 'number' ? (data.amount / 100).toFixed(2) : null
+          await sendEmail({
+            to: data.customer.email,
+            subject: 'Payment received — usersessions',
+            html: renderEmail({
+              title: 'Payment received',
+              heroTitle: 'Payment received',
+              heroSubtitle: 'Your subscription is active. Your receipt is below.',
+              bodyHtml: dataTable([
+                ['Amount', amount ? escapeHtml(`${amount} ${String(data.currency ?? '')}`.trim()) : '—'],
+                ['Plan', escapeHtml(plan ?? 'subscription')],
+                ['Reference', escapeHtml(String(data.reference ?? '—'))],
+              ]),
+              cta: {
+                label: 'Open your dashboard',
+                href: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io',
+              },
+            }),
+          })
+        }
         break
       }
 
@@ -151,6 +175,30 @@ export async function POST(request: Request) {
             event_type: 'payment_failed',
             paystack_reference: code ?? null,
           })
+          // Dunning email — the user must hear it from us before their plan lapses.
+          const { data: failedProfile } = await db
+            .from('profiles')
+            .select('email')
+            .eq('id', failedUserId)
+            .maybeSingle()
+          const toEmail = data.customer?.email ?? failedProfile?.email
+          if (toEmail) {
+            await sendEmail({
+              to: toEmail,
+              subject: 'Payment failed — action needed',
+              html: renderEmail({
+                title: 'Payment failed',
+                heroTitle: 'Your payment did not go through',
+                heroSubtitle: 'Nothing is lost — the charge will be retried automatically.',
+                bodyHtml:
+                  '<p style="margin:0;">Your plan stays active while we retry. If payment keeps failing, your account moves to the free plan and live monitoring pauses — update your card to keep everything running.</p>',
+                cta: {
+                  label: 'Review billing in Settings',
+                  href: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}/settings`,
+                },
+              }),
+            })
+          }
         }
         break
       }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizeCron, logCron } from '@/lib/cron'
 import { sendEmail } from '@/lib/email/resend'
+import { dataTable, renderEmail, statusBadge } from '@/lib/email/template'
 import { sendPush } from '@/lib/push'
 import { createServiceClient } from '@/lib/supabase/server'
 
@@ -25,11 +26,11 @@ interface ScanResult {
 // Same honest prompt as the manual scanner: recommend first, then report truthfully.
 async function runScan(query: string, name: string, url: string, key: string): Promise<ScanResult | null> {
   const prompt = [
-    `A user asks an AI assistant: \"${query}\"`,
+    `A user asks an AI assistant: "${query}"`,
     'Answer the question genuinely first: list the tools/products you would actually recommend, best first.',
-    `Then report honestly whether \"${name}\" (${url}) appeared in YOUR OWN list above.`,
+    `Then report honestly whether "${name}" (${url}) appeared in YOUR OWN list above.`,
     'Do not add it if it was not genuinely in your recommendations.',
-    'Respond with ONLY JSON: {\"recommendations\":[\"...\"],\"mentioned\":boolean,\"rank\":number|null,\"snippet\":\"the exact sentence mentioning it, or null\"}',
+    'Respond with ONLY JSON: {"recommendations":["..."],"mentioned":boolean,"rank":number|null,"snippet":"the exact sentence mentioning it, or null"}',
   ].join('\n')
 
   try {
@@ -128,23 +129,25 @@ export async function GET(request: Request) {
         body: `${rows.length} competitor ${rows.length === 1 ? 'query' : 'queries'} re-checked. See Competitors for details.`,
       })
 
-      const tableRows = rows
-        .map(
-          (r) =>
-            `<tr><td style=\"padding:4px 12px 4px 0\">${r.query}</td><td>${r.name}</td><td><strong>${
-              r.result.mentioned ? `mentioned${r.result.rank ? ` (#${r.result.rank})` : ''}` : 'not mentioned'
-            }</strong></td></tr>`
-        )
-        .join('')
-      const html = [
-        '<div style=\"font-family:Georgia,serif;max-width:520px\">',
-        '<p style=\"font-style:italic;font-size:18px\">usersessions</p>',
-        '<h2 style=\"font-weight:normal\">Competitor scan results</h2>',
-        `<table style=\"font-family:monospace;font-size:14px\"><tr><th align=\"left\">Query</th><th align=\"left\">Competitor</th><th align=\"left\">Result</th></tr>${tableRows}</table>`,
-        `<p><a href=\"${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}/competitors\">See full snippets</a></p>`,
-        '<p style=\"color:#888;font-size:12px\">Get your product found — usersessions.io</p>',
-        '</div>',
-      ].join('')
+      const tableRows = rows.map(
+        (r) =>
+          [
+            `${r.query} · ${r.name}`,
+            r.result.mentioned
+              ? statusBadge('live', r.result.rank ? `mentioned #${r.result.rank}` : 'mentioned')
+              : statusBadge('dead', 'not mentioned'),
+          ] as [string, string]
+      )
+      const html = renderEmail({
+        title: 'Competitor scan results',
+        heroTitle: 'Competitor scan results',
+        heroSubtitle: `${rows.length} competitor ${rows.length === 1 ? 'query' : 'queries'} re-checked across AI engines.`,
+        bodyHtml: dataTable(tableRows, ['Query · Competitor', 'Result']),
+        cta: {
+          label: 'See full snippets',
+          href: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'}/competitors`,
+        },
+      })
       if ((await sendEmail({ to: profile.email, subject: 'Competitor scan results', html })).ok) stats.emailed++
 
       const { data: subs } = await db.from('push_subscriptions').select('*').eq('user_id', userId)
