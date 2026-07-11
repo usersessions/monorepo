@@ -409,6 +409,23 @@ C dashboard/API/schema, D) is shipped on main.
   safe. Do NOT schedule these `/api/cron/*` routes from pg_cron.
 - Ops confirmed: Vercel Cron enabled and `CRON_SECRET` set; watch `cron_logs` for first runs.
 
+## Feature C completion: extension “Distribute to Surfaces” flow — SHIPPED
+- **`GET /api/surfaces`** (Bearer): tier-annotated surface catalog for the extension
+  (`unlocked` per caller plan).
+- **Extension `surfaces.ts`:** `fetchSurfaces` + `fetchSurfaceCopy` clients (token from storage,
+  draft copy only).
+- **Content script `contents/surface-sidebar.ts`:** on-demand floating sidebar (shadow DOM, design
+  tokens) with editable draft, Copy-to-clipboard, Take-screenshot (proof), and Mark-as-submitted.
+  Assisted only — the human posts it in their own account; nothing auto-submits.
+- **Background handlers:** `GET_SURFACES`, `DISTRIBUTE_SURFACE` (opens the surface tab, drafts
+  copy, injects the sidebar), `SURFACE_SCREENSHOT` (captureVisibleTab proof), and
+  `SURFACE_MARK_SUBMITTED`.
+- **`surfaces-submit.ts`:** records the human-posted submission through the existing
+  `/api/campaigns` heartbeat using `platformId: "surface:<id>"` — no ingest-schema divergence;
+  the monitoring loop verifies it like any listing.
+- Feature C is now fully closed (dashboard + API + schema + extension UI). All four pivot
+  features (A, B, B-suggest, C, D) are complete on main.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

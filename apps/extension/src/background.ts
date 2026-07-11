@@ -682,6 +682,76 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ sessions: await listAgentSessions() })
         break
       }
+      case 'GET_SURFACES': {
+        const { fetchSurfaces } = await import('./surfaces')
+        sendResponse({ surfaces: await fetchSurfaces() })
+        break
+      }
+      case 'DISTRIBUTE_SURFACE': {
+        // Assisted distribution: open the surface, draft copy, inject the editable sidebar.
+        const { fetchSurfaceCopy } = await import('./surfaces')
+        const { siteData } = await chrome.storage.local.get('siteData')
+        const site = siteData as SiteData | undefined
+        if (!site?.title) {
+          sendResponse({ ok: false, error: 'Analyze your product page first.' })
+          break
+        }
+        const surfaceId = String(msg.surfaceId ?? '')
+        const openUrl = typeof msg.url === 'string' && msg.url ? msg.url : site.url
+        const copyRes = await fetchSurfaceCopy({
+          surfaceId,
+          title: site.title,
+          url: site.url,
+          description: site.description ?? '',
+        })
+        if (!copyRes.ok) {
+          sendResponse({ ok: false, error: copyRes.error })
+          break
+        }
+        const tab = await chrome.tabs.create({ url: openUrl, active: true })
+        await waitForTabLoad(tab.id!)
+        // Track which surface this tab is drafting, for screenshot/mark-submitted.
+        await chrome.storage.local.set({
+          [`surfaceTab:${tab.id}`]: { surfaceId, campaignId: crypto.randomUUID() },
+        })
+        try {
+          await sendMessageWithRetry(tab.id!, {
+            type: 'RENDER_SURFACE_PANEL',
+            data: { surfaceId, surfaceName: String(msg.surfaceName ?? 'this surface'), copy: copyRes.copy },
+          })
+        } catch {
+          /* sidebar injection is best-effort; the tab is still open for the user */
+        }
+        sendResponse({ ok: true })
+        break
+      }
+      case 'SURFACE_SCREENSHOT': {
+        const tabId = _sender.tab?.id
+        if (tabId === undefined) {
+          sendResponse({ ok: false })
+          break
+        }
+        try {
+          const tab = await chrome.tabs.get(tabId)
+          const shot = await chrome.tabs.captureVisibleTab(tab.windowId!, { format: 'png' })
+          await storeScreenshot(`surface:${String(msg.surfaceId)}:proof`, shot)
+          sendResponse({ ok: true })
+        } catch {
+          sendResponse({ ok: false })
+        }
+        break
+      }
+      case 'SURFACE_MARK_SUBMITTED': {
+        const tabId = _sender.tab?.id
+        const { postSurfaceSubmission } = await import('./surfaces-submit')
+        const meta = tabId !== undefined ? (await chrome.storage.local.get(`surfaceTab:${tabId}`))[`surfaceTab:${tabId}`] : undefined
+        const res = await postSurfaceSubmission({
+          surfaceId: String(msg.surfaceId),
+          campaignId: meta?.campaignId ?? crypto.randomUUID(),
+        })
+        sendResponse({ ok: res.ok })
+        break
+      }
       default:
         sendResponse({ ok: false, error: 'Unknown message type.' })
       }
