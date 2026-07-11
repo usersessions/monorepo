@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         bodyHtml: bodyText
           .split('\n')
           .filter(Boolean)
-          .map((p) => `<p style="margin:0 0 12px;">${p.replace(/</g, '&lt;')}</p>`)
+          .map((p: string) => `<p style="margin:0 0 12px;">${p.replace(/</g, '&lt;')}</p>`)
           .join(''),
       }),
     })
