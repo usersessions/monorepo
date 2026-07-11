@@ -374,6 +374,27 @@ CAPTCHA / magic-link gates keep their graceful pause-for-human flow.
   gating, and copy API are live; the extension UI is the remaining slice of C and is tracked
   as the next extension release alongside the selector-QA work.
 
+## Feature D: Competitive Intelligence Briefings — SHIPPED
+- **Migration 0026:** `intelligence_briefings` (append-only weekly snapshot, RLS select-own,
+  service-role writes).
+- **`/api/cron/intelligence-briefing`:** weekly, PAYING users only. Assembles 4 real-data
+  sections from tables we already populate (new competitor appearances from
+  `visibility_competitors`, new catalog platforms, category query flips from
+  `visibility_checks`); stores a snapshot and sends a design-system email. Sections with no
+  signal are omitted — never padded; users with zero news get no email.
+- **`/competitors` upgrade:** “Weekly briefing” card (new competitors / new platforms / queries
+  to defend) with a “competitor moved” alert badge and honest empty state.
+- **`vercel.json`:** registered `intelligence-briefing` (Mon 09:00 UTC) and also added the
+  previously-unscheduled `competitor-scan` cron (daily 05:00).
+- Note: spec asked for “Mondays 09:00 user timezone”; Vercel crons are UTC-only, so this runs
+  09:00 UTC (documented deviation — per-user-timezone scheduling would need a DB-driven queue).
+- “Recommended response” CTA present in both the email and the dashboard card.
+
+## Pivot features A-D: COMPLETE (with tracked remainders)
+Remaining slices, all documented above: the extension “Distribute to Surfaces” in-page UI
+(Plasmo content script) is the one unbuilt part of Feature C; everything else (A, B, B-suggest,
+C dashboard/API/schema, D) is shipped on main.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
