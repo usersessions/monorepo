@@ -11,6 +11,7 @@ const NAV: { label: string; href: string }[] = [
   { label: 'Listings', href: '/listings' },
   { label: 'Platforms', href: '/platforms' },
   { label: 'Surfaces', href: '/surfaces' },
+  { label: 'Reviews', href: '/reviews' },
   { label: 'AIO Audit', href: '/audit' },
   { label: 'Analytics', href: '/analytics' },
   { label: 'Competitors', href: '/competitors' },

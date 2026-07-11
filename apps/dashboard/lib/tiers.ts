@@ -16,13 +16,17 @@ export interface PlanLimits {
   trialDays: number | null
   /** Reverse trial: lifetime cap on LIVE launches (distinct live campaigns; null = unlimited). */
   lifetimeLaunchCap: number | null
+  /** Review campaigns per calendar month (0 disables the feature; null = unlimited). */
+  reviewCampaignsPerMonth: number | null
+  /** Max review requests per campaign. */
+  reviewRequestsPerCampaign: number
 }
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
-  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 1, trialDays: 30, lifetimeLaunchCap: 1 },
-  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5, trialDays: null, lifetimeLaunchCap: null },
-  pro: { productSlots: 10, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 15, trialDays: null, lifetimeLaunchCap: null },
-  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10, trialDays: null, lifetimeLaunchCap: null },
+  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 1, trialDays: 30, lifetimeLaunchCap: 1, reviewCampaignsPerMonth: 0, reviewRequestsPerCampaign: 0 },
+  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: 1, reviewRequestsPerCampaign: 50 },
+  pro: { productSlots: 10, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 15, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: 3, reviewRequestsPerCampaign: 200 },
+  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: null, reviewRequestsPerCampaign: 1000 },
 }
 
 export function limitsFor(plan: string | null | undefined): PlanLimits {

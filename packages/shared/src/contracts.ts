@@ -282,6 +282,63 @@ export function surfaceStatusFrom(
   }
 }
 
+/**
+ * Review Generation System (Feature 1). We REQUEST honest reviews from a founder's own
+ * activated users — never fake, gate, or incentivize them. THE ONLY home for these types.
+ */
+export type ReviewRequestStatus = 'draft' | 'sent' | 'opened' | 'clicked' | 'reviewed'
+
+export interface ReviewPlatform {
+  id: string
+  name: string
+  url: string
+  category: string
+  qualityScore: number
+  tierUnlock: number
+}
+
+export interface ReviewRecipientInput {
+  email: string
+  name?: string
+  activationEvent?: string
+}
+
+export interface ReviewRequestView {
+  id: string
+  recipientEmail: string
+  recipientName: string | null
+  status: ReviewRequestStatus
+  platformId: string | null
+  sentAt: string | null
+}
+
+export interface ReviewCampaignFunnel {
+  id: string
+  status: string
+  createdAt: string
+  total: number
+  sent: number
+  opened: number
+  clicked: number
+  reviewed: number
+}
+
+export type ReviewApiError =
+  | 'UNAUTHORIZED'
+  | 'INVALID_PAYLOAD'
+  | 'PLAN_LIMIT_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_NOT_CONFIGURED'
+  | 'GENERATION_FAILED'
+
+export interface ReviewCampaignResponse {
+  ok: boolean
+  campaignId?: string
+  /** Draft, editable request emails — one per recipient, for founder review before send. */
+  drafts?: Array<{ requestId: string; recipientEmail: string; recipientName: string | null; subject: string; body: string }>
+  error?: ReviewApiError
+}
+
 /** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
 export interface SurfaceCopyResponse {
   ok: boolean

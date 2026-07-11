@@ -457,6 +457,31 @@ C dashboard/API/schema, D) is shipped on main.
   (Not started / In progress / submitted / verified / rejected) with the matching status colour.
 - Also: link-check auto-resubmission now includes the `pro` plan (was founder/agency only).
 
+## Acquisition Feature 1: Review Generation System — SHIPPED
+- **Migration numbering corrected:** spec said `0024_review_system.sql` but 0024 is taken
+  (category_ownership) and the tree is at 0027 — shipped as **`0028_review_system.sql`**.
+- **Ethics guardrail:** built as an honest-review REQUEST engine only. No review-gating, no
+  incentives, no fake reviews; the AI prompt explicitly asks for an honest (not positive) review.
+- **Contracts:** `ReviewPlatform`, `ReviewRecipientInput`, `ReviewRequestView`,
+  `ReviewCampaignFunnel`, `ReviewRequestStatus`, `ReviewApiError`, `ReviewCampaignResponse`.
+- **Tiers:** added `reviewCampaignsPerMonth` (free 0, founder 1, pro 3, agency null=unlimited)
+  and `reviewRequestsPerCampaign` (0/50/200/1000).
+- **Migration 0028:** `review_platforms` (seeded G2, Capterra, Trustpilot, Product Hunt, Chrome
+  Web Store; tracked_only), `review_campaigns`, `review_requests`; RLS select-own + service-role
+  writes; platform catalog readable by authenticated users.
+- **APIs:** `POST /api/reviews/campaign` (ownership + monthly cap + per-campaign clamp; AI-drafts
+  one personalized honest email per recipient, referencing their real activation event; persists
+  drafts, returns them for editing), `POST /api/reviews/send` (RLS-checked, Resend, marks sent,
+  fail-soft), `GET /api/reviews/campaigns` (cumulative funnel), `GET /api/reviews/platforms`
+  (tier-annotated).
+- **Dashboard `/reviews`:** paid-feature gate for free, 4-step builder (recipients → platform →
+  AI drafts → edit → approve & send), and per-campaign sent/opened/clicked/reviewed funnel.
+  Added to sidebar nav.
+- **Funnel note:** opened/clicked require the Resend event webhook (already built) to map events
+  onto requests; a follow-up will match `email_events` → `review_requests` by recipient to
+  advance statuses beyond 'sent'. Sent + reviewed (manual) work today.
+- Features 2-6 NOT started (build order).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
