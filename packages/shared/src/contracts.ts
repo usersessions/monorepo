@@ -231,3 +231,33 @@ export interface SuggestQueriesResponse {
   suggestions?: SuggestedQuery[]
   error?: 'UNAUTHORIZED' | 'INVALID_PAYLOAD' | 'AI_NOT_CONFIGURED' | 'GENERATION_FAILED' | 'RATE_LIMITED'
 }
+
+/**
+ * AI-training surfaces beyond directories (Feature C). This is ASSISTED distribution with
+ * tracking — never automated account actions. Reddit is intentionally excluded: its
+ * automation/self-promotion detection bans real user accounts, which would harm the user.
+ */
+export type SurfaceCategory = 'github' | 'blog' | 'twitter' | 'podcast' | 'youtube' | 'stackoverflow' | 'community'
+
+export type SurfaceSubmissionType = 'automated' | 'assisted_manual' | 'tracked_only'
+
+export interface Surface {
+  id: string
+  name: string
+  category: SurfaceCategory
+  urlPattern: string
+  submissionType: SurfaceSubmissionType
+  qualityScore: number
+  /** 0=free, 1=founder, 2=pro, 3=agency. */
+  tierUnlock: number
+}
+
+export type SurfaceStatus = 'not_started' | 'in_progress' | 'submitted' | 'verified' | 'rejected'
+
+/** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
+export interface SurfaceCopyResponse {
+  ok: boolean
+  /** Ready-to-paste text for the surface (Reddit-free; GitHub PR / blog outline / tweet / etc.). */
+  copy?: string
+  error?: 'UNAUTHORIZED' | 'INVALID_PAYLOAD' | 'AI_NOT_CONFIGURED' | 'GENERATION_FAILED' | 'RATE_LIMITED' | 'TIER_LOCKED'
+}

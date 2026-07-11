@@ -355,6 +355,25 @@ CAPTCHA / magic-link gates keep their graceful pause-for-human flow.
 - **`approveSuggestedQuery` action:** same ownership + plan-limit checks as manual add; only
   writes on approval. Keeps the “zero fabricated data / user approves every query” rule intact.
 
+## Feature C: AI Training Surface Expansion — SHIPPED (dashboard + API)
+- **Reddit intentionally EXCLUDED** per owner experience: Reddit's automation/self-promotion
+  detection bans real user accounts; seeding it would expose users to the same harm. Documented
+  in migration + contracts.
+- **Contracts:** `SurfaceCategory`, `SurfaceSubmissionType`, `Surface`, `SurfaceStatus`,
+  `SurfaceCopyResponse`.
+- **Migration 0025:** `surfaces` catalog (RLS: authenticated read, service-role write) seeded
+  with GitHub Awesome Lists, Dev.to, Hashnode, Indie Hackers, Stack Overflow, X/Twitter
+  (tier-gated 0-2, no Reddit). `submissions.surface_id` added (nullable; reuses the table).
+- **`POST /api/surfaces/copy`:** Bearer (extension), tier-gated by `surfaces.tier_unlock`,
+  Gemini drafts surface-specific honest copy (GitHub PR / blog outline / IH post / SO answer
+  skeleton / pinned tweet). Draft only — never auto-posts; anti-hype + no upvote-begging guards.
+- **Dashboard `/surfaces`:** quality-sorted, category-grouped grid; locked surfaces shown at
+  reduced opacity with the unlock tier. Added to sidebar nav. `planRank` helper added to tiers.
+- **NOTE / deferred:** the in-page extension “Distribute to Surfaces” floating sidebar + copy
+  buttons are an extension build item (Plasmo content script). The dashboard, catalog, tier
+  gating, and copy API are live; the extension UI is the remaining slice of C and is tracked
+  as the next extension release alongside the selector-QA work.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

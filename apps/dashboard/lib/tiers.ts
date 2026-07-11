@@ -32,3 +32,8 @@ export function limitsFor(plan: string | null | undefined): PlanLimits {
 export function monthStartIso(now = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 }
+
+/** Numeric rank for surface tier-gating (0=free … 3=agency). */
+export function planRank(plan: string | null | undefined): number {
+  return { free: 0, founder: 1, pro: 2, agency: 3 }[(plan as PlanId) ?? 'free'] ?? 0
+}
