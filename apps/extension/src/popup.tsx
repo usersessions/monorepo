@@ -4,6 +4,7 @@ import type { GeneratedCopy, PlatformResult, SiteData, TelemetryBatch } from '@u
 import { generateCopy, sendTelemetry } from './brain'
 import { fetchFounderProfile } from './api'
 import { AgentPanel } from './agent/AgentPanel'
+import { SurfacesPanel } from './SurfacesPanel'
 
 import './style.css'
 
@@ -495,6 +496,8 @@ function IndexPopup() {
       <FounderProfileCard connected={connected} />
 
       <LaunchPanel connected={connected} ready={approved} />
+
+      <SurfacesPanel connected={connected} ready={Boolean(site)} />
 
       <AgentPanel connected={connected} ready={approved} />
 

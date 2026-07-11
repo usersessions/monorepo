@@ -47,9 +47,10 @@ export async function GET(request: Request) {
 
   try {
     // Oldest-checked first so the whole corpus rotates through daily batches.
+    // Both directory listings (platform_id) and surface posts (surface_id) are verified.
     const { data: subs } = await db
       .from('submissions')
-      .select('id, campaign_id, user_id, status, listing_url, link_check_failing_since, platform_id, simulated, profiles(plan, notif_link_alerts)')
+      .select('id, campaign_id, user_id, status, listing_url, link_check_failing_since, platform_id, surface_id, simulated, profiles(plan, notif_link_alerts)')
       .eq('simulated', false)
       .in('status', ['submitted', 'live', 'indexed'])
       .not('listing_url', 'is', null)

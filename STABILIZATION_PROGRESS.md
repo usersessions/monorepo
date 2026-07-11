@@ -426,6 +426,20 @@ C dashboard/API/schema, D) is shipped on main.
 - Feature C is now fully closed (dashboard + API + schema + extension UI). All four pivot
   features (A, B, B-suggest, C, D) are complete on main.
 
+## Remaining code items — SHIPPED (Gemini-only kept; multi-engine intentionally deferred)
+- **Popup “Distribute to Surfaces” UI (`SurfacesPanel.tsx`):** lists the tier-annotated catalog
+  (`GET_SURFACES`), gates locked surfaces, and starts the flow — `DISTRIBUTE_SURFACE` for
+  assisted_manual, `VERIFY_SURFACE` for tracked_only. Mounted in the popup after LaunchPanel.
+- **tracked_only “verify my profile” flow:** new `VERIFY_SURFACE` + `SURFACE_VERIFY_MENTION`
+  background handlers and a `renderVerifyPanel` in the surface sidebar. Verify reads the current
+  tab's visible text (via `chrome.scripting`) for the product name or domain; on a real match it
+  records the submission through the campaigns heartbeat. Honest — no match, no record.
+- **Surface monitoring:** link-check cron now selects `surface_id` alongside `platform_id`, so
+  surface posts with a listing URL enter the same 48h dead-link / promotion / resubmission loop
+  as directory listings.
+- Multi-engine AI visibility remains Gemini-only by decision (cost); copy stays honest about
+  single-engine coverage.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

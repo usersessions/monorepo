@@ -117,5 +117,62 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'RENDER_SURFACE_PANEL' && msg.data) {
     renderPanel(msg.data as SurfacePanelData)
   }
+  if (msg?.type === 'RENDER_SURFACE_VERIFY' && msg.data) {
+    renderVerifyPanel(msg.data as { surfaceId: string; surfaceName: string })
+  }
   if (msg?.type === 'REMOVE_SURFACE_PANEL') removePanel()
 })
+
+/** tracked_only surfaces: no draft — confirm the product is mentioned on this page. */
+function renderVerifyPanel(data: { surfaceId: string; surfaceName: string }): void {
+  removePanel()
+  const host = document.createElement('div')
+  host.id = PANEL_ID
+  host.style.cssText =
+    'position:fixed;top:16px;right:16px;z-index:2147483647;width:320px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+  const shadow = host.attachShadow({ mode: 'open' })
+  shadow.innerHTML = `
+    <style>
+      .card { background:#0F0F1A; color:#F4F2ED; border:1px solid #232330; border-radius:8px; padding:16px; box-shadow:0 8px 32px rgba(0,0,0,0.5); }
+      .row { display:flex; align-items:center; gap:8px; }
+      h3 { margin:0; font-size:14px; font-weight:600; flex:1; }
+      .mono { font-family:"SF Mono",Monaco,Consolas,monospace; font-size:11px; color:#A8A5A0; }
+      button { border:none; border-radius:4px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; margin-top:12px; }
+      .primary { background:#6366F1; color:#F4F2ED; }
+      .close { background:transparent; color:#6B6862; font-size:16px; padding:0 4px; cursor:pointer; }
+      .green { color:#34D399; } .amber { color:#FBBF24; }
+      .status { margin-top:8px; font-size:11px; }
+    </style>
+    <div class="card">
+      <div class="row">
+        <h3>Verify on ${data.surfaceName.replace(/</g, '')}</h3>
+        <button class="close" id="x" aria-label="Close">×</button>
+      </div>
+      <p class="mono">Make sure your product name or link is on this page (e.g. your pinned post or bio), then verify.</p>
+      <button class="primary" id="verifyBtn">Verify my profile</button>
+      <p class="status mono" id="status"></p>
+    </div>
+  `
+  document.documentElement.appendChild(host)
+  const status = shadow.getElementById('status') as HTMLParagraphElement
+  shadow.getElementById('x')?.addEventListener('click', removePanel)
+  shadow.getElementById('verifyBtn')?.addEventListener('click', () => {
+    status.textContent = 'Checking this page…'
+    status.className = 'status mono'
+    void chrome.runtime
+      .sendMessage({ type: 'SURFACE_VERIFY_MENTION', surfaceId: data.surfaceId })
+      .then((res: { ok?: boolean; found?: boolean }) => {
+        if (res?.ok && res.found) {
+          status.textContent = 'Verified — your product is mentioned here. Recorded and monitored.'
+          status.className = 'status mono green'
+          setTimeout(removePanel, 2500)
+        } else if (res?.ok) {
+          status.textContent = 'Not found on this page yet. Add your product mention, then verify again.'
+          status.className = 'status mono amber'
+        } else {
+          status.textContent = 'Could not verify — make sure the dashboard tab is signed in.'
+          status.className = 'status mono'
+        }
+      })
+  })
+}

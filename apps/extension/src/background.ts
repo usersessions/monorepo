@@ -752,6 +752,62 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: res.ok })
         break
       }
+      case 'VERIFY_SURFACE': {
+        // tracked_only surfaces (e.g. X): open the profile/compose URL and inject a verify panel.
+        const openUrl = typeof msg.url === 'string' && msg.url ? msg.url : 'about:blank'
+        const tab = await chrome.tabs.create({ url: openUrl, active: true })
+        await waitForTabLoad(tab.id!)
+        await chrome.storage.local.set({
+          [`surfaceTab:${tab.id}`]: { surfaceId: String(msg.surfaceId), campaignId: crypto.randomUUID() },
+        })
+        try {
+          await sendMessageWithRetry(tab.id!, {
+            type: 'RENDER_SURFACE_VERIFY',
+            data: { surfaceId: String(msg.surfaceId), surfaceName: String(msg.surfaceName ?? 'this surface') },
+          })
+        } catch {
+          /* best-effort injection */
+        }
+        sendResponse({ ok: true })
+        break
+      }
+      case 'SURFACE_VERIFY_MENTION': {
+        // Checks the CURRENT tab's visible text for the product name/URL as honest proof.
+        const tabId = _sender.tab?.id
+        const { siteData } = await chrome.storage.local.get('siteData')
+        const site = siteData as SiteData | undefined
+        if (tabId === undefined || !site) {
+          sendResponse({ ok: false })
+          break
+        }
+        try {
+          const [{ result }] = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: () => document.body.innerText.toLowerCase(),
+          })
+          const text = String(result ?? '')
+          const host = (() => {
+            try {
+              return new URL(site.url).host.replace(/^www\./, '').toLowerCase()
+            } catch {
+              return ''
+            }
+          })()
+          const found = (site.title && text.includes(site.title.toLowerCase())) || (host && text.includes(host))
+          if (found) {
+            const { postSurfaceSubmission } = await import('./surfaces-submit')
+            const meta = (await chrome.storage.local.get(`surfaceTab:${tabId}`))[`surfaceTab:${tabId}`]
+            await postSurfaceSubmission({
+              surfaceId: String(msg.surfaceId),
+              campaignId: meta?.campaignId ?? crypto.randomUUID(),
+            })
+          }
+          sendResponse({ ok: true, found })
+        } catch {
+          sendResponse({ ok: false })
+        }
+        break
+      }
       default:
         sendResponse({ ok: false, error: 'Unknown message type.' })
       }
