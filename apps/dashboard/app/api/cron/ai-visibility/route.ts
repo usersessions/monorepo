@@ -1,25 +1,28 @@
 import { NextResponse } from 'next/server'
 import { authorizeCron, logCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/server'
+import { QUERY_TYPE_WEIGHT, type VisibilityQueryType } from '@usersessions/shared'
 import type { PlanId } from '@usersessions/shared'
 
 export const maxDuration = 300
 
-const BATCH = 50
+const BATCH = 60
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
 
 /**
- * AI Visibility weekly check (BUILD_SPEC §10). Engine coverage is HONEST: currently
- * 'gemini' only — ChatGPT and Perplexity engines activate when their API keys exist.
- * Snippets are stored VERBATIM; a 'not mentioned' result is recorded and shown, never smoothed.
+ * AI Visibility weekly check (BUILD_SPEC §10) — upgraded to Category Query Ownership
+ * (Feature B). Engine coverage is HONEST: 'gemini' only for now; other engines activate
+ * when their keys exist. Snippets are stored VERBATIM; a 'not mentioned' result is
+ * recorded and shown, never smoothed. Every check also captures the FULL recommendation
+ * list so we can compute competitor share-of-voice.
  */
 async function checkQuery(
   key: string,
   query: string,
   productName: string,
   productUrl: string
-): Promise<{ mentioned: boolean; rank: number | null; snippet: string | null } | null> {
+): Promise<{ mentioned: boolean; rank: number | null; snippet: string | null; recommendations: string[] } | null> {
   const prompt = [
     `A user asks an AI assistant: "${query}"`,
     'Answer the question genuinely first: list the tools/products you would actually recommend, best first.',
@@ -41,14 +44,23 @@ async function checkQuery(
     if (!res.ok) return null
     const payload = await res.json()
     const parsed = JSON.parse(payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}')
+    const recommendations = Array.isArray(parsed.recommendations)
+      ? parsed.recommendations.filter((r: unknown): r is string => typeof r === 'string').slice(0, 15)
+      : []
     return {
       mentioned: Boolean(parsed.mentioned),
       rank: typeof parsed.rank === 'number' ? parsed.rank : null,
       snippet: typeof parsed.snippet === 'string' ? parsed.snippet.slice(0, 500) : null,
+      recommendations,
     }
   } catch {
     return null
   }
+}
+
+/** Normalize a recommendation name for self-matching (drops punctuation/case). */
+function norm(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
 export async function GET(request: Request) {
@@ -61,13 +73,13 @@ export async function GET(request: Request) {
   }
 
   const db = createServiceClient()
-  const stats = { queries: 0, checked: 0, skippedRateLimit: 0, mentioned: 0, changes: 0 }
+  const stats = { queries: 0, checked: 0, skippedRateLimit: 0, mentioned: 0, changes: 0, competitors: 0 }
   const now = new Date()
 
   try {
     const { data: queries } = await db
       .from('visibility_queries')
-      .select('id, user_id, query, products(name, url), profiles(plan)')
+      .select('id, user_id, query, query_type, products(name, url), profiles(plan)')
       .limit(BATCH)
 
     for (const q of queries ?? []) {
@@ -77,7 +89,6 @@ export async function GET(request: Request) {
       const plan = profile?.plan ?? 'free'
       if (!product?.name || !product?.url) continue
 
-      // Previous state for change detection and frequency limiting
       const { data: prev } = await db
         .from('visibility_checks')
         .select('mentioned, checked_at')
@@ -90,13 +101,11 @@ export async function GET(request: Request) {
       if (prev?.checked_at) {
         const lastChecked = new Date(prev.checked_at)
         if (plan === 'free') {
-          // Free = monthly
           if (lastChecked.getUTCFullYear() === now.getUTCFullYear() && lastChecked.getUTCMonth() === now.getUTCMonth()) {
             stats.skippedRateLimit++
             continue
           }
         } else {
-          // Founder/Agency = weekly
           const daysSince = (now.getTime() - lastChecked.getTime()) / (1000 * 3600 * 24)
           if (daysSince < 7) {
             stats.skippedRateLimit++
@@ -118,6 +127,25 @@ export async function GET(request: Request) {
         rank: result.rank,
         snippet: result.snippet,
       })
+
+      // Capture competitor share-of-voice: every recommended name that is not us.
+      const selfNorm = norm(product.name)
+      for (const rec of result.recommendations) {
+        if (!rec.trim() || norm(rec).includes(selfNorm) || selfNorm.includes(norm(rec))) continue
+        stats.competitors++
+        await db
+          .from('visibility_competitors')
+          .upsert(
+            {
+              query_id: q.id,
+              user_id: q.user_id,
+              competitor_name: rec.slice(0, 120),
+              engine: 'gemini',
+              last_seen_at: now.toISOString(),
+            },
+            { onConflict: 'query_id,competitor_name,engine' }
+          )
+      }
 
       if (prev && prev.mentioned !== result.mentioned) {
         stats.changes++

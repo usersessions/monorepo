@@ -7,6 +7,11 @@ import { limitsFor } from '@/lib/tiers'
 export async function addVisibilityQuery(formData: FormData) {
   const productId = String(formData.get('productId') ?? '')
   const query = String(formData.get('query') ?? '').trim().slice(0, 200)
+  const rawType = String(formData.get('queryType') ?? 'category_direct')
+  const queryType = ['category_direct', 'alternative', 'comparison', 'use_case'].includes(rawType)
+    ? rawType
+    : 'category_direct'
+  const categoryTag = String(formData.get('categoryTag') ?? '').trim().slice(0, 60) || null
   if (!productId || !query) return
 
   const supabase = await createClient()
@@ -23,7 +28,9 @@ export async function addVisibilityQuery(formData: FormData) {
     .eq('product_id', productId)
   if ((count ?? 0) >= limitsFor(profile?.plan).visibilityQueriesPerProduct) return
 
-  await supabase.from('visibility_queries').insert({ user_id: user.id, product_id: productId, query })
+  await supabase
+    .from('visibility_queries')
+    .insert({ user_id: user.id, product_id: productId, query, query_type: queryType, category_tag: categoryTag })
   revalidatePath('/analytics')
 }
 

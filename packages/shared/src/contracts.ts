@@ -172,3 +172,49 @@ export interface AuditResponse {
   audit?: LandingPageAuditResult
   error?: AuditApiError
 }
+
+/**
+ * Category Query Ownership (Feature B) — upgrades AI Visibility from "was I mentioned?"
+ * to "do I own this category?". THE ONLY home for these types.
+ */
+export type VisibilityQueryType = 'category_direct' | 'alternative' | 'comparison' | 'use_case'
+
+/** Relative weight of each query type in the Category Ownership Score. */
+export const QUERY_TYPE_WEIGHT: Record<VisibilityQueryType, number> = {
+  category_direct: 1.0,
+  use_case: 0.9,
+  comparison: 0.7,
+  alternative: 0.7,
+}
+
+export interface VisibilityQuerySummary {
+  id: string
+  query: string
+  queryType: VisibilityQueryType
+  categoryTag: string | null
+  mentioned: boolean | null // null = not yet checked
+  rank: number | null
+  snippet: string | null
+  engine: string | null
+  checkedAt: string | null
+}
+
+/** Share-of-voice for one entity (the product or a competitor) across tracked queries. */
+export interface ShareOfVoiceEntry {
+  name: string
+  /** Whether this row is the user's own product. */
+  isSelf: boolean
+  mentions: number
+  totalQueries: number
+  /** 0-100. */
+  sharePct: number
+}
+
+export interface CategoryOwnership {
+  /** 0-100, weighted by query-type importance and mention frequency. */
+  ownershipScore: number
+  queries: VisibilityQuerySummary[]
+  shareOfVoice: ShareOfVoiceEntry[]
+  /** Queries where competitors appear but the product does not. */
+  gaps: string[]
+}

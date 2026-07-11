@@ -322,6 +322,28 @@ CAPTCHA / magic-link gates keep their graceful pause-for-human flow.
 - Vocabulary honoured: “distribution / visibility / AI Answer Ownership”, no “SEO”/“backlinks”.
 - Features B/C/D NOT started (per the build order: A ships and is verified first).
 
+## Feature B: Category Query Ownership — SHIPPED
+- **Contracts:** `VisibilityQueryType`, `QUERY_TYPE_WEIGHT`, `VisibilityQuerySummary`,
+  `ShareOfVoiceEntry`, `CategoryOwnership` in `packages/shared/src/contracts.ts`.
+- **Migration 0024:** `visibility_queries` gains `category_tag` + `query_type` (checked enum,
+  default `category_direct`); new `visibility_competitors` (denormalized share-of-voice,
+  unique per query+competitor+engine, RLS select-own, service-role writes).
+- **Cron upgrade (`/api/cron/ai-visibility`):** now stores the FULL recommendation list per
+  check and upserts every non-self recommendation into `visibility_competitors` for share of
+  voice. Verbatim snippet storage and honest 'not mentioned' recording unchanged; weekly/monthly
+  cadence unchanged. (Query-type variety comes from user-tracked queries tagged by type, not
+  fabricated — the five example patterns are the suggested set; no invented queries are inserted.)
+- **Category Ownership Score:** computed in `/analytics` from each query's latest check,
+  weighted by `QUERY_TYPE_WEIGHT` with a gentle rank decay (never below 40%). Null until real
+  checks land — no estimates.
+- **Analytics upgrade:** new “Category Ownership” card (score + share-of-voice bars: you vs top
+  3 competitors + gap indicator), query rows now show their type; add-query form gains a
+  query-type selector. `addVisibilityQuery` action persists `query_type` + `category_tag`.
+- **APIs:** `GET /api/visibility/queries` and `GET /api/visibility/competitors` (auth + RLS,
+  owner-scoped, optional `productId`).
+- Vocabulary honoured (distribution/visibility/AI Answer Ownership); no SEO/backlinks.
+- Features C/D NOT started (build order).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
