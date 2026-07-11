@@ -344,6 +344,17 @@ CAPTCHA / magic-link gates keep their graceful pause-for-human flow.
 - Vocabulary honoured (distribution/visibility/AI Answer Ownership); no SEO/backlinks.
 - Features C/D NOT started (build order).
 
+## Feature B addendum: AI-assisted query suggestions — SHIPPED
+- **Contracts:** `SuggestedQuery`, `SuggestQueriesResponse`.
+- **`POST /api/visibility/suggest`:** auth + product-ownership + rate-limit; Gemini proposes 5
+  category queries (one per type where sensible) inferred ONLY from the product's name/URL.
+  Persists NOTHING — pure suggestion. Honest guardrail in the prompt: fall back to
+  category/use-case queries when no real competitor is confidently known (no invented rivals).
+- **UI (`SuggestQueries.tsx`):** “Suggest queries with AI” button on `/analytics`; each
+  suggestion is editable and must be explicitly Approved (or dismissed) before saving.
+- **`approveSuggestedQuery` action:** same ownership + plan-limit checks as manual add; only
+  writes on approval. Keeps the “zero fabricated data / user approves every query” rule intact.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

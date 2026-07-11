@@ -218,3 +218,16 @@ export interface CategoryOwnership {
   /** Queries where competitors appear but the product does not. */
   gaps: string[]
 }
+
+/** One AI-suggested category query, pending user review before it is saved. */
+export interface SuggestedQuery {
+  query: string
+  queryType: VisibilityQueryType
+  categoryTag: string | null
+}
+
+export interface SuggestQueriesResponse {
+  ok: boolean
+  suggestions?: SuggestedQuery[]
+  error?: 'UNAUTHORIZED' | 'INVALID_PAYLOAD' | 'AI_NOT_CONFIGURED' | 'GENERATION_FAILED' | 'RATE_LIMITED'
+}

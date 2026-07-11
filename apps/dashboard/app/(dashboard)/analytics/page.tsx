@@ -2,6 +2,7 @@ import { TrendChart } from '@/components/TrendChart'
 import { createClient } from '@/lib/supabase/server'
 import { QUERY_TYPE_WEIGHT, type VisibilityQueryType } from '@usersessions/shared'
 import { addVisibilityQuery, deleteVisibilityQuery } from './actions'
+import { SuggestQueries } from './SuggestQueries'
 
 const WINDOWS_DAYS = [7, 30, 60, 90]
 const LIVE = ['live', 'indexed']
@@ -229,6 +230,8 @@ export default async function AnalyticsPage() {
             <button className="btn-ghost" type="submit">Track query</button>
           </form>
         )}
+
+        {(products ?? []).length > 0 && <SuggestQueries productId={(products ?? [])[0].id} />}
       </div>
     </div>
   )
