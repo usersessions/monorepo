@@ -395,6 +395,20 @@ Remaining slices, all documented above: the extension “Distribute to Surfaces�
 (Plasmo content script) is the one unbuilt part of Feature C; everything else (A, B, B-suggest,
 C dashboard/API/schema, D) is shipped on main.
 
+## Cron scheduling decision: Vercel Cron is the single scheduler
+- **Chosen: Vercel Cron** (not pg_cron). Rationale: every job is an HTTPS route with
+  `authorizeCron` bearer auth that calls external services (Gemini, Resend, fetches) — not pure
+  SQL — so native Vercel Cron needs zero extra infra (no `pg_net`/`pg_cron`/vault, no secret
+  stored in Postgres) and keeps schedules in-repo beside the code.
+- **`vercel.json`** holds all six crons: link-check (daily 03:00), platform-quality (daily
+  03:30), ai-visibility (Tue 06:00), competitor-scan (daily 05:00), intelligence-briefing
+  (Mon 09:00), weekly-digest (Mon 08:00). All UTC.
+- **Removed `0016_pg_cron_setup.sql`** so pg_cron never double-fires these routes. It was never
+  applied to the live DB (never pushed), and contained only pg_cron scheduling (extensions +
+  `trigger_cron_endpoint` + `cron.schedule` calls) — nothing else depended on it, so deletion is
+  safe. Do NOT schedule these `/api/cron/*` routes from pg_cron.
+- Ops confirmed: Vercel Cron enabled and `CRON_SECRET` set; watch `cron_logs` for first runs.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
