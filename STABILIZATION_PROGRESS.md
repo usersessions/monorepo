@@ -440,6 +440,23 @@ C dashboard/API/schema, D) is shipped on main.
 - Multi-engine AI visibility remains Gemini-only by decision (cost); copy stays honest about
   single-engine coverage.
 
+## Surface status — dedicated per-surface state (follow-up SHIPPED)
+- **Migration 0027:** `submissions.surface_status` column (checked enum
+  in_progress/submitted/verified/rejected; null for directory rows) + partial index on
+  `surface_id`.
+- **Contract:** `surfaceStatusFrom(surface_status, submission_status)` maps a row to a
+  `SurfaceStatus`, authoritative when the dedicated column is set, else derived from the generic
+  status for legacy rows. `PlatformResult.surfaceStatus` added.
+- **Ingest (`/api/campaigns`):** `surface:<id>` results now split into `surface_id` +
+  `surface_status` (platform_id left null), so surfaces and directories are cleanly distinct rows.
+- **Extension:** `postSurfaceSubmission({ verified })` sends `verified` for tracked_only on-page
+  confirmations and `submitted` for freshly posted assisted_manual.
+- **Monitoring (link-check):** reachable surface post → `surface_status='verified'`; confirmed
+  48h dead → `'rejected'` (both free and paid paths).
+- **Dashboard `/surfaces`:** each unlocked surface now shows its real per-user status
+  (Not started / In progress / submitted / verified / rejected) with the matching status colour.
+- Also: link-check auto-resubmission now includes the `pro` plan (was founder/agency only).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

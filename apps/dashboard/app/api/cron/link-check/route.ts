@@ -94,6 +94,8 @@ export async function GET(request: Request) {
           .from('submissions')
           .update({
             status: promote ? 'live' : sub.status,
+            // Surface rows: a reachable post is 'verified'.
+            ...(sub.surface_id ? { surface_status: 'verified' } : {}),
             link_check_failing_since: null,
             last_checked_at: now.toISOString(),
           })
@@ -121,13 +123,17 @@ export async function GET(request: Request) {
       const profile = sub.profiles as { plan?: PlanId; notif_link_alerts?: boolean } | null
       const plan = profile?.plan ?? 'free'
 
-      if (plan === 'founder' || plan === 'agency') {
+      if (plan === 'founder' || plan === 'agency' || plan === 'pro') {
         // Auto-resubmit
         stats.autoResubmitted++
         affectedCampaigns.add(sub.campaign_id)
         await db
           .from('submissions')
-          .update({ status: 'removed', last_checked_at: now.toISOString() })
+          .update({
+            status: 'removed',
+            ...(sub.surface_id ? { surface_status: 'rejected' } : {}),
+            last_checked_at: now.toISOString(),
+          })
           .eq('id', sub.id)
 
         // Queue a new submission
@@ -153,7 +159,11 @@ export async function GET(request: Request) {
         affectedCampaigns.add(sub.campaign_id)
         await db
           .from('submissions')
-          .update({ status: 'removed', last_checked_at: now.toISOString() })
+          .update({
+            status: 'removed',
+            ...(sub.surface_id ? { surface_status: 'rejected' } : {}),
+            last_checked_at: now.toISOString(),
+          })
           .eq('id', sub.id)
           
         if (profile?.notif_link_alerts !== false) {

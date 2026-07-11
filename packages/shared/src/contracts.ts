@@ -43,6 +43,8 @@ export interface PlatformResult {
   listingUrl?: string
   screenshotUrl?: string
   simulated: boolean
+  /** For surface (non-directory) submissions: the dedicated surface status. */
+  surfaceStatus?: 'in_progress' | 'submitted' | 'verified' | 'rejected'
   error?: string
 }
 
@@ -253,6 +255,32 @@ export interface Surface {
 }
 
 export type SurfaceStatus = 'not_started' | 'in_progress' | 'submitted' | 'verified' | 'rejected'
+
+/**
+ * Maps a submission row (shared with directories) to a surface-specific status.
+ * `surface_status` is authoritative when present; otherwise derived from the generic
+ * submission status so old rows still render sensibly.
+ */
+export function surfaceStatusFrom(
+  surfaceStatus: string | null | undefined,
+  submissionStatus: string | null | undefined
+): SurfaceStatus {
+  const s = (surfaceStatus ?? '').toLowerCase()
+  if (s === 'in_progress' || s === 'submitted' || s === 'verified' || s === 'rejected') return s
+  switch ((submissionStatus ?? '').toLowerCase()) {
+    case 'live':
+    case 'indexed':
+      return 'verified'
+    case 'failed':
+    case 'removed':
+      return 'rejected'
+    case 'submitted':
+    case 'awaiting_email_verification':
+      return 'submitted'
+    default:
+      return 'not_started'
+  }
+}
 
 /** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
 export interface SurfaceCopyResponse {

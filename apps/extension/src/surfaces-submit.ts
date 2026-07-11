@@ -12,6 +12,8 @@ const DASHBOARD_URL = process.env.PLASMO_PUBLIC_DASHBOARD_URL ?? 'https://userse
 export async function postSurfaceSubmission(input: {
   surfaceId: string
   campaignId: string
+  /** True when recorded via the tracked_only on-page verification flow. */
+  verified?: boolean
 }): Promise<{ ok: boolean }> {
   const { accessToken, siteData, productIdByUrl } = await chrome.storage.local.get([
     'accessToken',
@@ -37,7 +39,15 @@ export async function postSurfaceSubmission(input: {
         productUrl: site.url,
         startedAt: new Date().toISOString(),
         finishedAt: new Date().toISOString(),
-        results: [{ platformId: `surface:${input.surfaceId}`, status: 'submitted', simulated: false }],
+        results: [
+          {
+            platformId: `surface:${input.surfaceId}`,
+            status: 'submitted',
+            simulated: false,
+            // Verified via on-page check (tracked_only) vs freshly posted (assisted_manual).
+            surfaceStatus: input.verified ? 'verified' : 'submitted',
+          },
+        ],
       }),
     })
     return { ok: res.ok }

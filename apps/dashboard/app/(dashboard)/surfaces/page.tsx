@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { planRank } from '@/lib/tiers'
+import { surfaceStatusFrom, type SurfaceStatus } from '@usersessions/shared'
 
 const CATEGORY_LABEL: Record<string, string> = {
   github: 'GitHub',
@@ -29,13 +30,21 @@ export default async function SurfacesPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: surfaces, error }] = await Promise.all([
+  const [{ data: profile }, { data: surfaces, error }, { data: mySubs }] = await Promise.all([
     supabase.from('profiles').select('plan').eq('id', user.id).maybeSingle(),
     supabase.from('surfaces').select('*').eq('active', true).order('quality_score', { ascending: false }),
+    supabase.from('submissions').select('surface_id, surface_status, status').not('surface_id', 'is', null),
   ])
   if (error) throw new Error(`Failed to load surfaces (${error.message})`)
 
   const rank = planRank(profile?.plan)
+  // Latest status per surface for this user (RLS scopes rows to the owner).
+  const statusBySurface = new Map<string, SurfaceStatus>()
+  for (const s of mySubs ?? []) {
+    if (s.surface_id && !statusBySurface.has(s.surface_id)) {
+      statusBySurface.set(s.surface_id, surfaceStatusFrom(s.surface_status, s.status))
+    }
+  }
   const byCategory = new Map<string, typeof surfaces>()
   for (const s of surfaces ?? []) {
     const list = byCategory.get(s.category) ?? []
@@ -76,7 +85,14 @@ export default async function SurfacesPage() {
                       Unlocks on {['Free', 'Founder', 'Pro', 'Agency'][s.tier_unlock]}
                     </span>
                   ) : (
-                    <span className="status-pending">Not started</span>
+                    (() => {
+                      const st = statusBySurface.get(s.id) ?? 'not_started'
+                      const cls =
+                        st === 'verified' ? 'status-live' : st === 'rejected' ? 'status-dead' : st === 'not_started' ? 'status-pending' : 'status-running'
+                      const label =
+                        st === 'not_started' ? 'Not started' : st === 'in_progress' ? 'In progress' : st
+                      return <span className={cls}>{label}</span>
+                    })()
                   )}
                 </div>
               )

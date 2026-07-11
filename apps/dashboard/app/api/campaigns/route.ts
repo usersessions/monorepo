@@ -177,15 +177,23 @@ export async function POST(request: Request) {
 
   // ---- Submissions: one row per PlatformResult ----
   const { error: submissionsError } = await db.from('submissions').insert(
-    payload.results.map((r) => ({
-      campaign_id: payload.campaignId,
-      user_id: user.id,
-      platform_id: r.platformId,
-      status: r.status,
-      listing_url: r.listingUrl ?? null,
-      screenshot_url: r.screenshotUrl ?? null,
-      simulated: r.simulated,
-    }))
+    payload.results.map((r) => {
+      // Surface submissions carry platformId as "surface:<uuid>" — split it out so the
+      // dedicated surface_id + surface_status columns are populated, and keep platform_id null.
+      const isSurface = typeof r.platformId === 'string' && r.platformId.startsWith('surface:')
+      const surfaceId = isSurface ? r.platformId.slice('surface:'.length) : null
+      return {
+        campaign_id: payload.campaignId,
+        user_id: user.id,
+        platform_id: isSurface ? null : r.platformId,
+        surface_id: surfaceId,
+        surface_status: isSurface ? (r.surfaceStatus ?? 'submitted') : null,
+        status: r.status,
+        listing_url: r.listingUrl ?? null,
+        screenshot_url: r.screenshotUrl ?? null,
+        simulated: r.simulated,
+      }
+    })
   )
   if (submissionsError) {
     console.error('[campaigns] submissions insert failed:', submissionsError)

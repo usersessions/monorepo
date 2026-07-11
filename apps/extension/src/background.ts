@@ -800,6 +800,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             await postSurfaceSubmission({
               surfaceId: String(msg.surfaceId),
               campaignId: meta?.campaignId ?? crypto.randomUUID(),
+              verified: true, // on-page mention confirmed
             })
           }
           sendResponse({ ok: true, found })
