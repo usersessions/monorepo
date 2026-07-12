@@ -339,6 +339,38 @@ export interface ReviewCampaignResponse {
   error?: ReviewApiError
 }
 
+/**
+ * Comparison Content Generator (Feature 2). Server-side Gemini drafts editable content the
+ * founder publishes on their own site. THE ONLY home for these types.
+ */
+export type ContentType = 'vs_page' | 'best_tools_roundup' | 'alternative_post' | 'faq_page'
+
+export interface GeneratedContentView {
+  id: string
+  contentType: ContentType
+  draftMarkdown: string
+  publishedUrl: string | null
+  aiCitationCount: number
+  createdAt: string
+}
+
+export type ContentApiError =
+  | 'UNAUTHORIZED'
+  | 'INVALID_PAYLOAD'
+  | 'PLAN_LIMIT_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_NOT_CONFIGURED'
+  | 'GENERATION_FAILED'
+
+export interface ContentGenerateResponse {
+  ok: boolean
+  /** Editable markdown draft. */
+  markdown?: string
+  /** Suggested schema.org JSON-LD block for the page. */
+  schemaSuggestion?: string
+  error?: ContentApiError
+}
+
 /** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
 export interface SurfaceCopyResponse {
   ok: boolean

@@ -58,12 +58,31 @@ export async function POST(request: Request) {
 
   try {
     const db = createServiceClient()
+    const type = event.type ?? 'unknown'
+    const recipient = Array.isArray(event.data?.to) ? (event.data?.to[0] ?? null) : (event.data?.to ?? null)
     await db.from('email_events').insert({
       email_id: event.data?.email_id ?? null,
-      event_type: event.type ?? 'unknown',
-      recipient: Array.isArray(event.data?.to) ? (event.data?.to[0] ?? null) : (event.data?.to ?? null),
+      event_type: type,
+      recipient,
       subject: event.data?.subject ?? null,
     })
+
+    // Advance review-request funnel on open/click (Feature 1). Cumulative + monotonic:
+    // never downgrade a further-along status. Matches the most recent 'sent' request to
+    // this recipient by email.
+    const stage = type.includes('clicked') ? 'clicked' : type.includes('opened') ? 'opened' : null
+    if (stage && recipient) {
+      const priorOk = stage === 'clicked' ? ['sent', 'opened'] : ['sent']
+      const { data: reqRow } = await db
+        .from('review_requests')
+        .select('id')
+        .eq('recipient_email', String(recipient).toLowerCase())
+        .in('status', priorOk)
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (reqRow) await db.from('review_requests').update({ status: stage }).eq('id', reqRow.id)
+    }
   } catch (err) {
     // Log-and-acknowledge: a storage hiccup must not make Resend retry-storm us.
     console.error('[resend-webhook] insert failed:', err)

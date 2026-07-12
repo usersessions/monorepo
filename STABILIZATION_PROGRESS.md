@@ -482,6 +482,28 @@ C dashboard/API/schema, D) is shipped on main.
   advance statuses beyond 'sent'. Sent + reviewed (manual) work today.
 - Features 2-6 NOT started (build order).
 
+## Review funnel completion + Feature 2 — SHIPPED
+- **Review funnel opened/clicked (the flagged Feature 1 gap):** the Resend event webhook now
+  advances `review_requests` on `email.opened` → `opened` and `email.clicked` → `clicked`,
+  matching the most recent `sent` request by recipient email, monotonic (never downgrades).
+  Sent/opened/clicked/reviewed now all populate.
+
+## Acquisition Feature 2: Comparison Content Generator — SHIPPED
+- **Contracts:** `ContentType`, `GeneratedContentView`, `ContentApiError`, `ContentGenerateResponse`.
+- **Tiers:** `contentPerMonth` (free 0, founder 2, pro 10, agency unlimited).
+- **Migration 0029:** `generated_content` (RLS select-own + update-own so the founder can set a
+  published_url; service-role insert after metering).
+- **`POST /api/ai/content`:** server-side Gemini drafts vs-page / roundup / alternative / FAQ as
+  editable Markdown + a schema.org JSON-LD suggestion. Honest guardrails (no fabricated
+  benchmarks, fair to competitors, no SEO/backlinks/hype words). Metered; nothing auto-published.
+- **`/api/content` (GET/POST):** list + save drafts with optional published URL (ownership-checked).
+- **Dashboard `/content`:** paid gate for free, generator (product + type + up to 3 competitors
+  pulled from competitor-scan data), editable markdown, schema suggestion, Copy Markdown /
+  Download HTML / Save draft, and a saved-drafts list. Added to sidebar nav.
+- **Honest deferral:** `ai_citation_count` column exists but citation monitoring (checking if AI
+  cites the published page) is future work — not fabricated; stays 0 until built.
+- Features 3-6 NOT started (build order).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
