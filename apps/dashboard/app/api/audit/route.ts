@@ -192,7 +192,9 @@ export async function POST(request: Request) {
   // Plan-gated cadence: 1/day for pro+agency, else 1/week. Enforced against stored audits.
   const { data: profile } = await db.from('profiles').select('plan').eq('id', user.id).maybeSingle()
   const plan = profile?.plan ?? 'free'
-  const windowMs = plan === 'pro' || plan === 'agency' ? 86_400_000 : 7 * 86_400_000
+  const auditIntervalDays = limitsFor(plan).aioAuditIntervalDays
+  if (auditIntervalDays <= 0) return bad('PLAN_LIMIT_EXCEEDED', 402)
+  const windowMs = auditIntervalDays * 86_400_000
   const { data: recent } = await db
     .from('landing_page_audits')
     .select('created_at')
