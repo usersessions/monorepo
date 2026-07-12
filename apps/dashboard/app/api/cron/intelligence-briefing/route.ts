@@ -3,6 +3,7 @@ import { authorizeCron, logCron } from '@/lib/cron'
 import { sendEmail } from '@/lib/email/resend'
 import { dataTable, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
+import { PLAN_LIMITS } from '@/lib/tiers'
 
 export const maxDuration = 120
 
@@ -24,11 +25,14 @@ export async function GET(request: Request) {
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString()
 
   try {
-    // Paying users only.
+    // Plans whose limits enable Intelligence Briefings (single source of truth: PLAN_LIMITS).
+    const briefingPlans = Object.entries(PLAN_LIMITS)
+      .filter(([, limits]) => limits.intelligenceBriefings)
+      .map(([plan]) => plan)
     const { data: users } = await db
       .from('profiles')
       .select('id, email, plan')
-      .in('plan', ['founder', 'pro', 'agency'])
+      .in('plan', briefingPlans)
       .limit(500)
 
     // New platforms this week are global — fetch once.
