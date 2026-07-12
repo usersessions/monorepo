@@ -504,6 +504,22 @@ C dashboard/API/schema, D) is shipped on main.
   cites the published page) is future work — not fabricated; stays 0 until built.
 - Features 3-6 NOT started (build order).
 
+## Acquisition Feature 3: Founder Brand Audit — SHIPPED
+- **Contracts:** `FounderPlatform`, `FounderPlatformScore`, `FounderAuditResult`,
+  `FounderAuditError`, `FounderAuditResponse`.
+- **Tiers:** `founderAuditIntervalDays` (free 0=disabled, founder 30, pro 7, agency 7).
+- **Migration 0030:** `founder_audits` (append-only, RLS select-own, service-role writes;
+  stores per-platform scores JSONB + generated copy JSONB + top priority).
+- **`POST /api/founder-audit`:** ownership + cadence gate (PLAN_LIMIT_EXCEEDED), best-effort
+  server-side fetch of each supplied profile (LinkedIn/X/GitHub/Indie Hackers), Gemini scores
+  each 0-10 with feedback + actionable suggestion + ready-to-paste optimized copy; overall
+  0-100; weakest platform → topPriority. Honest: unreachable profile scores low with a clear
+  reason (many block bots), never fabricated.
+- **Dashboard `/founder-audit`:** paid gate for free, profile inputs, scorecard (serif metric,
+  per-platform meters with state colours, top-priority callout, per-platform suggested copy with
+  Copy button). Added to sidebar nav.
+- Reuses the AIO Audit pattern. Features 4-6 NOT started.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

@@ -22,13 +22,15 @@ export interface PlanLimits {
   reviewRequestsPerCampaign: number
   /** Comparison-content generations per calendar month (0 disables; null = unlimited). */
   contentPerMonth: number | null
+  /** Founder-audit cadence in days (0 disables; e.g. 30 = monthly, 7 = weekly). */
+  founderAuditIntervalDays: number
 }
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
-  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 1, trialDays: 30, lifetimeLaunchCap: 1, reviewCampaignsPerMonth: 0, reviewRequestsPerCampaign: 0, contentPerMonth: 0 },
-  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: 1, reviewRequestsPerCampaign: 50, contentPerMonth: 2 },
-  pro: { productSlots: 10, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 15, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: 3, reviewRequestsPerCampaign: 200, contentPerMonth: 10 },
-  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: null, reviewRequestsPerCampaign: 1000, contentPerMonth: null },
+  free: { productSlots: 1, launchesPerProductPerMonth: 1, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 1, trialDays: 30, lifetimeLaunchCap: 1, reviewCampaignsPerMonth: 0, reviewRequestsPerCampaign: 0, contentPerMonth: 0, founderAuditIntervalDays: 0 },
+  founder: { productSlots: 3, launchesPerProductPerMonth: 2, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 5, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: 1, reviewRequestsPerCampaign: 50, contentPerMonth: 2, founderAuditIntervalDays: 30 },
+  pro: { productSlots: 10, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 15, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: 3, reviewRequestsPerCampaign: 200, contentPerMonth: 10, founderAuditIntervalDays: 7 },
+  agency: { productSlots: 15, launchesPerProductPerMonth: 10, lifetimeSubmissionCap: null, visibilityQueriesPerProduct: 10, trialDays: null, lifetimeLaunchCap: null, reviewCampaignsPerMonth: null, reviewRequestsPerCampaign: 1000, contentPerMonth: null, founderAuditIntervalDays: 7 },
 }
 
 export function limitsFor(plan: string | null | undefined): PlanLimits {

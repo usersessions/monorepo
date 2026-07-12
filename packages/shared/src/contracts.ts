@@ -371,6 +371,45 @@ export interface ContentGenerateResponse {
   error?: ContentApiError
 }
 
+/**
+ * Founder Brand Audit (Feature 3). Scores a founder's personal profiles for how clearly they
+ * signal “builder of <product>, a <category> tool” to humans and AI. THE ONLY home for these.
+ */
+export type FounderPlatform = 'linkedin' | 'twitter' | 'github' | 'indiehackers'
+
+export interface FounderPlatformScore {
+  platform: FounderPlatform
+  label: string
+  score: number
+  max: number
+  feedback: string
+  suggestion: string
+  /** Ready-to-paste optimized copy for this platform (bio/headline/pinned post). */
+  suggestedCopy: string
+}
+
+export interface FounderAuditResult {
+  productId: string
+  overallScore: number // 0-100
+  platforms: FounderPlatformScore[]
+  topPriority: string
+  auditedAt: string
+}
+
+export type FounderAuditError =
+  | 'UNAUTHORIZED'
+  | 'INVALID_PAYLOAD'
+  | 'PLAN_LIMIT_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_NOT_CONFIGURED'
+  | 'GENERATION_FAILED'
+
+export interface FounderAuditResponse {
+  ok: boolean
+  audit?: FounderAuditResult
+  error?: FounderAuditError
+}
+
 /** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
 export interface SurfaceCopyResponse {
   ok: boolean
