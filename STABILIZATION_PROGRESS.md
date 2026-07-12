@@ -520,6 +520,21 @@ C dashboard/API/schema, D) is shipped on main.
   Copy button). Added to sidebar nav.
 - Reuses the AIO Audit pattern. Features 4-6 NOT started.
 
+## Acquisition Feature 4: Marketplace Distribution — SHIPPED
+- Reuses the surfaces engine — marketplaces are a new surface **category**, not a new pipeline.
+- **Contract:** `SurfaceCategory` gains `'marketplace'`.
+- **Migration 0031:** widens `surfaces.category` CHECK to include `marketplace` and seeds
+  Chrome Web Store, Slack Marketplace, Shopify App Store, GitHub Marketplace, Zapier Directory,
+  Notion Gallery, Figma Community (all `assisted_manual`, tier-gated 1-2).
+- **Copy API:** `/api/surfaces/copy` gains a `marketplace` format (tagline + description +
+  feature bullets; no fabricated ratings/install counts).
+- **UI:** `marketplace` category label added to the dashboard `/surfaces` grid and the extension
+  SurfacesPanel — so the existing Distribute-to-Surfaces flow (open tab → draft copy → sidebar
+  → mark submitted) and the link-check monitoring loop cover marketplaces with no new code.
+- Assisted-manual only: the extension opens the marketplace and pre-fills a draft; the founder
+  submits. No automated account creation, consistent with existing constraints.
+- Features 5-6 NOT started.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

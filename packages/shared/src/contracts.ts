@@ -239,7 +239,7 @@ export interface SuggestQueriesResponse {
  * tracking — never automated account actions. Reddit is intentionally excluded: its
  * automation/self-promotion detection bans real user accounts, which would harm the user.
  */
-export type SurfaceCategory = 'github' | 'blog' | 'twitter' | 'podcast' | 'youtube' | 'stackoverflow' | 'community'
+export type SurfaceCategory = 'github' | 'blog' | 'twitter' | 'podcast' | 'youtube' | 'stackoverflow' | 'community' | 'marketplace'
 
 export type SurfaceSubmissionType = 'automated' | 'assisted_manual' | 'tracked_only'
 

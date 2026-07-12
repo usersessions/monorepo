@@ -14,6 +14,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   youtube: 'YouTube',
   stackoverflow: 'Stack Overflow',
   community: 'Community',
+  marketplace: 'Marketplace',
 }
 
 /**

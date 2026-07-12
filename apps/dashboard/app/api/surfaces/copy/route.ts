@@ -33,6 +33,8 @@ const FORMAT: Record<string, string> = {
     'Write one honest pinned-tweet (max 260 chars) describing what the product does and who it is for. No hashtag stuffing, no hype words.',
   podcast: 'Write a 2-sentence pitch a founder could send to a relevant podcast host. Honest, specific, no flattery padding.',
   youtube: 'Write a short honest video description (2-3 sentences) for a product demo. No clickbait.',
+  marketplace:
+    'Write an honest marketplace listing draft for this product: a one-line tagline, a 2-3 sentence description of what it does and who it is for, and 3-5 concise feature bullets. No fabricated ratings, install counts, or benchmarks.',
 }
 
 export async function POST(request: Request) {
