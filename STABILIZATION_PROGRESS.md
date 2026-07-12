@@ -569,6 +569,28 @@ C dashboard/API/schema, D) is shipped on main.
   compliant public API), LinkedIn (no compliant API; ToS/account risk). These remain manual-add,
   matching the spec's “manual curation for now” for LinkedIn and our account-safety principle.
 
+## Acquisition Feature 6: Referral Program Generator — SHIPPED (final feature)
+- **Contracts:** `ReferralStructure`, `ReferralProgramCopy`, `ReferralProgramView`,
+  `ReferralApiError`, `ReferralGenerateResponse`.
+- **Tiers:** `referralProgramsPerMonth` (free 0, founder 1, pro 3, agency unlimited).
+- **Migration 0033:** `referral_programs` (RLS select-own + update-own for implemented_url;
+  service-role insert after metering).
+- **`POST /api/referrals/generate`:** ownership + monthly cap; Gemini picks a structure
+  (give_get / credits / discount / cash / tiered) tuned to pricing and writes the full copy set
+  (landing headline/body/CTA, in-app tooltip, invite email subject/body, social post). Honest
+  guardrails (no fabricated metrics, no hype words, no SEO/backlinks). Persists the program.
+- **`GET /api/referrals`:** list generated programs (owner-scoped).
+- **Dashboard `/referrals`:** paid gate for free, inputs (category/value prop/pricing), suggested
+  structure, per-field editable copy with Copy buttons, and a saved-programs list. Added to nav.
+
+## Acquisition features 1-6: ALL COMPLETE
+Review generation, comparison content, founder audit, marketplace distribution, community
+participation (in-tab reply + honest SO/HN scan), and referral generator are all on main and
+documented. Pending (ops, unchanged): run migrations 0023-0033 in Supabase; `pnpm -r build` +
+tests in the IDE; Paystack Pro env vars; DKIM/SPF/DMARC + Resend domain; Chrome Web Store
+submission; live adapter selector QA. Deferred by decision: multi-engine AI visibility (cost);
+automated scanning of Reddit/Indie Hackers/LinkedIn (account-safety / no compliant API).
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

@@ -454,6 +454,45 @@ export interface CommunityRespondResponse {
   error?: CommunityApiError
 }
 
+/**
+ * Referral Program Generator (Feature 6). AI proposes a referral structure + copy the founder
+ * implements in their OWN product. THE ONLY home for these types.
+ */
+export type ReferralStructure = 'give_get' | 'credits' | 'discount' | 'cash' | 'tiered'
+
+export interface ReferralProgramCopy {
+  landingHeadline: string
+  landingBody: string
+  landingCta: string
+  inAppTooltip: string
+  inviteEmailSubject: string
+  inviteEmailBody: string
+  socialPost: string
+}
+
+export interface ReferralProgramView {
+  id: string
+  structureType: ReferralStructure
+  copy: ReferralProgramCopy
+  implementedUrl: string | null
+  createdAt: string
+}
+
+export type ReferralApiError =
+  | 'UNAUTHORIZED'
+  | 'INVALID_PAYLOAD'
+  | 'PLAN_LIMIT_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_NOT_CONFIGURED'
+  | 'GENERATION_FAILED'
+
+export interface ReferralGenerateResponse {
+  ok: boolean
+  structureType?: ReferralStructure
+  copy?: ReferralProgramCopy
+  error?: ReferralApiError
+}
+
 /** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
 export interface SurfaceCopyResponse {
   ok: boolean
