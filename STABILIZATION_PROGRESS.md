@@ -535,6 +535,26 @@ C dashboard/API/schema, D) is shipped on main.
   submits. No automated account creation, consistent with existing constraints.
 - Features 5-6 NOT started.
 
+## Acquisition Feature 5: Community Participation Engine — SHIPPED
+- **Reddit intentionally EXCLUDED** (consistent with the surfaces decision): its self-promotion
+  detection bans real user accounts. Allowed surfaces: Indie Hackers, Stack Overflow, Hacker
+  News, LinkedIn, Other.
+- **Contracts:** `CommunitySurface`, `CommunityOpportunityStatus`, `CommunityOpportunity`,
+  `CommunityResponseView`, `CommunityApiError`, `CommunityRespondResponse`.
+- **Tiers:** `communityResponsesPerMonth` (free 0, founder 5, pro 20, agency unlimited).
+- **Migration 0032:** `community_opportunities` + `community_responses` (RLS all-own — the
+  founder curates and posts everything themselves).
+- **APIs:** `/api/communities/opportunities` (GET feed / POST manual add — curated now, future
+  automated scan can POST server-side), `/api/communities/respond` (AI-draft mode is metered and
+  writes an honest, help-first, non-promotional reply that mentions the product only if relevant;
+  save/finalize mode records the founder's edited reply and marks the opportunity responded).
+- **Dashboard `/communities`:** paid gate for free, add-opportunity form, opportunity feed with
+  status, per-opportunity Generate → edit → Copy / Open post / Mark as responded. Added to nav.
+- Anti-spam by design: nothing is auto-posted; every reply is drafted help-first, edited, and
+  posted by the human in their own account. The “Open in tab + sidebar” extension variant can
+  reuse the existing surface-sidebar later; the dashboard Copy+Open flow covers it today.
+- Feature 6 NOT started.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

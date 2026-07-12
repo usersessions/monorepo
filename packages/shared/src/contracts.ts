@@ -410,6 +410,50 @@ export interface FounderAuditResponse {
   error?: FounderAuditError
 }
 
+/**
+ * Community Participation Engine (Feature 5). ASSISTED + human-posted only: we surface relevant
+ * discussions and draft honest, non-promotional responses the founder edits and posts themselves.
+ * Reddit is intentionally excluded (its self-promotion detection bans real user accounts).
+ * THE ONLY home for these types.
+ */
+export type CommunitySurface = 'indiehackers' | 'stackoverflow' | 'linkedin' | 'hackernews' | 'other'
+
+export type CommunityOpportunityStatus = 'new' | 'approved' | 'responded' | 'ignored'
+
+export interface CommunityOpportunity {
+  id: string
+  surface: CommunitySurface
+  url: string
+  title: string
+  contentSnippet: string | null
+  relevanceScore: number
+  status: CommunityOpportunityStatus
+  createdAt: string
+}
+
+export interface CommunityResponseView {
+  id: string
+  opportunityId: string
+  draftResponse: string
+  finalResponse: string | null
+  postedAt: string | null
+}
+
+export type CommunityApiError =
+  | 'UNAUTHORIZED'
+  | 'INVALID_PAYLOAD'
+  | 'PLAN_LIMIT_EXCEEDED'
+  | 'RATE_LIMITED'
+  | 'AI_NOT_CONFIGURED'
+  | 'GENERATION_FAILED'
+
+export interface CommunityRespondResponse {
+  ok: boolean
+  responseId?: string
+  draftResponse?: string
+  error?: CommunityApiError
+}
+
 /** Body of POST /api/surfaces/copy — surface-specific assisted copy. */
 export interface SurfaceCopyResponse {
   ok: boolean
