@@ -614,6 +614,23 @@ automated scanning of Reddit/Indie Hackers/LinkedIn (account-safety / no complia
   remain in the tree but are no longer imported by the popup — dead-code cleanup can follow once
   the IDE build confirms nothing else references them.
 
+## Dashboard→extension trigger buttons — SHIPPED
+- **Extension:** `PING` handler added to `onMessageExternal` (answers `{ok:true}`, no auth — used
+  only for install detection).
+- **Shared client `lib/extension-bridge.ts`:** `extensionSupported()` (chrome.runtime +
+  `NEXT_PUBLIC_EXTENSION_ID`, fail-closed), `pingExtension()`, one-shot
+  `triggerLaunch/triggerSurface/triggerCapture` with a 3s timeout, no polling; lastError → null.
+- **`ExtensionActionButton`:** pings on mount; unsupported/not-installed → install CTA
+  (`NEXT_PUBLIC_EXTENSION_STORE_URL`); no-response → honest guidance; maps NOT_CONNECTED /
+  TIER_LOCKED / capture no-op to specific messages. `ExtensionStatus` = ping-only settings badge.
+- **Wired exactly where specced, nowhere else:** `/campaigns` (Launch from extension on
+  running/draft/ready), `/surfaces` (Open in extension on unlocked assisted_manual),
+  `/audit` (best-effort Capture page + honest note), `/settings` (connection badge). NOT added to
+  /analytics, /competitors, /reports, or nav.
+- Fail-closed: `NEXT_PUBLIC_EXTENSION_ID` unset → every button degrades to the install CTA.
+- Honest deviation: `productId`/`campaignId` args are not sent — the extension launches for the
+  product it analyzed in its own storage; buttons stay truthful about that.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

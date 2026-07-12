@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { planRank } from '@/lib/tiers'
 import { surfaceStatusFrom, type SurfaceStatus } from '@usersessions/shared'
+import { ExtensionActionButton } from '@/components/ExtensionActionButton'
 
 const CATEGORY_LABEL: Record<string, string> = {
   github: 'GitHub',
@@ -86,14 +87,19 @@ export default async function SurfacesPage() {
                       Unlocks on {['Free', 'Founder', 'Pro', 'Agency'][s.tier_unlock]}
                     </span>
                   ) : (
-                    (() => {
-                      const st = statusBySurface.get(s.id) ?? 'not_started'
-                      const cls =
-                        st === 'verified' ? 'status-live' : st === 'rejected' ? 'status-dead' : st === 'not_started' ? 'status-pending' : 'status-running'
-                      const label =
-                        st === 'not_started' ? 'Not started' : st === 'in_progress' ? 'In progress' : st
-                      return <span className={cls}>{label}</span>
-                    })()
+                    <>
+                      {(() => {
+                        const st = statusBySurface.get(s.id) ?? 'not_started'
+                        const cls =
+                          st === 'verified' ? 'status-live' : st === 'rejected' ? 'status-dead' : st === 'not_started' ? 'status-pending' : 'status-running'
+                        const label =
+                          st === 'not_started' ? 'Not started' : st === 'in_progress' ? 'In progress' : st
+                        return <span className={cls}>{label}</span>
+                      })()}
+                      {s.submission_type === 'assisted_manual' && (
+                        <ExtensionActionButton action="surface" surfaceId={s.id} label="Open in extension" />
+                      )}
+                    </>
                   )}
                 </div>
               )

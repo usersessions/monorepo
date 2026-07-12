@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { updateProfile, saveNotificationPrefs } from './actions'
+import { ExtensionStatus } from '@/components/ExtensionStatus'
 import { UsageMeter } from '@/components/UpgradePrompt'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { listTransactions } from '@/lib/billing/paystack'
@@ -205,6 +206,8 @@ export default async function SettingsPage({
       </section>
 
       {/* Integrations */}
+      <ExtensionStatus />
+
       <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Integrations</h2>
         <p className="font-sans-body">Send dead-link alerts and campaign updates to Slack or Discord.</p>

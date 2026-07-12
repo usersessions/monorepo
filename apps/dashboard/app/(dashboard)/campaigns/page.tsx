@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { ExtensionActionButton } from '@/components/ExtensionActionButton'
 
 interface SearchParams {
   status?: string
@@ -141,6 +142,9 @@ export default async function CampaignsPage({
                 <Link className="font-mono-micro" style={{ color: 'var(--primary)' }} href={`/reports/${c.id}`} target="_blank">
                   Download report ↗
                 </Link>
+                {['running', 'draft', 'ready'].includes(c.status) && (
+                  <ExtensionActionButton action="launch" label="Launch from extension" />
+                )}
               </div>
             </details>
           )

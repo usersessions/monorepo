@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { AuditCategory, LandingPageAuditResult } from '@usersessions/shared'
 import { AuditRunner } from './AuditRunner'
+import { ExtensionActionButton } from '@/components/ExtensionActionButton'
 
 /**
  * AIO Audit (Feature A): how well AI assistants can understand and recommend a
@@ -66,7 +67,17 @@ export default async function AuditPage() {
           <p className="font-sans-body">This product has no landing-page URL yet, so there is nothing to audit.</p>
         </div>
       ) : (
-        <AuditRunner productId={product.id} url={product.url} initialAudit={latest} />
+        <>
+          <AuditRunner productId={product.id} url={product.url} initialAudit={latest} />
+          <div className="card card--dense flex flex-col" style={{ gap: 'var(--space-xs)' }}>
+            <p className="font-mono-label">Refresh your hero image</p>
+            <p className="font-mono-micro">
+              Updated your landing page? Recapture it for your listings. Best-effort — open the
+              extension on your product’s page for reliable capture.
+            </p>
+            <ExtensionActionButton action="capture" label="Capture page" />
+          </div>
+        </>
       )}
     </div>
   )

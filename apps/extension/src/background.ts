@@ -26,6 +26,13 @@ chrome.runtime.onMessageExternal.addListener(
       return true
     }
 
+    // Install-detection ping (no auth needed): the dashboard uses this to decide whether to
+    // show an action button or an install CTA.
+    if ((message as { type?: string })?.type === 'PING') {
+      sendResponse({ ok: true })
+      return true
+    }
+
     if (
       message?.type === 'TRIGGER_LAUNCH' ||
       message?.type === 'TRIGGER_SURFACE' ||
