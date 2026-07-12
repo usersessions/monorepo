@@ -19,7 +19,7 @@ function tiersFor(annual: boolean) {
       period: '',
       note: null as string | null,
       popular: false,
-      features: ['1 product', '1 full launch — every platform', '30 days of full monitoring + weekly AI visibility', 'Distribution Score + competitor scan', 'AI copy generation'],
+      features: ['1 product', '1 full launch — every platform', '30 days of full monitoring + weekly AI visibility', 'AIO Audit — weekly landing-page scorecard', 'Distribution Score + competitor scan', 'AI copy generation'],
       cta: null as { label: string; plan: string }[] | null,
     },
     {
@@ -28,7 +28,7 @@ function tiersFor(annual: boolean) {
       period: '/mo',
       note: annual ? 'billed annually at $390 · save 17% (2 months free)' : 'or $32.50/mo billed annually',
       popular: true,
-      features: ['3 products', '2 launches per product / month', 'Full monitoring + auto-resubmission', '5 AI Visibility queries / product, weekly', 'Weekly digest + new-platform drops'],
+      features: ['3 products', '2 launches per product / month', 'Full monitoring + auto-resubmission', '5 AI Visibility queries / product, weekly', 'AIO Audit + weekly Intelligence Briefings', 'Reviews, community & referral toolkit', 'Weekly digest + new-platform drops'],
       cta: annual
         ? [
             { label: 'Subscribe yearly — $390', plan: 'founder_annual' },
@@ -45,7 +45,7 @@ function tiersFor(annual: boolean) {
       period: '/mo',
       note: annual ? 'billed annually at $990 · save 17% (2 months free)' : 'or $82.50/mo billed annually',
       popular: false,
-      features: ['10 products', '10 launches per product / month', 'Everything in Founder', '15 AI Visibility queries / product', 'Daily competitor scans', 'Priority resubmission & support'],
+      features: ['10 products', '10 launches per product / month', 'Everything in Founder', '15 AI Visibility queries / product', 'Daily AIO Audit + intelligence briefings', 'Higher review, content & community volume', 'Priority resubmission & support'],
       cta: annual
         ? [
             { label: 'Subscribe yearly — $990', plan: 'pro_annual' },
