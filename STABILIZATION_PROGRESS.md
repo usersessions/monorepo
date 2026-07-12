@@ -555,6 +555,20 @@ C dashboard/API/schema, D) is shipped on main.
   reuse the existing surface-sidebar later; the dashboard Copy+Open flow covers it today.
 - Feature 6 NOT started.
 
+## Feature 5 additions: in-tab reply + honest automated scan — SHIPPED
+- **In-tab community reply (extension):** `RENDER_COMMUNITY_PANEL` added to the surface sidebar
+  content script (editable reply, Copy, Mark-as-responded); background `OPEN_COMMUNITY_RESPONSE`
+  opens the discussion tab + injects it; `COMMUNITY_MARK_RESPONDED` → `communities.ts` client
+  posts back. `/api/communities/respond` now also accepts the extension Bearer token (session OR
+  bearer) with explicit user_id ownership. Dashboard feed gains an “Open in tab” button.
+- **Automated scan cron (`/api/cron/community-scan`, Mondays 07:00 UTC):** HONEST SOURCES ONLY —
+  **Stack Overflow (StackExchange API) + Hacker News (Algolia API)**, both real public APIs.
+  Derives search terms from each paid product's tracked visibility queries, writes deduped 'new'
+  opportunities. Registered in `vercel.json`.
+- **Deliberately NOT auto-scanned:** Reddit (bans real accounts — excluded), Indie Hackers (no
+  compliant public API), LinkedIn (no compliant API; ToS/account risk). These remain manual-add,
+  matching the spec's “manual curation for now” for LinkedIn and our account-safety principle.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

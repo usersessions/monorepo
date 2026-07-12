@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import type { CommunityOpportunity, CommunityRespondResponse, CommunitySurface } from '@usersessions/shared'
 
+// The dashboard talks to the installed extension by ID for the in-tab reply flow.
+declare const chrome: { runtime?: { sendMessage?: (id: string, msg: unknown) => void } } | undefined
+
 const SURFACES: { value: CommunitySurface; label: string }[] = [
   { value: 'indiehackers', label: 'Indie Hackers' },
   { value: 'stackoverflow', label: 'Stack Overflow' },
@@ -131,6 +134,22 @@ export function CommunityFeed({
                 <div className="flex" style={{ gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                   <button className="btn-ghost" type="button" onClick={() => void navigator.clipboard.writeText(drafts[o.id])}>Copy</button>
                   <a className="btn-ghost" style={{ textDecoration: 'none' }} href={o.url} target="_blank" rel="noreferrer">Open post</a>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    onClick={() =>
+                      chrome?.runtime?.sendMessage?.(process.env.NEXT_PUBLIC_EXTENSION_ID ?? '', {
+                        type: 'OPEN_COMMUNITY_RESPONSE',
+                        opportunityId: o.id,
+                        url: o.url,
+                        title: o.title,
+                        response: drafts[o.id],
+                      })
+                    }
+                    title="Opens the post in a tab with your reply in a sidebar (extension required)"
+                  >
+                    Open in tab
+                  </button>
                   <button className="btn-primary" type="button" onClick={() => markPosted(o.id)} disabled={busy === o.id}>Mark as responded</button>
                 </div>
               </>

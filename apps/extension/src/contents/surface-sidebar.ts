@@ -120,8 +120,73 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'RENDER_SURFACE_VERIFY' && msg.data) {
     renderVerifyPanel(msg.data as { surfaceId: string; surfaceName: string })
   }
+  if (msg?.type === 'RENDER_COMMUNITY_PANEL' && msg.data) {
+    renderCommunityPanel(msg.data as { opportunityId: string; title: string; response: string })
+  }
   if (msg?.type === 'REMOVE_SURFACE_PANEL') removePanel()
 })
+
+/**
+ * Community reply sidebar (Feature 5, in-tab version): shows the founder's approved, editable
+ * reply on the actual discussion page with Copy + Mark-as-responded. Assisted only — the human
+ * pastes and posts it themselves.
+ */
+function renderCommunityPanel(data: { opportunityId: string; title: string; response: string }): void {
+  removePanel()
+  const host = document.createElement('div')
+  host.id = PANEL_ID
+  host.style.cssText =
+    'position:fixed;top:16px;right:16px;z-index:2147483647;width:340px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+  const shadow = host.attachShadow({ mode: 'open' })
+  shadow.innerHTML = `
+    <style>
+      * { box-sizing: border-box; }
+      .card { background:#0F0F1A; color:#F4F2ED; border:1px solid #232330; border-radius:8px; padding:16px; box-shadow:0 8px 32px rgba(0,0,0,0.5); }
+      .row { display:flex; align-items:center; gap:8px; }
+      h3 { margin:0; font-size:14px; font-weight:600; flex:1; }
+      .mono { font-family:"SF Mono",Monaco,Consolas,monospace; font-size:11px; color:#A8A5A0; }
+      textarea { width:100%; height:180px; margin:12px 0; background:#09090F; color:#F4F2ED; border:1px solid #232330; border-radius:4px; padding:8px; font-size:12px; line-height:1.5; resize:vertical; }
+      button { border:none; border-radius:4px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+      .primary { background:#6366F1; color:#F4F2ED; }
+      .ghost { background:transparent; color:#A8A5A0; border:1px solid #232330; }
+      .green { color:#34D399; }
+      .close { background:transparent; color:#6B6862; font-size:16px; padding:0 4px; cursor:pointer; }
+      .actions { display:flex; gap:8px; flex-wrap:wrap; }
+      .status { margin-top:8px; font-size:11px; }
+    </style>
+    <div class="card">
+      <div class="row"><h3>Reply — help first</h3><button class="close" id="x" aria-label="Close">×</button></div>
+      <p class="mono">Edit your reply, paste it into the thread yourself, then mark it responded.</p>
+      <textarea id="resp">${data.response.replace(/</g, '&lt;')}</textarea>
+      <div class="actions">
+        <button class="primary" id="copyBtn">Copy reply</button>
+        <button class="ghost" id="doneBtn">Mark as responded</button>
+      </div>
+      <p class="status mono" id="status"></p>
+    </div>
+  `
+  document.documentElement.appendChild(host)
+  const status = shadow.getElementById('status') as HTMLParagraphElement
+  const textarea = shadow.getElementById('resp') as HTMLTextAreaElement
+  shadow.getElementById('x')?.addEventListener('click', removePanel)
+  shadow.getElementById('copyBtn')?.addEventListener('click', () => {
+    void navigator.clipboard.writeText(textarea.value).then(
+      () => { status.textContent = 'Copied. Paste it into the thread and post.'; status.className = 'status mono green' },
+      () => { status.textContent = 'Clipboard blocked — select and copy manually.'; status.className = 'status mono' }
+    )
+  })
+  shadow.getElementById('doneBtn')?.addEventListener('click', () => {
+    status.textContent = 'Saving…'
+    status.className = 'status mono'
+    void chrome.runtime
+      .sendMessage({ type: 'COMMUNITY_MARK_RESPONDED', opportunityId: data.opportunityId, finalResponse: textarea.value })
+      .then((res: { ok?: boolean }) => {
+        status.textContent = res?.ok ? 'Marked as responded.' : 'Could not save — sign in on the dashboard.'
+        status.className = res?.ok ? 'status mono green' : 'status mono'
+        if (res?.ok) setTimeout(removePanel, 2000)
+      })
+  })
+}
 
 /** tracked_only surfaces: no draft — confirm the product is mentioned on this page. */
 function renderVerifyPanel(data: { surfaceId: string; surfaceName: string }): void {

@@ -687,6 +687,35 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ surfaces: await fetchSurfaces() })
         break
       }
+      case 'OPEN_COMMUNITY_RESPONSE': {
+        // In-tab community reply (Feature 5): open the discussion, inject the reply sidebar.
+        const openUrl = typeof msg.url === 'string' && msg.url ? msg.url : 'about:blank'
+        const tab = await chrome.tabs.create({ url: openUrl, active: true })
+        await waitForTabLoad(tab.id!)
+        try {
+          await sendMessageWithRetry(tab.id!, {
+            type: 'RENDER_COMMUNITY_PANEL',
+            data: {
+              opportunityId: String(msg.opportunityId ?? ''),
+              title: String(msg.title ?? ''),
+              response: String(msg.response ?? ''),
+            },
+          })
+        } catch {
+          /* best-effort injection */
+        }
+        sendResponse({ ok: true })
+        break
+      }
+      case 'COMMUNITY_MARK_RESPONDED': {
+        const { markCommunityResponded } = await import('./communities')
+        const res = await markCommunityResponded(
+          String(msg.opportunityId ?? ''),
+          String(msg.finalResponse ?? '')
+        )
+        sendResponse({ ok: res.ok })
+        break
+      }
       case 'DISTRIBUTE_SURFACE': {
         // Assisted distribution: open the surface, draft copy, inject the editable sidebar.
         const { fetchSurfaceCopy } = await import('./surfaces')

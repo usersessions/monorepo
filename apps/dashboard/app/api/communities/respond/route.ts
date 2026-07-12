@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { authenticateBearer } from '@/lib/auth/bearer'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
@@ -23,9 +24,11 @@ function bad(error: CommunityRespondResponse['error'], status: number): NextResp
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const {
+  let {
     data: { user },
   } = await supabase.auth.getUser()
+  // Also accept the extension's Bearer token (in-tab “mark as responded” flow).
+  if (!user) user = await authenticateBearer(request)
   if (!user) return bad('UNAUTHORIZED', 401)
   if (!rateLimit(`community:${user.id}`, 20, 60_000)) return bad('RATE_LIMITED', 429)
 
@@ -38,13 +41,14 @@ export async function POST(request: Request) {
   const opportunityId = typeof body.opportunityId === 'string' ? body.opportunityId : ''
   if (!opportunityId) return bad('INVALID_PAYLOAD', 400)
 
-  // Opportunity + ownership (RLS scopes the read to the owner).
-  const { data: opp } = await supabase
+  // Opportunity + ownership. RLS scopes the session read; for Bearer callers the service
+  // client reads and we enforce user_id ownership explicitly.
+  const { data: opp } = await createServiceClient()
     .from('community_opportunities')
-    .select('id, product_id, title, content_snippet, url, products(name, url)')
+    .select('id, user_id, product_id, title, content_snippet, url, products(name, url)')
     .eq('id', opportunityId)
     .maybeSingle()
-  if (!opp) return bad('UNAUTHORIZED', 403)
+  if (!opp || opp.user_id !== user.id) return bad('UNAUTHORIZED', 403)
   const product = opp.products as { name?: string; url?: string } | null
 
   const db = createServiceClient()
@@ -53,7 +57,7 @@ export async function POST(request: Request) {
   if (typeof body.finalResponse === 'string') {
     const final = body.finalResponse.slice(0, 4000)
     const posted = body.posted === true
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('community_responses')
       .select('id')
       .eq('opportunity_id', opportunityId)
