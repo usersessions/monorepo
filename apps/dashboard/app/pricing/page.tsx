@@ -203,6 +203,45 @@ export default async function PricingPage({
         </Link>
       </div>
 
+      {/* Full feature comparison — values mirror PLAN_LIMITS so copy can't drift from enforcement. */}
+      <div style={{ marginTop: 'var(--space-lg)', overflowX: 'auto' }}>
+        <p className="font-mono-label" style={{ marginBottom: 'var(--space-sm)' }}>Compare every plan</p>
+        <table className="font-sans-body" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Feature</th>
+              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Free</th>
+              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Founder</th>
+              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Pro</th>
+              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Agency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ['Products', '1', '3', '10', '15+'],
+              ['Launches / product / month', '1 lifetime', '2', '10', '10 (pooled)'],
+              ['AI Visibility queries / product', '1', '5', '15', 'Custom'],
+              ['AIO Audit', 'Weekly', 'Weekly', 'Daily', 'Daily'],
+              ['Intelligence Briefings', '—', 'Weekly', 'Weekly', 'Weekly'],
+              ['Comparison Content / month', '—', '2', '10', 'Unlimited'],
+              ['Founder Brand Audit', '—', 'Monthly', 'Weekly', 'Weekly'],
+              ['Review campaigns / month', '—', '1', '3', 'Unlimited'],
+              ['Community responses / month', '—', '5', '20', 'Unlimited'],
+              ['Referral programs / month', '—', '1', '3', 'Unlimited'],
+              ['Support', 'Community', 'Standard', 'Priority', 'Dedicated'],
+            ].map((row) => (
+              <tr key={row[0]}>
+                <td style={{ textAlign: 'left', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[0]}</td>
+                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[1]}</td>
+                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[2]}</td>
+                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[3]}</td>
+                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[4]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <p className="font-mono-micro" style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
         All prices in USD · Cancel anytime from Settings · 14-day money-back guarantee — email support and we refund, no questions.
       </p>
