@@ -591,6 +591,29 @@ tests in the IDE; Paystack Pro env vars; DKIM/SPF/DMARC + Resend domain; Chrome 
 submission; live adapter selector QA. Deferred by decision: multi-engine AI visibility (cost);
 automated scanning of Reddit/Indie Hackers/LinkedIn (account-safety / no compliant API).
 
+## Extension refactor: minimal action launcher — SHIPPED
+- **Popup rewritten** (`popup.tsx`) to a focused launcher: wordmark + connection status, Analyze,
+  “Launch directories”, “Distribute to surfaces” (in-popup catalog), a minimal status badge, and
+  a link out to dashboard `/settings`. Removed from the popup: copy preview/generation UI, full
+  analytics, detailed logs, billing, founder-profile card, agent panel (all owned by the
+  dashboard now). Lightweight mount (no heavy state).
+- **Dashboard→extension triggers:** `BridgeMessage` gains `TRIGGER_LAUNCH`, `TRIGGER_SURFACE`,
+  `TRIGGER_CAPTURE`; `onMessageExternal` handles them, each GATED on a stored accessToken
+  (unauthenticated pages can’t drive the extension). `externally_connectable` already scopes this
+  to usersessions domains — NO new permission, NO manifest change.
+- **Shared surface trigger** (`surfaces-trigger.ts`): one implementation used by both the popup
+  `DISTRIBUTE_SURFACE` handler and the external `TRIGGER_SURFACE`.
+- **Kept intact (no regression):** campaign loop (START/PAUSE/RESUME/RESET + alarms + sync
+  heartbeat), surface handlers (VERIFY_SURFACE / SURFACE_SCREENSHOT / SURFACE_MARK_SUBMITTED),
+  screenshot capture (captureVisibleTab / cropDataUrl / captureLogo), community in-tab reply,
+  the try/catch + guaranteed sendResponse listener, and content scripts (extract, surface-sidebar).
+- **Honest limitation:** `TRIGGER_CAPTURE` captures the user’s ACTIVE tab in the current window
+  (best-effort). MV3/activeTab cannot capture an arbitrary tab from the dashboard, and we refuse
+  a broader host/capture permission (CWS-friendly); it no-ops safely if the tab isn’t capturable.
+- Popup source files for the removed panels (FounderProfileCard, AgentPanel, brain copy-gen)
+  remain in the tree but are no longer imported by the popup — dead-code cleanup can follow once
+  the IDE build confirms nothing else references them.
+
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.

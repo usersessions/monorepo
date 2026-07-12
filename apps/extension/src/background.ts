@@ -12,7 +12,10 @@ import type { AdapterOutcome, FounderProfile, RunContext } from './adapters/type
  * in-flight campaigns survive worker restarts (BUILD_SPEC §7).
  */
 
-// ---------- Auth token bridge (dashboard ExtensionBridge → here) ----------
+// ---------- Auth token bridge + dashboard triggers (dashboard → here) ----------
+// externally_connectable is scoped to the usersessions domains (manifest) — no new permission.
+// Every trigger is gated on a stored accessToken so an unauthenticated page cannot drive the
+// extension. Assisted-only: triggers start the same human-in-the-loop flows as the popup.
 chrome.runtime.onMessageExternal.addListener(
   (message: BridgeMessage, _sender, sendResponse) => {
     if (message?.type === 'SET_TOKEN' && typeof message.token === 'string') {
@@ -22,6 +25,53 @@ chrome.runtime.onMessageExternal.addListener(
       })
       return true
     }
+
+    if (
+      message?.type === 'TRIGGER_LAUNCH' ||
+      message?.type === 'TRIGGER_SURFACE' ||
+      message?.type === 'TRIGGER_CAPTURE'
+    ) {
+      void (async () => {
+        const { accessToken } = await chrome.storage.local.get('accessToken')
+        if (!accessToken) {
+          sendResponse({ ok: false, error: 'NOT_CONNECTED' })
+          return
+        }
+        try {
+          if (message.type === 'TRIGGER_LAUNCH') {
+            const current = await getState()
+            if (current.status === 'running' || current.status === 'awaiting_user_action') {
+              sendResponse({ ok: true, state: current })
+            } else {
+              sendResponse({ ok: true, state: await startCampaign(Boolean(message.simulated)) })
+            }
+          } else if (message.type === 'TRIGGER_SURFACE') {
+            const { distributeToSurface } = await import('./surfaces-trigger')
+            sendResponse(await distributeToSurface(String(message.surfaceId)))
+          } else {
+            // TRIGGER_CAPTURE: best-effort capture of the user's active tab in the current window.
+            // MV3/activeTab cannot capture an arbitrary tab from the dashboard; this no-ops if the
+            // active tab is not capturable (never requests a broader permission).
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+            if (!tab?.windowId) {
+              sendResponse({ ok: false, error: 'NO_ACTIVE_TAB' })
+              return
+            }
+            try {
+              const shot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' })
+              await storeScreenshot(`adhoc:${Date.now()}`, shot)
+              sendResponse({ ok: true })
+            } catch {
+              sendResponse({ ok: false, error: 'NOT_CAPTURABLE' })
+            }
+          }
+        } catch (err) {
+          sendResponse({ ok: false, error: String(err) })
+        }
+      })()
+      return true
+    }
+
     return false
   }
 )
@@ -718,40 +768,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       }
       case 'DISTRIBUTE_SURFACE': {
         // Assisted distribution: open the surface, draft copy, inject the editable sidebar.
-        const { fetchSurfaceCopy } = await import('./surfaces')
-        const { siteData } = await chrome.storage.local.get('siteData')
-        const site = siteData as SiteData | undefined
-        if (!site?.title) {
-          sendResponse({ ok: false, error: 'Analyze your product page first.' })
-          break
-        }
-        const surfaceId = String(msg.surfaceId ?? '')
-        const openUrl = typeof msg.url === 'string' && msg.url ? msg.url : site.url
-        const copyRes = await fetchSurfaceCopy({
-          surfaceId,
-          title: site.title,
-          url: site.url,
-          description: site.description ?? '',
-        })
-        if (!copyRes.ok) {
-          sendResponse({ ok: false, error: copyRes.error })
-          break
-        }
-        const tab = await chrome.tabs.create({ url: openUrl, active: true })
-        await waitForTabLoad(tab.id!)
-        // Track which surface this tab is drafting, for screenshot/mark-submitted.
-        await chrome.storage.local.set({
-          [`surfaceTab:${tab.id}`]: { surfaceId, campaignId: crypto.randomUUID() },
-        })
-        try {
-          await sendMessageWithRetry(tab.id!, {
-            type: 'RENDER_SURFACE_PANEL',
-            data: { surfaceId, surfaceName: String(msg.surfaceName ?? 'this surface'), copy: copyRes.copy },
-          })
-        } catch {
-          /* sidebar injection is best-effort; the tab is still open for the user */
-        }
-        sendResponse({ ok: true })
+        // Shared with the dashboard TRIGGER_SURFACE path.
+        const { distributeToSurface } = await import('./surfaces-trigger')
+        sendResponse(await distributeToSurface(String(msg.surfaceId ?? '')))
         break
       }
       case 'SURFACE_SCREENSHOT': {

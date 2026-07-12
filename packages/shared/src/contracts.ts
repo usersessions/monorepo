@@ -120,7 +120,14 @@ export interface CopyResponse {
 }
 
 /** Dashboard → extension bridge message (chrome.runtime.sendMessage, externally_connectable). */
-export type BridgeMessage = { type: 'SET_TOKEN'; token: string }
+export type BridgeMessage =
+  | { type: 'SET_TOKEN'; token: string }
+  /** Dashboard asks the extension to start a directory campaign (optionally simulated). */
+  | { type: 'TRIGGER_LAUNCH'; simulated?: boolean }
+  /** Dashboard asks the extension to open a specific surface for assisted distribution. */
+  | { type: 'TRIGGER_SURFACE'; surfaceId: string }
+  /** Dashboard asks the extension to capture the user's active tab (best-effort). */
+  | { type: 'TRIGGER_CAPTURE' }
 
 /** UTM appended by adapters to every listing URL BEFORE submission (BUILD_SPEC §7). */
 export function utmQuery(campaignId: string): string {
