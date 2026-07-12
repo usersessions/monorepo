@@ -634,3 +634,27 @@ automated scanning of Reddit/Indie Hackers/LinkedIn (account-safety / no complia
 ## Final status: COMPLETE
 All three phases plus the requested security trace and TODO triage are done. Remaining deferred items are
 tracked above with explicit risk and next actions.
+
+## Feature distribution across tiers (pricing + PLAN_LIMITS + metering)
+Distributed the pivot/acquisition features across the four plans and made the pricing page reflect them.
+
+**tiers.ts** — added two first-class `PlanLimits` fields (the other six features already had fields
+and enforcement, so they were NOT duplicated):
+- `aioAuditIntervalDays`: free 7, founder 7, pro 1, agency 1 (0 = disabled).
+- `intelligenceBriefings` (boolean): free false, founder/pro/agency true.
+Existing per-feature limits confirmed as the intended distribution: free = 0 on all outreach
+(reviewCampaignsPerMonth/communityResponsesPerMonth/contentPerMonth/referralProgramsPerMonth/founderAuditIntervalDays);
+founder gets the core stack; pro gets volume; agency = null (unlimited).
+
+**Metering** — all six existing routes already returned PLAN_LIMIT_EXCEEDED; the two new fields were wired in:
+- `/api/audit`: replaced the hardcoded `pro||agency ? 1/day : 1/week` cadence with
+  `limitsFor(plan).aioAuditIntervalDays`; returns PLAN_LIMIT_EXCEEDED (402) when the field is <= 0.
+- `cron/intelligence-briefing`: replaced the inline `['founder','pro','agency']` list with plans
+  derived from `PLAN_LIMITS[*].intelligenceBriefings` (single source of truth).
+
+**Pricing page** — added AIO Audit + Intelligence Briefings to Free/Founder/Pro bullets (kept <= 7 per card)
+and added a full feature-comparison table below the Agency callout, with values mirroring PLAN_LIMITS so
+copy cannot drift from enforcement.
+
+Correction logged: the request implied the six outreach features were unmetered; they were already
+enforced, so I only added the two genuinely-missing gates rather than duplicating fields.
