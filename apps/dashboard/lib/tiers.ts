@@ -28,6 +28,10 @@ export interface PlanLimits {
   communityResponsesPerMonth: number | null
   /** Referral program generations per calendar month (0 disables; null = unlimited). */
   referralProgramsPerMonth: number | null
+  /** AIO Audit cadence in days (0 disables the feature; e.g. 7 = weekly, 1 = daily). */
+  aioAuditIntervalDays: number
+  /** Whether scheduled Intelligence Briefings run for this plan. */
+  intelligenceBriefings: boolean
 }
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
