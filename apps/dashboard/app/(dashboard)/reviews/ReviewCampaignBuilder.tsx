@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { ReviewCampaignResponse } from '@usersessions/shared'
 
 type Draft = NonNullable<ReviewCampaignResponse['drafts']>[number]
@@ -44,6 +45,7 @@ export function ReviewCampaignBuilder({
       setMsg('Add at least one line as: email, name, what they did')
       return
     }
+    trackFeature('review_campaign_create', 'click', { productId })
     setBusy(true)
     setMsg(null)
     try {
@@ -75,6 +77,7 @@ export function ReviewCampaignBuilder({
   }
 
   async function send() {
+    trackFeature('review_request_send', 'submit', { productId })
     setBusy(true)
     setMsg(null)
     try {

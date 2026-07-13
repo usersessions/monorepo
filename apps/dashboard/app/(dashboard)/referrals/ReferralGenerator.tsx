@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { ReferralGenerateResponse, ReferralProgramCopy, ReferralStructure } from '@usersessions/shared'
 
 const STRUCTURE_LABEL: Record<ReferralStructure, string> = {
@@ -31,6 +32,7 @@ export function ReferralGenerator({ productId }: { productId: string }) {
   const [msg, setMsg] = useState<string | null>(null)
 
   async function generate() {
+    trackFeature('referral_program_generate', 'click', { productId })
     setBusy(true)
     setMsg(null)
     try {

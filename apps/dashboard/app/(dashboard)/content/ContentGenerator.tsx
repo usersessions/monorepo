@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { ContentGenerateResponse, ContentType } from '@usersessions/shared'
 
 const TYPES: { value: ContentType; label: string }[] = [
@@ -31,6 +32,7 @@ export function ContentGenerator({
   }
 
   async function generate() {
+    trackFeature('comparison_content_generate', 'click', { productId })
     setBusy(true)
     setMsg(null)
     try {

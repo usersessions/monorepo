@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { AuditResponse, LandingPageAuditResult } from '@usersessions/shared'
 
 const COLOR = (frac: number) =>
@@ -20,6 +21,7 @@ export function AuditRunner({
   const [error, setError] = useState<string | null>(null)
 
   async function run() {
+    trackFeature('aio_audit', 'click', { productId })
     setLoading(true)
     setError(null)
     try {
