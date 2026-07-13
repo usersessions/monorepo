@@ -4,7 +4,7 @@ import { sendEmail } from '@/lib/email/resend'
 import { dataTable, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
 import { PLAN_LIMITS } from '@/lib/tiers'
-import { trackFeatureServer } from '@/lib/tracking'
+import { trackFeatureServer } from '@/lib/tracking-server'
 
 export const maxDuration = 120
 

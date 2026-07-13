@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
-import { trackFeatureServer } from '@/lib/tracking'
+import { trackFeatureServer } from '@/lib/tracking-server'
 
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'

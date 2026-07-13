@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
-import { trackFeatureServer } from '@/lib/tracking'
+import { trackFeatureServer } from '@/lib/tracking-server'
 import type { ContentGenerateResponse, ContentType } from '@usersessions/shared'
 
 /**

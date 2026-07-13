@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
-import { trackFeatureServer } from '@/lib/tracking'
+import { trackFeatureServer } from '@/lib/tracking-server'
 
 export async function addVisibilityQuery(formData: FormData) {
   const productId = String(formData.get('productId') ?? '')

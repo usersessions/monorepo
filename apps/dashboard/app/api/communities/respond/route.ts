@@ -3,7 +3,7 @@ import { authenticateBearer } from '@/lib/auth/bearer'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
-import { trackFeatureServer } from '@/lib/tracking'
+import { trackFeatureServer } from '@/lib/tracking-server'
 import type { CommunityRespondResponse } from '@usersessions/shared'
 
 /**
