@@ -126,6 +126,8 @@ export type BridgeMessage =
   | { type: 'TRIGGER_LAUNCH'; simulated?: boolean }
   /** Dashboard asks the extension to open a specific surface for assisted distribution. */
   | { type: 'TRIGGER_SURFACE'; surfaceId: string }
+  /** Dashboard asks the extension to open a tracked_only surface's on-page verify flow. */
+  | { type: 'TRIGGER_SURFACE_VERIFY'; surfaceId: string; surfaceName: string; url: string }
   /** Dashboard asks the extension to capture the user's active tab (best-effort). */
   | { type: 'TRIGGER_CAPTURE' }
 
