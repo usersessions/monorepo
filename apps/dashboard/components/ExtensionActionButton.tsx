@@ -1,16 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CHROME_STORE_URL, extensionSupported, pingExtension, triggerLaunch, triggerSurface, triggerCapture } from '@/lib/extension-bridge'
+import { CHROME_STORE_URL, extensionSupported, pingExtension, triggerLaunch, triggerSurface, triggerSurfaceVerify, triggerCapture } from '@/lib/extension-bridge'
 import { trackFeature } from '@/lib/tracking'
 import type { FeatureName } from '@usersessions/shared'
 
-type Action = 'launch' | 'surface' | 'capture'
+type Action = 'launch' | 'surface' | 'surface_verify' | 'capture'
 
-const FEATURE_BY_ACTION: Record<Action, FeatureName> = {
+// 'capture' has no dedicated enum value (it's a listings/asset action, not an AIO audit run) —
+// omitted from server-side tracking rather than mislabeled under an unrelated feature.
+const FEATURE_BY_ACTION: Partial<Record<Action, FeatureName>> = {
   launch: 'campaign_launch',
   surface: 'surface_distribution',
-  capture: 'aio_audit',
+  surface_verify: 'surface_verify',
 }
 
 /**
@@ -21,11 +23,15 @@ const FEATURE_BY_ACTION: Record<Action, FeatureName> = {
 export function ExtensionActionButton({
   action,
   surfaceId,
+  surfaceName,
+  surfaceUrl,
   label,
   className = 'btn-ghost',
 }: {
   action: Action
   surfaceId?: string
+  surfaceName?: string
+  surfaceUrl?: string
   label: string
   className?: string
 }) {
@@ -50,7 +56,8 @@ export function ExtensionActionButton({
   }
 
   async function run() {
-    trackFeature(FEATURE_BY_ACTION[action], 'click', { metadata: surfaceId ? { surfaceId } : undefined })
+    const feature = FEATURE_BY_ACTION[action]
+    if (feature) trackFeature(feature, 'click', { metadata: surfaceId ? { surfaceId } : undefined })
     setBusy(true)
     setMsg(null)
     const res =
@@ -58,7 +65,9 @@ export function ExtensionActionButton({
         ? await triggerLaunch()
         : action === 'surface'
           ? await triggerSurface(surfaceId ?? '')
-          : await triggerCapture()
+          : action === 'surface_verify'
+            ? await triggerSurfaceVerify(surfaceId ?? '', surfaceName ?? '', surfaceUrl ?? '')
+            : await triggerCapture()
     setBusy(false)
     if (res === null) {
       setMsg(
@@ -72,7 +81,9 @@ export function ExtensionActionButton({
           ? 'Launch started — check the extension.'
           : action === 'surface'
             ? 'Opened in a new tab — edit the draft and post it.'
-            : 'Captured the active tab.'
+            : action === 'surface_verify'
+              ? 'Opened — use the panel to verify your profile.'
+              : 'Captured the active tab.'
       )
     } else {
       const err = (res as { error?: string }).error
