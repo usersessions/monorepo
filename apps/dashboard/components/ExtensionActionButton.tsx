@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { CHROME_STORE_URL, extensionSupported, pingExtension, triggerLaunch, triggerSurface, triggerCapture } from '@/lib/extension-bridge'
+import { trackFeature } from '@/lib/tracking'
+import type { FeatureName } from '@usersessions/shared'
 
 type Action = 'launch' | 'surface' | 'capture'
+
+const FEATURE_BY_ACTION: Record<Action, FeatureName> = {
+  launch: 'campaign_launch',
+  surface: 'surface_distribution',
+  capture: 'aio_audit',
+}
 
 /**
  * A dashboard button that triggers an extension action, with full graceful degradation:
@@ -42,6 +50,7 @@ export function ExtensionActionButton({
   }
 
   async function run() {
+    trackFeature(FEATURE_BY_ACTION[action], 'click', { metadata: surfaceId ? { surfaceId } : undefined })
     setBusy(true)
     setMsg(null)
     const res =
