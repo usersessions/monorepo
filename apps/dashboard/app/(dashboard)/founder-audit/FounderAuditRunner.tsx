@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { FounderAuditResponse, FounderAuditResult } from '@usersessions/shared'
 
 const COLOR = (frac: number) =>
@@ -26,6 +27,7 @@ export function FounderAuditRunner({
       setError('Add at least one profile to audit.')
       return
     }
+    trackFeature('founder_audit', 'click', { productId })
     setLoading(true)
     setError(null)
     try {

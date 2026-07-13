@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { CommunityOpportunity, CommunityRespondResponse, CommunitySurface } from '@usersessions/shared'
 
 // The dashboard talks to the installed extension by ID for the in-tab reply flow.
@@ -61,6 +62,7 @@ export function CommunityFeed({
   }
 
   async function draft(id: string) {
+    trackFeature('community_response_draft', 'click', { productId })
     setBusy(id)
     setMsg(null)
     try {
