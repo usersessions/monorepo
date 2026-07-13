@@ -104,6 +104,15 @@ export default async function SurfacesPage() {
                       {s.submission_type === 'assisted_manual' && (
                         <ExtensionActionButton action="surface" surfaceId={s.id} label="Open in extension" />
                       )}
+                      {s.submission_type === 'tracked_only' && (
+                        <ExtensionActionButton
+                          action="surface_verify"
+                          surfaceId={s.id}
+                          surfaceName={s.name}
+                          surfaceUrl={s.url_pattern}
+                          label="Verify profile"
+                        />
+                      )}
                     </>
                   )}
                 </div>
