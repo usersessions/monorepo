@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email/resend'
 import { dataTable, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
 import { PLAN_LIMITS } from '@/lib/tiers'
+import { trackFeatureServer } from '@/lib/tracking'
 
 export const maxDuration = 120
 
@@ -108,6 +109,7 @@ export async function GET(request: Request) {
         }),
       })
       if (sent.ok) stats.emailed++
+      trackFeatureServer(user.id, 'intelligence_briefing_email', 'email')
     }
 
     await logCron('intelligence-briefing', 'ok', stats)

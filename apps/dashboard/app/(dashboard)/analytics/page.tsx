@@ -145,6 +145,7 @@ export default async function AnalyticsPage() {
 
       <div className="card">
         <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Category Ownership</p>
+        {ownershipScore !== null && <TrackView feature="category_ownership_view" />}
         {ownershipScore === null ? (
           <p className="font-sans-body">
             Track category queries below, then the weekly check computes how much of your category

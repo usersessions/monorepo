@@ -43,6 +43,7 @@ export default async function CompetitorsPage() {
 
       {/* Weekly Briefing (Feature D) */}
       <section className="card flex flex-col" style={{ gap: 'var(--space-md)', borderColor: hasMove ? 'var(--amber)' : undefined }}>
+        {briefing && <TrackView feature="intelligence_briefing_view" />}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
           <h2 className="font-mono-label" style={{ flex: 1 }}>Weekly briefing</h2>
           {hasMove && <span className="status-pending">competitor moved</span>}
