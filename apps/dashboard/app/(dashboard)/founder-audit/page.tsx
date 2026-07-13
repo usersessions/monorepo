@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
 import type { FounderAuditResult, FounderPlatformScore } from '@usersessions/shared'
+import { TrackView } from '@/components/TrackView'
 import { FounderAuditRunner } from './FounderAuditRunner'
 
 /**
@@ -45,6 +46,7 @@ export default async function FounderAuditPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 760 }}>
+      <TrackView feature="founder_audit" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Founder audit</h1>
         <p className="font-sans-body">

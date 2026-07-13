@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { TrackView } from '@/components/TrackView'
 import { CompetitorScanner } from './CompetitorScanner'
 
 export default async function CompetitorsPage() {
@@ -32,6 +33,7 @@ export default async function CompetitorsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-xl)', maxWidth: 800 }}>
+      <TrackView feature="competitor_scan" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Competitor Scan</h1>
         <p className="font-sans-body">
