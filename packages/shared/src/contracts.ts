@@ -507,3 +507,76 @@ export interface SurfaceCopyResponse {
   copy?: string
   error?: 'UNAUTHORIZED' | 'INVALID_PAYLOAD' | 'AI_NOT_CONFIGURED' | 'GENERATION_FAILED' | 'RATE_LIMITED' | 'TIER_LOCKED'
 }
+
+// ---------------------------------------------------------------------------
+// Feature Usage Tracking (migration 0034_feature_events)
+// ---------------------------------------------------------------------------
+
+/** Every trackable feature. Must stay in lockstep with the feature_events check constraint. */
+export type FeatureName =
+  | 'aio_audit' | 'ai_visibility_query' | 'ai_visibility_suggest' | 'category_ownership_view'
+  | 'surface_distribution' | 'surface_verify' | 'intelligence_briefing_view' | 'intelligence_briefing_email'
+  | 'competitor_scan' | 'competitor_scan_run' | 'review_campaign_create' | 'review_request_send'
+  | 'comparison_content_generate' | 'founder_audit' | 'referral_program_generate' | 'community_response_draft'
+  | 'campaign_launch' | 'campaign_simulate' | 'report_view' | 'platform_browse' | 'surface_browse'
+  | 'analytics_view' | 'settings_view' | 'pricing_view' | 'cancel_flow_start'
+
+/** Interaction class for a feature event. Must match the event_type check constraint. */
+export type FeatureEventType = 'view' | 'click' | 'generate' | 'submit' | 'export' | 'email'
+
+export interface FeatureEventInput {
+  feature: FeatureName
+  type: FeatureEventType
+  productId?: string | null
+  metadata?: Record<string, unknown>
+}
+
+/** POST /api/events — always returns 204; body is intentionally empty (fire-and-forget). */
+export type FeatureEventResponse = void
+
+// ---------------------------------------------------------------------------
+// Platform Request / Voting (migration 0035_platform_requests)
+// ---------------------------------------------------------------------------
+
+export type PlatformRequestCategory = 'ai' | 'startup' | 'saas' | 'dev' | 'marketplace' | 'other'
+export type PlatformRequestStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'shipped'
+
+export interface PlatformRequest {
+  id: string
+  name: string
+  url: string | null
+  category: PlatformRequestCategory
+  description: string | null
+  requesterId: string | null
+  status: PlatformRequestStatus
+  voteCount: number
+  createdAt: string
+  updatedAt: string
+  /** True when the current authenticated caller has an active vote. */
+  hasVoted: boolean
+}
+
+export interface CreatePlatformRequestInput {
+  name: string
+  url?: string
+  category: PlatformRequestCategory
+  description?: string
+}
+
+export interface PlatformRequestResponse {
+  ok: boolean
+  request?: PlatformRequest
+  error?: 'UNAUTHORIZED' | 'INVALID_PAYLOAD' | 'DUPLICATE_NAME' | 'NOT_FOUND' | 'RATE_LIMITED'
+}
+
+export interface PlatformRequestListResponse {
+  ok: boolean
+  requests: PlatformRequest[]
+}
+
+export interface PlatformVoteResponse {
+  ok: boolean
+  voteCount?: number
+  hasVoted?: boolean
+  error?: 'UNAUTHORIZED' | 'NOT_FOUND' | 'RATE_LIMITED'
+}
