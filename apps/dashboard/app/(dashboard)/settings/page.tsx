@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { updateProfile, saveNotificationPrefs } from './actions'
 import { ExtensionStatus } from '@/components/ExtensionStatus'
 import { UsageMeter } from '@/components/UpgradePrompt'
+import { TrackView } from '@/components/TrackView'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { listTransactions } from '@/lib/billing/paystack'
 
@@ -45,6 +46,7 @@ export default async function SettingsPage({
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 640 }}>
+      <TrackView feature="settings_view" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Settings</h1>
         <p className="font-sans-body">Your profile, account, plan, and session.</p>

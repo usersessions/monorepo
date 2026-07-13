@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { planRank } from '@/lib/tiers'
 import { surfaceStatusFrom, type SurfaceStatus } from '@usersessions/shared'
 import { ExtensionActionButton } from '@/components/ExtensionActionButton'
+import { TrackView } from '@/components/TrackView'
 
 const CATEGORY_LABEL: Record<string, string> = {
   github: 'GitHub',
@@ -37,7 +38,10 @@ export default async function SurfacesPage() {
     supabase.from('surfaces').select('*').eq('active', true).order('quality_score', { ascending: false }),
     supabase.from('submissions').select('surface_id, surface_status, status').not('surface_id', 'is', null),
   ])
-  if (error) throw new Error(`Failed to load surfaces (${error.message})`)
+  // Missing table (migrations not yet applied) is an honest empty state, not a 500.
+  if (error && !/could not find the table|does not exist|schema cache/i.test(error.message)) {
+    throw new Error(`Failed to load surfaces (${error.message})`)
+  }
 
   const rank = planRank(profile?.plan)
   // Latest status per surface for this user (RLS scopes rows to the owner).
@@ -56,6 +60,7 @@ export default async function SurfacesPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-xl)', maxWidth: 900 }}>
+      <TrackView feature="surface_browse" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Surfaces</h1>
         <p className="font-sans-body" style={{ maxWidth: 640 }}>
