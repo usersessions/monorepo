@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
+import { trackFeatureServer } from '@/lib/tracking'
 import type { FounderAuditResponse, FounderPlatform, FounderPlatformScore } from '@usersessions/shared'
 
 /**
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return bad('UNAUTHORIZED', 401)
   if (!rateLimit(`founderaudit:${user.id}`, 5, 60_000)) return bad('RATE_LIMITED', 429)
+  trackFeatureServer(user.id, 'founder_audit', 'generate')
 
   let body: { productId?: unknown; linkedinUrl?: unknown; twitterHandle?: unknown; githubUrl?: unknown; indiehackersUrl?: unknown }
   try {

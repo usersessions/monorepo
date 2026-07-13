@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
+import { trackFeatureServer } from '@/lib/tracking'
 import type { AuditCategory, AuditResponse, LandingPageAuditResult } from '@usersessions/shared'
 
 /**
@@ -207,6 +208,7 @@ export async function POST(request: Request) {
   }
   // Abuse backstop on top of the cadence gate.
   if (!rateLimit(`audit:${user.id}`, 10, 60_000)) return bad('RATE_LIMITED', 429)
+  trackFeatureServer(user.id, 'aio_audit', 'generate', { productId })
 
   // Fetch the page server-side, fail gracefully.
   let html = ''

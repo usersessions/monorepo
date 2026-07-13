@@ -3,6 +3,7 @@ import { authenticateBearer } from '@/lib/auth/bearer'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
+import { trackFeatureServer } from '@/lib/tracking'
 import type { CommunityRespondResponse } from '@usersessions/shared'
 
 /**
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
   if (!user) user = await authenticateBearer(request)
   if (!user) return bad('UNAUTHORIZED', 401)
   if (!rateLimit(`community:${user.id}`, 20, 60_000)) return bad('RATE_LIMITED', 429)
+  trackFeatureServer(user.id, 'community_response_draft', 'generate')
 
   let body: { opportunityId?: unknown; finalResponse?: unknown; posted?: unknown }
   try {

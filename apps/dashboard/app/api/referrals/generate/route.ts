@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { limitsFor, monthStartIso } from '@/lib/tiers'
 import { rateLimit } from '@/lib/rate-limit'
+import { trackFeatureServer } from '@/lib/tracking'
 import type { ReferralGenerateResponse, ReferralProgramCopy, ReferralStructure } from '@usersessions/shared'
 
 /**
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return bad('UNAUTHORIZED', 401)
   if (!rateLimit(`referral:${user.id}`, 10, 60_000)) return bad('RATE_LIMITED', 429)
+  trackFeatureServer(user.id, 'referral_program_generate', 'generate')
 
   let body: { productId?: unknown; category?: unknown; valueProp?: unknown; pricing?: unknown }
   try {
