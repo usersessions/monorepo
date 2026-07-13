@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { isEnabled } from '@/lib/flags'
 import { MarketingFooter } from '@/components/MarketingFooter'
+import { TrackView } from '@/components/TrackView'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,6 +96,7 @@ export default async function PricingPage({
 
   return (
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: 'var(--space-2xl) var(--space-lg)' }}>
+      <TrackView feature="pricing_view" />
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
         Get your product found
       </h1>
