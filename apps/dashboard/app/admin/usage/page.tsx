@@ -11,8 +11,8 @@ import type { FeatureName } from '@usersessions/shared'
  * don't exist yet (migration 0034 not applied, or too early to have data).
  */
 
-type SortKey = 'feature' | 'views' | 'generates' | 'submits' | 'users' | 'pctActive'
-const SORT_KEYS: SortKey[] = ['feature', 'views', 'generates', 'submits', 'users', 'pctActive']
+type SortKey = 'feature' | 'views' | 'generates' | 'submits' | 'users' | 'pctActive' | 'total'
+const SORT_KEYS: SortKey[] = ['feature', 'views', 'generates', 'submits', 'users', 'pctActive', 'total']
 
 interface Row {
   feature: FeatureName
@@ -30,7 +30,7 @@ export default async function AdminUsagePage({
 }) {
   await requireAdmin()
   const params = await searchParams
-  const sort: SortKey = SORT_KEYS.includes(params.sort as SortKey) ? (params.sort as SortKey) : 'total' as SortKey
+  const sort: SortKey = SORT_KEYS.includes(params.sort as SortKey) ? (params.sort as SortKey) : 'total'
   const dir = params.dir === 'asc' ? 1 : -1
 
   const db = createServiceClient()
@@ -77,8 +77,8 @@ export default async function AdminUsagePage({
   const adoptionRate = activeUsers7.size > 0 ? Math.round((adoptedCount / activeUsers7.size) * 100) : 0
 
   const sorted = [...rows].sort((a, b) => {
-    const av = sort === 'feature' ? a.feature : sort === 'views' ? a.views : sort === 'generates' ? a.generates : sort === 'submits' ? a.submits : sort === 'users' ? a.users.size : Math.round((a.users.size / activeCount) * 100)
-    const bv = sort === 'feature' ? b.feature : sort === 'views' ? b.views : sort === 'generates' ? b.generates : sort === 'submits' ? b.submits : sort === 'users' ? b.users.size : Math.round((b.users.size / activeCount) * 100)
+    const av = sort === 'feature' ? a.feature : sort === 'views' ? a.views : sort === 'generates' ? a.generates : sort === 'submits' ? a.submits : sort === 'users' ? a.users.size : sort === 'pctActive' ? Math.round((a.users.size / activeCount) * 100) : a.total
+    const bv = sort === 'feature' ? b.feature : sort === 'views' ? b.views : sort === 'generates' ? b.generates : sort === 'submits' ? b.submits : sort === 'users' ? b.users.size : sort === 'pctActive' ? Math.round((b.users.size / activeCount) * 100) : b.total
     if (typeof av === 'string') return dir * av.localeCompare(bv as string)
     return dir * ((av as number) - (bv as number))
   })
