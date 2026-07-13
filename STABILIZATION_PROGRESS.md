@@ -749,3 +749,32 @@ AIO audit run. There is no dedicated enum value for it, so it is now correctly l
 Also closed in the same pass: founder-audit "Run/Re-run audit" click and community "Generate
 response" click were tracked server-side (generate) but never client-side (click), inconsistent
 with how AuditRunner/ContentGenerator/ReferralGenerator were done. Both now track click + generate.
+
+**Deliberately out of scope:** `campaign_simulate` has no corresponding user-facing dashboard
+action — the extension handles simulation internally as part of the launch flow, with no distinct
+"simulate" trigger surfaced anywhere. Not tracked; inventing a tracking call for a feature that
+doesn't exist would violate the no-fabricated-data principle.
+
+**Confirmed complete:** `/admin/usage`, `/admin/platform-requests`, and the `/platforms` request
+section (`PlatformRequestBoard`) were all built and shipped earlier in this same work session
+(see "Feature Usage Tracking + Platform Request/Voting (pre-freeze ship)" above) — re-verified
+present on `main` before writing this entry.
+
+## Feature Freeze Protocol (effective immediately)
+Formalizing product discipline now that Feature Usage Tracking + Platform Request/Voting have
+shipped and the tracking-coverage gap audit is closed.
+
+1. No new features for 30 days from this commit.
+2. Monitor `/admin/usage` regularly (breakdown table + dead-feature list refresh live from
+   `feature_events`; no manual export needed).
+3. Any feature with <5% adoption after 30 days gets a deprecation warning in the next release.
+4. Any feature with <2% adoption gets removed in the release after that.
+5. The only exceptions during the freeze: (a) critical bug fixes, (b) platform adapters for
+   top-voted requests surfaced on `/admin/platform-requests`.
+6. "Adoption" and "dead feature" use the same definitions already implemented in `/admin/usage`:
+   adoption = unique users / active users in the window; dead = <5% 30-day adoption OR <3 uses
+   in 30 days (the page's own auto-flag threshold). No new metric definitions to invent.
+
+Freeze clock starts once migrations 0023-0036 are applied and `feature_events` begins collecting
+real data — the 30 days should be measured from first real signal, not from this commit, so the
+adoption percentages are honest rather than diluted by an empty pre-launch window.
