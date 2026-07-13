@@ -709,3 +709,43 @@ notification type (matches the already-documented email deferrals). Status chang
 happen; the UI and admin page copy both say so explicitly rather than implying an email was sent.
 
 **Still open (ops, not code):** migrations 0023-0036 remain unapplied in Supabase.
+
+## Gap audit + fixes: tracking coverage against the full FeatureName enum
+Self-audit after the pre-freeze ship found 6 real gaps between the spec's 25-value FeatureName
+enum and what was actually instrumented. All fixed with proper wiring, not tracking-only patches:
+
+1. **`ai_visibility_query`** -- adding a tracked query on `/analytics` had zero tracking. Added
+   `trackFeatureServer(..., 'submit')` to `addVisibilityQuery` in `analytics/actions.ts`.
+2. **`ai_visibility_suggest`** -- the "Suggest queries with AI" click, the server-side generate,
+   and the approve-and-save action were all untracked. Added click tracking in
+   `SuggestQueries.tsx`, server generate tracking in `/api/visibility/suggest`, and submit
+   tracking in `approveSuggestedQuery`.
+3. **`competitor_scan_run`** -- the actual "Run competitor scan" button in `CompetitorScanner.tsx`
+   had no tracking; only the page view was tracked (mislabeled as `competitor_scan`, which is a
+   distinct enum value). Added click tracking on the button and server generate tracking in
+   `/api/competitors/scan`.
+4. **`category_ownership_view`** -- this is a distinct enum value from `analytics_view`, but I had
+   collapsed both into one `analytics_view` call. Added a separate `TrackView` inside the Category
+   Ownership card (fires only once real ownership data exists, matching the section's own honest-
+   empty-state gate).
+5. **`intelligence_briefing_view`** / **`intelligence_briefing_email`** -- the briefing card on
+   `/competitors` and the cron's email send were both untracked. Added a `TrackView` gated on
+   `briefing` existing, and `trackFeatureServer(..., 'email')` in the intelligence-briefing cron.
+6. **`surface_verify`** -- this was not just a missing tracking call but a missing FEATURE:
+   `tracked_only` surfaces (e.g. X/Twitter) rendered no action button at all on `/surfaces`, and
+   the dashboard's `TRIGGER_SURFACE` bridge message would have incorrectly routed a tracked_only
+   surface through the assisted-copy draft flow instead of the on-page verify flow used by the
+   popup's `VERIFY_SURFACE` handler. Fixed end-to-end: added `TRIGGER_SURFACE_VERIFY` to the shared
+   `BridgeMessage` contract, a matching handler in `background.ts` (mirrors the popup's
+   `VERIFY_SURFACE` case), `triggerSurfaceVerify()` in the bridge client, a `surface_verify` action
+   on `ExtensionActionButton`, and a "Verify profile" button rendered for `tracked_only` surfaces
+   on `/surfaces` (previously nothing rendered there at all).
+
+**Bonus fix caught during the audit:** `ExtensionActionButton`'s `capture` action was mislabeled as
+`aio_audit` for tracking purposes -- capturing a page screenshot is a listings/asset action, not an
+AIO audit run. There is no dedicated enum value for it, so it is now correctly left untracked
+(`FEATURE_BY_ACTION` is `Partial`) rather than filed under an unrelated feature.
+
+Also closed in the same pass: founder-audit "Run/Re-run audit" click and community "Generate
+response" click were tracked server-side (generate) but never client-side (click), inconsistent
+with how AuditRunner/ContentGenerator/ReferralGenerator were done. Both now track click + generate.
