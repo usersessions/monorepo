@@ -107,3 +107,20 @@ export async function unsuspendUser(formData: FormData) {
   await audit(user.id, 'user_unsuspend', targetUserId, null)
   revalidatePath('/admin/users')
 }
+
+/**
+ * Platform request status transitions. Notifying the requester by email is a documented
+ * deferral (no existing template/schema for this notification type) — status + audit-log
+ * only for now.
+ */
+export async function setPlatformRequestStatus(formData: FormData) {
+  const { user } = await requireAdmin()
+  const requestId = String(formData.get('requestId') ?? '')
+  const status = String(formData.get('status') ?? '')
+  if (!requestId || !['pending', 'under_review', 'approved', 'rejected', 'shipped'].includes(status)) return
+
+  const db = createServiceClient()
+  await db.from('platform_requests').update({ status, updated_at: new Date().toISOString() }).eq('id', requestId)
+  await audit(user.id, 'platform_request_status', null, { requestId, status })
+  revalidatePath('/admin/platform-requests')
+}
