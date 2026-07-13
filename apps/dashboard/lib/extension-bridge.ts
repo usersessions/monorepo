@@ -57,6 +57,9 @@ export function triggerLaunch(simulated = false) {
 export function triggerSurface(surfaceId: string) {
   return sendExternal({ type: 'TRIGGER_SURFACE', surfaceId })
 }
+export function triggerSurfaceVerify(surfaceId: string, surfaceName: string, url: string) {
+  return sendExternal({ type: 'TRIGGER_SURFACE_VERIFY', surfaceId, surfaceName, url })
+}
 export function triggerCapture() {
   return sendExternal({ type: 'TRIGGER_CAPTURE' })
 }
