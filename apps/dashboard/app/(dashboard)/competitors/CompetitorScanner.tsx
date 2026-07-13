@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 
 type Scan = {
   id: string
@@ -25,6 +26,7 @@ export function CompetitorScanner({ initialScans }: { initialScans: Scan[] }) {
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!query || !name || !url) return
+    trackFeature('competitor_scan_run', 'click')
     setLoading(true)
     setError(null)
 

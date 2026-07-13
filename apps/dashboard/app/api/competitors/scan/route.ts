@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
+import { trackFeatureServer } from '@/lib/tracking'
 
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
@@ -9,6 +10,7 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  trackFeatureServer(user.id, 'competitor_scan_run', 'generate')
 
   const { query, competitorName, competitorUrl } = (await request.json().catch(() => ({}))) as {
     query?: unknown
