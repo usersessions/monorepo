@@ -658,3 +658,54 @@ copy cannot drift from enforcement.
 
 Correction logged: the request implied the six outreach features were unmetered; they were already
 enforced, so I only added the two genuinely-missing gates rather than duplicating fields.
+
+## Feature Usage Tracking + Platform Request/Voting (pre-freeze ship)
+Two final features before the product freeze. Both fully shipped.
+
+**Migration numbering correction:** the spec assigned feature_events to 0028 and platform_requests
+to 0029; both numbers already existed (0028_review_system, 0029_generated_content). Used 0034/0035
+instead (plus 0036 for the platform_requests realtime publication grant, added after 0035 shipped
+rather than editing an already-committed migration file).
+
+### Feature Usage Tracking
+- `0034_feature_events.sql`: append-only table, 25-value feature_name enum, 6-value event_type enum,
+  partial indexes on (feature_name, created_at) and (user_id, created_at), RLS select/insert-own.
+- Shared contracts: `FeatureName`, `FeatureEventType`, `FeatureEventInput`.
+- `POST /api/events`: always 204, swallows all errors -- auth failure, bad JSON, and invalid
+  enum values all no-op instead of erroring, per the fire-and-forget requirement.
+- `lib/tracking.ts`: `trackFeature()` (client, fetch with keepalive) and `trackFeatureServer()`
+  (server, direct service-role insert) -- both swallow errors and never throw.
+- `components/TrackView.tsx`: drop-in mount tracker for server-component pages (fires once, ref-guarded).
+- Instrumented all specced view/click/generate/submit events: analytics, competitors, founder-audit,
+  audit (+ AuditRunner re-run), content (+ ContentGenerator generate), reviews (+ ReviewCampaignBuilder
+  create/send), referrals (+ ReferralGenerator generate), settings, settings/cancel, surfaces (+
+  ExtensionActionButton distribute), campaigns (+ ExtensionActionButton launch), platforms, pricing,
+  reports/[campaignId] (public page -- fires only for a signed-in viewer; anonymous shares no-op).
+  Server-side `trackFeatureServer` generate events added to all six feature API routes.
+- `/admin/usage`: 7-day metric cards (active users, most/least used, adoption rate >= 3 features),
+  sortable breakdown table, 30-day dead-feature list (auto-flagged red: <5% adoption or <3 uses),
+  and a dependency-free stacked-area trend chart (`components/UsageTrendChart.tsx`, top-5 features
+  + "other", same visual language as the existing TrendChart). Honest empty state if the table is
+  missing (migration not applied) instead of a 500.
+
+### Platform Request / Voting
+- `0035_platform_requests.sql`: platform_requests (unique name, status enum, vote_count) +
+  platform_request_votes (composite PK, one vote per user per request), RLS public-read/auth-insert/
+  own-delete on votes. `0036`: added platform_requests to the realtime publication for live vote counts.
+- Shared contracts: `PlatformRequest`, `PlatformRequestCategory/Status`, create/list/vote responses.
+- APIs: `GET/POST /api/platform-requests` (auto-casts the requester's own vote on create; duplicate
+  name returns DUPLICATE_NAME so the UI can point at the existing request), `POST/DELETE
+  /api/platform-requests/[id]/vote` (recomputes vote_count from the votes table on every write, so
+  counts can't drift under concurrent voting -- never a blind increment/decrement).
+- `/platforms`: `PlatformRequestBoard` client component -- top-5 list with realtime vote counts,
+  request modal (name/url/category/500-char reason), one-click upvote/un-vote. Honest empty state.
+- `/admin/platform-requests`: filter by status, expandable rows (description, requester email,
+  URL), status actions (approve/reject/mark shipped) via a new `setPlatformRequestStatus` server
+  action in `admin/actions.ts` -- writes status + `admin_audit_log` only.
+
+**Deferral decided without asking (per standing instruction not to block on this class of question):**
+requester notification email on status change is NOT built. No existing template/schema for this
+notification type (matches the already-documented email deferrals). Status change + audit-log entry
+happen; the UI and admin page copy both say so explicitly rather than implying an email was sent.
+
+**Still open (ops, not code):** migrations 0023-0036 remain unapplied in Supabase.
