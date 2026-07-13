@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
+import { trackFeatureServer } from '@/lib/tracking'
 
 export async function addVisibilityQuery(formData: FormData) {
   const productId = String(formData.get('productId') ?? '')
@@ -31,6 +32,7 @@ export async function addVisibilityQuery(formData: FormData) {
   await supabase
     .from('visibility_queries')
     .insert({ user_id: user.id, product_id: productId, query, query_type: queryType, category_tag: categoryTag })
+  trackFeatureServer(user.id, 'ai_visibility_query', 'submit', { productId })
   revalidatePath('/analytics')
 }
 
@@ -72,5 +74,6 @@ export async function approveSuggestedQuery(formData: FormData) {
   await supabase
     .from('visibility_queries')
     .insert({ user_id: user.id, product_id: productId, query, query_type: queryType, category_tag: categoryTag })
+  trackFeatureServer(user.id, 'ai_visibility_suggest', 'submit', { productId })
   revalidatePath('/analytics')
 }

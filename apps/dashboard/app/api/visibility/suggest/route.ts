@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
+import { trackFeatureServer } from '@/lib/tracking'
 import type { SuggestedQuery, SuggestQueriesResponse, VisibilityQueryType } from '@usersessions/shared'
 
 /**
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
   if (!productId) return bad('INVALID_PAYLOAD', 400)
 
   if (!rateLimit(`suggest:${user.id}`, 10, 60_000)) return bad('RATE_LIMITED', 429)
+  trackFeatureServer(user.id, 'ai_visibility_suggest', 'generate', { productId })
 
   const db = createServiceClient()
   const { data: product } = await db

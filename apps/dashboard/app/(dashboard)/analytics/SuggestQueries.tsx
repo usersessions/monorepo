@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackFeature } from '@/lib/tracking'
 import type { SuggestedQuery, SuggestQueriesResponse, VisibilityQueryType } from '@usersessions/shared'
 import { approveSuggestedQuery } from './actions'
 
@@ -21,6 +22,7 @@ export function SuggestQueries({ productId }: { productId: string }) {
   const [suggestions, setSuggestions] = useState<SuggestedQuery[]>([])
 
   async function suggest() {
+    trackFeature('ai_visibility_suggest', 'click', { productId })
     setLoading(true)
     setError(null)
     try {
