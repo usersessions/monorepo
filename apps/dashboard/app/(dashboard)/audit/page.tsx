@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { AuditCategory, LandingPageAuditResult } from '@usersessions/shared'
 import { AuditRunner } from './AuditRunner'
 import { ExtensionActionButton } from '@/components/ExtensionActionButton'
+import { TrackView } from '@/components/TrackView'
 
 /**
  * AIO Audit (Feature A): how well AI assistants can understand and recommend a
@@ -47,6 +48,7 @@ export default async function AuditPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 760 }}>
+      <TrackView feature="aio_audit" productId={product?.id ?? null} />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>AI Optimization Audit</h1>
         <p className="font-sans-body">

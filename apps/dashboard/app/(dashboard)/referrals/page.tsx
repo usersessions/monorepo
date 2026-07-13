@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
 import type { ReferralProgramCopy, ReferralProgramView, ReferralStructure } from '@usersessions/shared'
+import { TrackView } from '@/components/TrackView'
 import { ReferralGenerator } from './ReferralGenerator'
 
 const STRUCTURE_LABEL: Record<ReferralStructure, string> = {
@@ -44,6 +45,7 @@ export default async function ReferralsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 820 }}>
+      <TrackView feature="referral_program_generate" type="view" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Referral program</h1>
         <p className="font-sans-body">

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
 import type { GeneratedContentView, ContentType } from '@usersessions/shared'
+import { TrackView } from '@/components/TrackView'
 import { ContentGenerator } from './ContentGenerator'
 
 const TYPE_LABEL: Record<ContentType, string> = {
@@ -46,6 +47,7 @@ export default async function ContentPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 820 }}>
+      <TrackView feature="comparison_content_generate" type="view" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Comparison content</h1>
         <p className="font-sans-body">

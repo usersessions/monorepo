@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
+import { TrackView } from '@/components/TrackView'
 import { ReviewCampaignBuilder } from './ReviewCampaignBuilder'
 
 /**
@@ -30,6 +31,7 @@ export default async function ReviewsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 820 }}>
+      <TrackView feature="review_campaign_create" type="view" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Reviews</h1>
         <p className="font-sans-body">
