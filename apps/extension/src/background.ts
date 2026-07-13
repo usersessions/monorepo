@@ -36,6 +36,7 @@ chrome.runtime.onMessageExternal.addListener(
     if (
       message?.type === 'TRIGGER_LAUNCH' ||
       message?.type === 'TRIGGER_SURFACE' ||
+      message?.type === 'TRIGGER_SURFACE_VERIFY' ||
       message?.type === 'TRIGGER_CAPTURE'
     ) {
       void (async () => {
@@ -55,6 +56,24 @@ chrome.runtime.onMessageExternal.addListener(
           } else if (message.type === 'TRIGGER_SURFACE') {
             const { distributeToSurface } = await import('./surfaces-trigger')
             sendResponse(await distributeToSurface(String(message.surfaceId)))
+          } else if (message.type === 'TRIGGER_SURFACE_VERIFY') {
+            // tracked_only surfaces (e.g. X): open the profile/compose URL and inject a verify panel.
+            // Mirrors the popup's VERIFY_SURFACE handler below — kept in sync deliberately.
+            const openUrl = message.url || 'about:blank'
+            const tab = await chrome.tabs.create({ url: openUrl, active: true })
+            await waitForTabLoad(tab.id!)
+            await chrome.storage.local.set({
+              [`surfaceTab:${tab.id}`]: { surfaceId: message.surfaceId, campaignId: crypto.randomUUID() },
+            })
+            try {
+              await sendMessageWithRetry(tab.id!, {
+                type: 'RENDER_SURFACE_VERIFY',
+                data: { surfaceId: message.surfaceId, surfaceName: message.surfaceName || 'this surface' },
+              })
+            } catch {
+              /* best-effort injection */
+            }
+            sendResponse({ ok: true })
           } else {
             // TRIGGER_CAPTURE: best-effort capture of the user's active tab in the current window.
             // MV3/activeTab cannot capture an arbitrary tab from the dashboard; this no-ops if the
