@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PlatformVerifyButton } from '@/components/PlatformVerifyButton'
+import { TrackView } from '@/components/TrackView'
 
 const PLAN_ORDER: Record<string, number> = { free: 0, founder: 1, pro: 2, agency: 3 }
 const CATEGORY_LABELS: Record<string, string> = {
@@ -38,6 +39,7 @@ export default async function PlatformsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-xl)' }}>
+      <TrackView feature="platform_browse" />
       <header className="flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Platforms</h1>
         <p className="font-sans-body" style={{ maxWidth: 640 }}>

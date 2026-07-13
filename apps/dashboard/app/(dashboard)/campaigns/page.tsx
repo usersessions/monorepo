@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ExtensionActionButton } from '@/components/ExtensionActionButton'
+import { TrackView } from '@/components/TrackView'
 
 interface SearchParams {
   status?: string
@@ -60,6 +61,7 @@ export default async function CampaignsPage({
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
+      <TrackView feature="campaign_launch" type="view" />
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Campaigns</h1>
         {(campaigns ?? []).length > 0 && (

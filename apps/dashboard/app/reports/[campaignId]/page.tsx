@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { PlanId } from '@usersessions/shared'
+import { TrackView } from '@/components/TrackView'
 
 /**
  * PUBLIC white-label distribution report (BUILD_SPEC §8): shareable without auth,
@@ -54,6 +55,8 @@ export default async function ReportPage({
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+      {/* Fires only when a signed-in owner views their report; anonymous shares no-op (204). */}
+      <TrackView feature="report_view" />
       {/* Print: white paper output for PDF export */}
       <style>{`@media print { html, body { background: #fff !important; color: #000 !important; } .card, .card--dense { border: 1px solid #ccc !important; background: #fff !important; } a { color: #000 !important; } }`}</style>
 
