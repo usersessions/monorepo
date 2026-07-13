@@ -1,4 +1,5 @@
 import { TrendChart } from '@/components/TrendChart'
+import { TrackView } from '@/components/TrackView'
 import { createClient } from '@/lib/supabase/server'
 import { QUERY_TYPE_WEIGHT, type VisibilityQueryType } from '@usersessions/shared'
 import { addVisibilityQuery, deleteVisibilityQuery } from './actions'
@@ -102,6 +103,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
+      <TrackView feature="analytics_view" />
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Analytics</h1>
 
       <div className="card">
