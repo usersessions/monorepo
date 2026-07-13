@@ -9,6 +9,8 @@ export const ADMIN_NAV = [
   { label: 'Flags', href: '/admin/flags' },
   { label: 'Compliance', href: '/admin/compliance' },
   { label: 'Audit log', href: '/admin/audit' },
+  { label: 'Usage', href: '/admin/usage' },
+  { label: 'Platform requests', href: '/admin/platform-requests' },
   { label: 'Settings', href: '/admin/settings' },
   { label: 'Dogfood campaign', href: '/admin/dogfood' },
 ] as const
