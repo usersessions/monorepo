@@ -65,7 +65,7 @@
 6. Queue drained → `POST /api/campaigns` heartbeat sync
 
 ### Adapter System
-- **`adapters/registry.ts`** — 15 platform adapters (AI directories + launch platforms)
+- **`adapters/registry.ts`** — 15 platform adapters (AI directories + launch platforms); all currently `verified: false` — simulation-only until live QA promotes each
 - **`adapters/types.ts`** — `RunContext`, `AdapterOutcome`, `FounderProfile`
 - **Generic runner:** `fill`, `smartFill` (fuzzy checkbox matching), `select`, `check`, `upload`, `next`, `waitFor`, `submit`
 - **`adapter_verifications`** table — user-verified adapters unlock live mode per-platform
@@ -328,10 +328,16 @@
 | `/admin/users` | Suspend users, time-limited bannered impersonation |
 | `/admin/flags` | Feature flag management |
 | `/admin/billing` | Billing overrides |
-| `/admin/adapter-review` | Canary results, Approve → Stage 10% / Reject |
+| `/admin/adapters` | Canary results, Approve → Stage 10% / Reject |
 | `/admin/data-quality` | `edits_telemetry` browser |
 | `/admin/usage` | 7-day metric cards, sortable breakdown table, 30-day dead-feature list (auto-flagged: <5% adoption or <3 uses), stacked-area trend chart (top-5 features + "other") |
 | `/admin/platform-requests` | Filter by status, expandable rows, approve/reject/mark-shipped actions |
+| `/admin/audit` | Admin audit log browser |
+| `/admin/compliance` | Compliance overview |
+| `/admin/dogfood` | Dogfooding tools |
+| `/admin/settings` | Admin settings (incl. email test) |
+| `/admin/support` | Support queue |
+| `/admin/users/[userId]` | Per-user detail view |
 
 ---
 
@@ -340,7 +346,7 @@
 ### Feature Usage Tracking
 - Migration: `0034_feature_events` — append-only, 25-value `feature_name` enum, 6-value `event_type` enum
 - `POST /api/events` — always 204, swallows all errors (fire-and-forget)
-- `lib/tracking.ts` — `trackFeature()` (client) + `trackFeatureServer()` (server), both fail-soft
+- `lib/tracking.ts` — `trackFeature()` (client); `lib/tracking-server.ts` — `trackFeatureServer()` (server); both fail-soft
 - `TrackView.tsx` — drop-in mount tracker for server-component pages
 - **25 tracked features:** analytics_view, competitors_view, founder_audit_*, aio_audit_*, content_*, reviews_*, referrals_*, settings_*, surfaces_*, campaigns_*, platforms_view, pricing_view, reports_view, ai_visibility_*, competitor_scan_*, category_ownership_view, intelligence_briefing_*
 
@@ -359,7 +365,7 @@
 |------|---------|
 | `/home` | Marketing homepage (StoryBrand: Character → Guide → Plan → CTA) |
 | `/pricing` | 3 self-serve cards (Free/Founder/Pro) + Agency callout → contact |
-| `/competitors` (public) | Competitor Distribution Scan — top-line free, full gap behind signup |
+| `/competitors` | Competitor Distribution Scan — authenticated (lives inside the dashboard route group, not public) |
 | `/articles/[slug]` | Articles/blog (static, developer-authored) |
 | `/faq` | FAQ with JSON-LD structured data |
 | `/privacy` | Privacy policy |
@@ -387,7 +393,18 @@
 - `PlatformRequest`, `PlatformRequestCategory/Status`
 - `FeatureName`, `FeatureEventType`, `FeatureEventInput`
 - `BridgeMessage` (all extension↔dashboard messages including `TRIGGER_LAUNCH`, `TRIGGER_SURFACE`, `TRIGGER_SURFACE_VERIFY`, `TRIGGER_CAPTURE`)
-- `PlanId` (free / founder / pro / agency), `PLAN_LIMITS` (single source for all metering)
+- `PlanId` (free / founder / pro / agency); `PLAN_LIMITS` lives in `apps/dashboard/lib/tiers.ts` (single source for all metering)
+
+---
+
+## 🗂️ Present in Code but Undocumented Above
+
+- `/agent` dashboard page + `POST /api/agent/plan` + `/api/agent/session` + `apps/extension/src/agent/` (orchestrator / perception / actuator / screenshot — matches migration `0021_agent_computer_use`)
+- `/rx` page (`RxDoor.tsx`)
+- `/settings/integrations`
+- `POST /api/account/delete`, `GET /api/account/export`
+- `POST /api/push/subscribe` (+ `PushToggle`, `sw.js` service worker)
+- `POST /api/campaigns/preflight`, `POST /api/competitors/watch`, `GET /api/listings/export`, `/api/telemetry/ai-edits`, `/api/health`
 
 ---
 
@@ -424,7 +441,7 @@ All 10 phases above are implemented in code.
 - **16** dashboard pages
 - **15** platform adapters
 - **6** acquisition features
-- **5** cron jobs (Vercel-scheduled)
+- **7** cron jobs (Vercel-scheduled: link-check, platform-quality, ai-visibility, competitor-scan, community-scan, intelligence-briefing, weekly-digest)
 - **4** plan tiers
 - **25** tracked feature events
 - **11+** transactional email types
