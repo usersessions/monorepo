@@ -1,254 +1,197 @@
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { isEnabled } from '@/lib/flags'
-import { MarketingFooter } from '@/components/MarketingFooter'
-import { TrackView } from '@/components/TrackView'
+"use client";
 
-export const dynamic = 'force-dynamic'
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Check, Sparkles, Zap, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PLANS, PlanId } from "@/lib/tiers";
+import { Switch } from "@/components/ui/switch";
 
-/**
- * Pricing — research-backed structure (see STABILIZATION_PROGRESS.md):
- * 3 self-serve cards (Free / Founder⭐ / Pro) + a visually separated Agency &
- * Enterprise callout that routes to the contact flow instead of self-checkout.
- * Annual-default toggle, center 'Most popular', charm pricing, risk reversal.
- */
-function tiersFor(annual: boolean) {
-  return [
-    {
-      name: 'Free',
-      price: '$0',
-      period: '',
-      note: null as string | null,
-      popular: false,
-      features: ['1 product', '1 full launch — every platform', '30 days of full monitoring + weekly AI visibility', 'AIO Audit — weekly landing-page scorecard', 'Distribution Score + competitor scan', 'AI copy generation'],
-      cta: null as { label: string; plan: string }[] | null,
-    },
-    {
-      name: 'Founder',
-      price: annual ? '$32.50' : '$39',
-      period: '/mo',
-      note: annual ? 'billed annually at $390 · save 17% (2 months free)' : 'or $32.50/mo billed annually',
-      popular: true,
-      features: ['3 products', '2 launches per product / month', 'Full monitoring + auto-resubmission', '5 AI Visibility queries / product, weekly', 'AIO Audit + weekly Intelligence Briefings', 'Reviews, community & referral toolkit', 'Weekly digest + new-platform drops'],
-      cta: annual
-        ? [
-            { label: 'Subscribe yearly — $390', plan: 'founder_annual' },
-            { label: 'Or monthly at $39/mo', plan: 'founder_monthly' },
-          ]
-        : [
-            { label: 'Subscribe monthly — $39/mo', plan: 'founder_monthly' },
-            { label: 'Or yearly at $390 (save 17%)', plan: 'founder_annual' },
-          ],
-    },
-    {
-      name: 'Pro',
-      price: annual ? '$82.50' : '$99',
-      period: '/mo',
-      note: annual ? 'billed annually at $990 · save 17% (2 months free)' : 'or $82.50/mo billed annually',
-      popular: false,
-      features: ['10 products', '10 launches per product / month', 'Everything in Founder', '15 AI Visibility queries / product', 'Daily AIO Audit + intelligence briefings', 'Higher review, content & community volume', 'Priority resubmission & support'],
-      cta: annual
-        ? [
-            { label: 'Subscribe yearly — $990', plan: 'pro_annual' },
-            { label: 'Or monthly at $99/mo', plan: 'pro_monthly' },
-          ]
-        : [
-            { label: 'Subscribe monthly — $99/mo', plan: 'pro_monthly' },
-            { label: 'Or yearly at $990 (save 17%)', plan: 'pro_annual' },
-          ],
-    },
-  ]
-}
+export default function PricingPage() {
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState<PlanId | null>(null);
 
-const CHECKOUT_ERRORS: Record<string, string> = {
-  not_configured: 'Payments are not fully configured yet — checkout is temporarily unavailable. Nothing was charged.',
-  failed: 'Our payment provider could not start this checkout. Nothing was charged — please try again in a minute or contact support.',
-  invalid_plan: 'That plan selection was not recognized. Please pick a plan below.',
-}
-
-const PLAN_ENV_NAMES: Record<string, string> = {
-  founder_monthly: 'PAYSTACK_PLAN_FOUNDER_MONTHLY',
-  founder_annual: 'PAYSTACK_PLAN_FOUNDER_ANNUAL',
-  pro_monthly: 'PAYSTACK_PLAN_PRO_MONTHLY',
-  pro_annual: 'PAYSTACK_PLAN_PRO_ANNUAL',
-  agency_monthly: 'PAYSTACK_PLAN_AGENCY_MONTHLY',
-}
-
-export default async function PricingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ checkout_error?: string; cycle?: string; plan?: string; reason?: string }>
-}) {
-  // Real 404 while the flag is off — never a "coming soon" page (BUILD_SPEC §11).
-  if (!(await isEnabled('pricing_page'))) notFound()
-
-  const params = await searchParams
-  const reasonDetail =
-    params.checkout_error === 'failed' && params.reason ? ` Details: ${params.reason.slice(0, 180)}` : ''
-  const errorMessage =
-    params.checkout_error === 'not_configured' && params.plan && PLAN_ENV_NAMES[params.plan]
-      ? `Checkout for “${params.plan}” is not configured on the server — the ${PLAN_ENV_NAMES[params.plan]} environment variable is missing or empty (set it in Vercel and redeploy). Nothing was charged.`
-      : params.checkout_error
-        ? `${CHECKOUT_ERRORS[params.checkout_error] ?? 'Checkout could not start. Nothing was charged.'}${reasonDetail}`
-        : null
-  const annual = params.cycle !== 'monthly' // annual is the default anchor
-  const TIERS = tiersFor(annual)
+  const plans = Object.values(PLANS);
 
   return (
-    <main style={{ maxWidth: 1080, margin: '0 auto', padding: 'var(--space-2xl) var(--space-lg)' }}>
-      <TrackView feature="pricing_view" />
-      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
-        Get your product found
-      </h1>
-
-      {errorMessage && (
-        <div
-          style={{
-            border: '1px solid var(--red)',
-            borderRadius: 'var(--rounded-sm)',
-            padding: 'var(--space-sm) var(--space-md)',
-            marginBottom: 'var(--space-lg)',
-          }}
+    <main className="min-h-screen bg-background">
+      {/* Hero */}
+      <section className="pt-32 pb-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          <p className="font-mono-label" style={{ color: 'var(--red)' }}>{errorMessage}</p>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-        <a
-          className="font-mono-label"
-          style={{ color: annual ? 'var(--primary)' : 'var(--muted-2)', textDecoration: 'none' }}
-          href="/pricing"
-        >
-          Annual · save 17%
-        </a>
-        <a
-          className="font-mono-label"
-          style={{ color: !annual ? 'var(--primary)' : 'var(--muted-2)', textDecoration: 'none' }}
-          href="/pricing?cycle=monthly"
-        >
-          Monthly
-        </a>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-lg)' }}>
-        {TIERS.map((tier) => (
-          <div
-            key={tier.name}
-            className="card"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-md)',
-              borderColor: tier.popular ? 'var(--primary)' : undefined,
-              position: 'relative',
-            }}
-          >
-            {tier.popular && (
-              <span className="font-mono-micro" style={{ position: 'absolute', top: 'var(--space-sm)', right: 'var(--space-md)', color: 'var(--primary)' }}>
-                MOST POPULAR
-              </span>
-            )}
-            <p className="font-mono-label">{tier.name}</p>
-            <p>
-              <span className="font-serif-metric" style={{ fontSize: '2.25rem' }}>{tier.price}</span>
-              <span className="font-mono-micro">{tier.period}</span>
-            </p>
-            {tier.note && <p className="font-mono-micro">{tier.note}</p>}
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-              {tier.features.map((f) => (
-                <li key={f} className="font-sans-body">— {f}</li>
-              ))}
-            </ul>
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-              {tier.cta ? (
-                tier.cta.map((c, i) => (
-                  <form key={c.plan} method="post" action="/api/billing/checkout">
-                    <input type="hidden" name="plan" value={c.plan} />
-                    <button className={i === 0 ? 'btn-primary' : 'btn-ghost'} type="submit" style={{ width: '100%' }}>
-                      {c.label}
-                    </button>
-                  </form>
-                ))
-              ) : (
-                <Link href="/login" className="btn-ghost" style={{ textAlign: 'center', textDecoration: 'none' }}>
-                  Start free
-                </Link>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Agency & Enterprise — sales-assisted, visually separated from self-serve cards */}
-      <div
-        className="card"
-        style={{
-          marginTop: 'var(--space-lg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 'var(--space-md)',
-          borderColor: 'var(--amber)',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', maxWidth: 640 }}>
-          <p className="font-mono-label" style={{ color: 'var(--amber)' }}>Agency &amp; Enterprise</p>
-          <p className="font-sans-body">
-            Custom pricing, from $299/mo — 15+ client workspaces, pooled priority launches,
-            white-label reports, custom AI Visibility volume, and dedicated support.
+          <h1 className="text-4xl font-bold sm:text-5xl lg:text-6xl">
+            Simple, profitable pricing
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+            Every plan is designed to be profitable. No hidden fees. No surprises.
+            Pay for what you use, upgrade when you grow.
           </p>
+        </motion.div>
+
+        {/* Billing Toggle */}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <span className={`text-sm ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+            Monthly
+          </span>
+          <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
+          <span className={`text-sm ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+            Annual
+          </span>
+          {isAnnual && (
+            <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-500">
+              Save 20%
+            </span>
+          )}
         </div>
-        <Link href="/support" className="btn-primary" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>
-          Talk to us →
-        </Link>
-      </div>
+      </section>
 
-      {/* Full feature comparison — values mirror PLAN_LIMITS so copy can't drift from enforcement. */}
-      <div style={{ marginTop: 'var(--space-lg)', overflowX: 'auto' }}>
-        <p className="font-mono-label" style={{ marginBottom: 'var(--space-sm)' }}>Compare every plan</p>
-        <table className="font-sans-body" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Feature</th>
-              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Free</th>
-              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Founder</th>
-              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Pro</th>
-              <th style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>Agency</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              ['Products', '1', '3', '10', '15+'],
-              ['Launches / product / month', '1 lifetime', '2', '10', '10 (pooled)'],
-              ['AI Visibility queries / product', '1', '5', '15', 'Custom'],
-              ['AIO Audit', 'Weekly', 'Weekly', 'Daily', 'Daily'],
-              ['Intelligence Briefings', '—', 'Weekly', 'Weekly', 'Weekly'],
-              ['Comparison Content / month', '—', '2', '10', 'Unlimited'],
-              ['Founder Brand Audit', '—', 'Monthly', 'Weekly', 'Weekly'],
-              ['Review campaigns / month', '—', '1', '3', 'Unlimited'],
-              ['Community responses / month', '—', '5', '20', 'Unlimited'],
-              ['Referral programs / month', '—', '1', '3', 'Unlimited'],
-              ['Support', 'Community', 'Standard', 'Priority', 'Dedicated'],
-            ].map((row) => (
-              <tr key={row[0]}>
-                <td style={{ textAlign: 'left', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[0]}</td>
-                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[1]}</td>
-                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[2]}</td>
-                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[3]}</td>
-                <td style={{ textAlign: 'center', padding: 'var(--space-xs)', borderBottom: '1px solid var(--border)' }}>{row[4]}</td>
-              </tr>
+      {/* Pricing Cards */}
+      <section className="pb-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {plans.map((plan, i) => (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                onMouseEnter={() => setHoveredPlan(plan.id as PlanId)}
+                onMouseLeave={() => setHoveredPlan(null)}
+                className={`relative rounded-2xl border p-6 transition-all duration-300 ${
+                  plan.popular
+                    ? "border-primary bg-primary/5 scale-105 shadow-xl"
+                    : hoveredPlan === plan.id
+                    ? "border-primary/50 shadow-lg"
+                    : "border-border bg-card"
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <div className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      Most Popular
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan Header */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    {plan.id === "free" && <Zap className="h-5 w-5 text-muted-foreground" />}
+                    {plan.id === "starter" && <Sparkles className="h-5 w-5 text-primary" />}
+                    {plan.id === "pro" && <Zap className="h-5 w-5 text-primary" />}
+                    {plan.id === "agency" && <Building2 className="h-5 w-5 text-primary" />}
+                    <h3 className="text-lg font-semibold">{plan.name}</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{plan.tagline}</p>
+                </div>
+
+                {/* Price */}
+                <div className="mb-6 h-20">
+                  {plan.id === "agency" ? (
+                    <div className="flex items-baseline gap-1 h-full items-center">
+                      <span className="text-4xl font-bold">Custom</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-bold">
+                          ${isAnnual 
+                            ? (plan.price.annual / 12 / 100).toFixed(0) 
+                            : (plan.price.monthly / 100).toFixed(0)
+                          }
+                        </span>
+                        <span className="text-muted-foreground">/mo</span>
+                      </div>
+                      {isAnnual && plan.price.annual > 0 && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          ${(plan.price.annual / 100).toFixed(0)} billed annually
+                        </p>
+                      )}
+                      {plan.price.monthly > 0 && isAnnual && (
+                        <p className="text-xs text-green-500 mt-1">
+                          Save ${((plan.price.monthly * 12 - plan.price.annual) / 100).toFixed(0)}/year
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Video Count — THE KEY METRIC */}
+                <div className="mb-6 p-3 rounded-xl bg-background border">
+                  <div className="text-2xl font-bold text-primary">
+                    {plan.limits.videosPerMonth}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    videos per month
+                  </div>
+                  {plan.limits.videosPerMonth > 0 && plan.id !== "agency" && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      ~${(plan.price.monthly / 100 / plan.limits.videosPerMonth).toFixed(2)} per video
+                    </div>
+                  )}
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-3 mb-6">
+                  {plan.features.map((feature, j) => (
+                    <li key={j} className="flex items-start gap-2 text-sm">
+                      <Check className={`h-4 w-4 mt-0.5 shrink-0 ${
+                        plan.id === "free" ? "text-muted-foreground" : "text-primary"
+                      }`} />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                <Button 
+                  className={`w-full h-12 rounded-xl ${
+                    plan.popular 
+                      ? "bg-primary hover:bg-primary/90" 
+                      : plan.id === "free"
+                      ? "bg-secondary hover:bg-secondary/90"
+                      : "bg-background border-2 border-border hover:border-primary"
+                  }`}
+                  variant={plan.id === "free" ? "default" : plan.popular ? "default" : "outline"}
+                >
+                  {plan.cta}
+                </Button>
+              </motion.div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      </section>
 
-      <p className="font-mono-micro" style={{ textAlign: 'center', marginTop: 'var(--space-lg)' }}>
-        All prices in USD · Cancel anytime from Settings · 14-day money-back guarantee — email support and we refund, no questions.
-      </p>
-
-      <MarketingFooter />
+      {/* Trust Section */}
+      <section className="border-t border-border/50 py-16">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <h2 className="text-2xl font-semibold mb-4">Why this pricing works</h2>
+          <div className="grid md:grid-cols-3 gap-8 mt-8">
+            {[
+              {
+                title: "No surprise bills",
+                desc: "Hard monthly caps. You'll never pay more than your plan unless you explicitly choose overage."
+              },
+              {
+                title: "Profitable for us",
+                desc: "Every plan has a 53-72% margin. We stay in business so you can rely on us long-term."
+              },
+              {
+                title: "Fair overage",
+                desc: "Need more? $2/video overage. Expensive enough to push upgrades, cheap enough for emergencies."
+              }
+            ].map((item, i) => (
+              <div key={i} className="text-left">
+                <h3 className="font-semibold mb-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
-  )
+  );
 }

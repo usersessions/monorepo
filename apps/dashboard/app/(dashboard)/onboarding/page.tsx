@@ -16,27 +16,27 @@ export default async function OnboardingPage() {
 
   const steps = [
     {
-      title: '1. Install the extension',
-      done: (campaignCount ?? 0) > 0, // a campaign can only come from the extension
-      body: 'The extension runs submissions in your own browser, your own accounts — nothing happens behind your back.',
-      cta: { label: 'Get the extension →', href: '/support' },
-    },
-    {
-      title: '2. Add your product',
+      title: '1. Paste your product URL',
       done: (productCount ?? 0) > 0,
-      body: 'Open the extension on your product\u2019s landing page and click \u201cAnalyze this page\u201d — we read your title, description and headings so you never re-type what your product is.',
-      cta: null,
+      body: 'Simply paste your website link. We analyze your landing page and product offering so you don\'t have to type anything out.',
+      cta: { label: 'Add your product URL →', href: '/products/new' },
     },
     {
-      title: '3. Launch your first campaign',
+      title: '2. Approve the prompt',
       done: (campaignCount ?? 0) > 0,
-      body: 'Generate listing copy, edit every word until it sounds like you, approve it, and hit Launch. You handle CAPTCHAs and email confirmations — we do the tedious 90%.',
+      body: 'Our AI drafts a concise, high-converting video prompt based on your product. You get full control to edit every word before anything runs.',
       cta: null,
     },
     {
-      title: '4. Watch',
+      title: '3. Generate',
       done: (liveCount ?? 0) > 0,
-      body: 'Your dashboard tracks where you\u2019re live, resurfaces dead listings, and checks whether AI assistants mention you for your category.',
+      body: 'We send the prompt to MiniMax. In about a minute, you get a beautiful 10-second cinematic video ad of your product.',
+      cta: null,
+    },
+    {
+      title: '4. Download & Post',
+      done: (liveCount ?? 0) > 0,
+      body: 'Download the HD MP4 file. It\'s yours to use on TikTok, Instagram Reels, YouTube Shorts, or anywhere else.',
       cta: { label: 'Open your Overview →', href: '/' },
     },
   ]
@@ -84,10 +84,9 @@ export default async function OnboardingPage() {
 
       {!nextStep && (
         <section className="card flex flex-col" style={{ gap: 'var(--space-sm)', borderColor: 'var(--green)' }}>
-          <h2 className="font-mono-label" style={{ color: 'var(--green)' }}>You\u2019re live.</h2>
+          <h2 className="font-mono-label" style={{ color: 'var(--green)' }}>You're all set.</h2>
           <p className="font-sans-body">
-            The monitoring loop is running: dead listings get flagged, resubmissions get queued, and AI
-            visibility is tracked weekly. Check your Overview any time.
+            You've successfully generated your first AI video ad. You can create more videos from your dashboard anytime.
           </p>
           <Link href="/" className="font-mono-micro" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
             Go to Overview →

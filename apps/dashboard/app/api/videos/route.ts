@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { submitVideoGeneration } from '@/services/fal'
+import { generateMiniMaxVideo } from '@/services/minimax'
 
 // TODO(pivot): requires `videos` table migration (0037_videos) before this returns data.
 export async function GET() {
@@ -29,9 +29,8 @@ export async function POST(req: Request) {
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   try {
-    const webhook = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/fal` : undefined
-    const { requestId } = await submitVideoGeneration(body.prompt, webhook)
-    await supabase.from('videos').update({ fal_request_id: requestId, status: 'generating' }).eq('id', video.id)
+    const { task_id } = await generateMiniMaxVideo({ prompt: body.prompt })
+    await supabase.from('videos').update({ fal_request_id: task_id, status: 'generating' }).eq('id', video.id)
   } catch {
     // fail-soft: video stays queued; the regenerate endpoint can retry
   }

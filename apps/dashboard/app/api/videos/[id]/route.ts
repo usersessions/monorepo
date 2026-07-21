@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-type Ctx = { params: { id: string } | Promise<{ id: string }> }
+type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: Request, context: Ctx) {
   const { id } = await Promise.resolve(context.params)

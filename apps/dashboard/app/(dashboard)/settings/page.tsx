@@ -2,10 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { updateProfile, saveNotificationPrefs } from './actions'
-import { ExtensionStatus } from '@/components/ExtensionStatus'
 import { UsageMeter } from '@/components/UpgradePrompt'
-import { TrackView } from '@/components/TrackView'
-import { limitsFor, monthStartIso } from '@/lib/tiers'
+import { limitsFor } from '@/lib/tiers'
 import { listTransactions } from '@/lib/billing/paystack'
 
 export default async function SettingsPage({
@@ -37,16 +35,12 @@ export default async function SettingsPage({
   const [{ count: productCount }, { count: launchesThisMonth }, { count: visibilityQueryCount }] =
     await Promise.all([
       supabase.from('products').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('campaigns')
-        .select('*', { count: 'exact', head: true })
-        .gte('started_at', monthStartIso()),
+      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
       supabase.from('visibility_queries').select('*', { count: 'exact', head: true }),
     ])
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 640 }}>
-      <TrackView feature="settings_view" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Settings</h1>
         <p className="font-sans-body">Your profile, account, plan, and session.</p>
@@ -207,10 +201,7 @@ export default async function SettingsPage({
         )}
       </section>
 
-      {/* Integrations */}
-      <ExtensionStatus />
-
-      <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
+      {/* Integrations */}      <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Integrations</h2>
         <p className="font-sans-body">Send dead-link alerts and campaign updates to Slack or Discord.</p>
         <Link

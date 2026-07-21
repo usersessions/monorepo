@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { TrackView } from '@/components/TrackView'
 
 /**
  * Reason-mapped cancellation flow (research-backed; see STABILIZATION_PROGRESS.md).
@@ -76,7 +75,6 @@ export default async function CancelPage({
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 560 }}>
-      <TrackView feature="cancel_flow_start" />
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem' }}>Cancel subscription</h1>
         <p className="font-sans-body">

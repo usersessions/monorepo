@@ -2,8 +2,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
-import { ExtensionBridge } from '@/components/ExtensionBridge'
-import { RealtimeRefresh } from '@/components/RealtimeRefresh'
 import { NotificationToaster } from '@/components/NotificationToaster'
 import { SidebarNav } from '@/components/SidebarNav'
 import { onboardingLabel } from '@/lib/onboarding'
@@ -40,12 +38,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('read', false),
   ])
 
-  // Mirrors the four steps on /onboarding — progress derives from real data only.
   const onboardingFlags = [
-    (campaignCount ?? 0) > 0, // extension installed (campaigns only come from it)
     (productCount ?? 0) > 0, // product added
-    (campaignCount ?? 0) > 0, // first campaign launched
-    (liveCount ?? 0) > 0, // first live listing
+    (liveCount ?? 0) > 0, // first video generated
   ]
   const onboarding = { done: onboardingFlags.filter(Boolean).length, total: onboardingFlags.length }
 
@@ -57,8 +52,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       <a href="#main" className="skip-link">Skip to main content</a>
-      <ExtensionBridge />
-      <RealtimeRefresh userId={user.id} />
       <NotificationToaster userId={user.id} />
       <CommandPalette />
       <KeyboardShortcuts />
@@ -82,12 +75,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {[
             [onboardingLabel(onboarding), '/onboarding'],
             ['Overview', '/'],
-            ['Campaigns', '/campaigns'],
-            ['Listings', '/listings'],
-            ['Platforms', '/platforms'],
-            ['Analytics', '/analytics'],
-            ['Competitors', '/competitors'],
-            [`Notifications${(unreadCount ?? 0) > 0 ? ` (${unreadCount})` : ''}`, '/notifications'],
+            ['Generate', '/generate'],
+            ['Videos', '/videos'],
+            ['Products', '/products'],
             ['Settings', '/settings'],
           ].map(([label, href]) => (
             <Link key={href} href={href} className="font-mono-label" style={{ color: 'var(--paper)', textDecoration: 'none', whiteSpace: 'nowrap' }}>

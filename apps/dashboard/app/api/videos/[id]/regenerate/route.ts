@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { submitVideoGeneration } from '@/services/fal'
+import { generateMiniMaxVideo } from '@/services/minimax'
 
-type Ctx = { params: { id: string } | Promise<{ id: string }> }
+type Ctx = { params: Promise<{ id: string }> }
 
 export async function POST(_req: Request, context: Ctx) {
   const { id } = await Promise.resolve(context.params)
@@ -12,9 +12,8 @@ export async function POST(_req: Request, context: Ctx) {
   const { data: video } = await supabase.from('videos').select('*').eq('id', id).eq('user_id', user.id).single()
   if (!video) return NextResponse.json({ error: 'not found' }, { status: 404 })
   try {
-    const webhook = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/fal` : undefined
-    const { requestId } = await submitVideoGeneration(video.prompt, webhook)
-    await supabase.from('videos').update({ fal_request_id: requestId, status: 'generating', video_url: null }).eq('id', id)
+    const { task_id } = await generateMiniMaxVideo({ prompt: video.prompt })
+    await supabase.from('videos').update({ fal_request_id: task_id, status: 'generating', video_url: null }).eq('id', id)
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'resubmission failed' }, { status: 502 })

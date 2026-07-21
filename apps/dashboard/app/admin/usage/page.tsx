@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { UsageTrendChart } from '@/components/UsageTrendChart'
 import type { FeatureName } from '@usersessions/shared'
 
 /**
@@ -167,7 +166,7 @@ export default async function AdminUsagePage({
           {/* 30-day daily trend */}
           <div className="card">
             <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Daily feature usage · 30 days</p>
-            <UsageTrendChart days={days} series={series} />
+            <p className="font-sans-body text-muted-foreground">Trend chart temporarily disabled.</p>
           </div>
 
           {/* Feature usage breakdown — sortable */}

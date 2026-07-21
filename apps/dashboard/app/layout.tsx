@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import { PwaRegister } from '@/components/PwaRegister'
 import './globals.css'
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'
 const TITLE = 'usersessions — Get your product found'
@@ -29,11 +33,18 @@ export const viewport: Viewport = {
   themeColor: '#101014',
 }
 
+import Script from 'next/script'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <head>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5722067836852264" crossOrigin="anonymous"></script>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5722067836852264"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body>
         <PwaRegister />
