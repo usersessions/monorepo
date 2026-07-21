@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation'
 
 const NAV_ITEMS = [
   { label: 'Overview', href: '/', icon: '◉' },
-  { label: 'Campaigns', href: '/campaigns', icon: '⚡' },
-  { label: 'Listings', href: '/listings', icon: '⊞' },
-  { label: 'Platforms', href: '/platforms', icon: '⊙' },
+  { label: 'Generate', href: '/generate', icon: '⚡' },
+  { label: 'Videos', href: '/videos', icon: '▶' },
+  { label: 'Products', href: '/products', icon: '⊞' },
   { label: 'Analytics', href: '/analytics', icon: '↗' },
-  { label: 'Competitors', href: '/competitors', icon: '⊕' },
   { label: 'Settings', href: '/settings', icon: '⚙' },
   { label: 'Billing & plan', href: '/pricing', icon: '$' },
   { label: 'Support', href: '/support', icon: '?' },
