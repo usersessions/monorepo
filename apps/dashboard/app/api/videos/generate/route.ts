@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { creditManager } from "@/services/credits";
+import { scrapeProduct, ScrapeError } from "@/services/scraper-new";
+import { generateVideoConcepts, VideoConcept } from "@/services/prompt-engine";
+import { submitVideo, MiniMaxSubmitError } from "@/services/minimax-new";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,13 +15,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { url, platform = "tiktok", customPrompt, resolution = "1080p" } = body;
+    const { url } = body;
+
+    if (!url) {
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    }
 
     // Check credits BEFORE anything else
     const creditCheck = await creditManager.checkGenerationAllowed({
       userId: user.id,
-      resolution,
-      wantsCustomPrompt: !!customPrompt,
+      resolution: "1080p", // MiniMax standard tier maps to 1080p for credit check
+      wantsCustomPrompt: false,
       wantsBulk: false,
       bulkCount: 1,
     });
@@ -37,41 +44,82 @@ export async function POST(req: NextRequest) {
     // If overage, we still allow but charge extra
     const isOverage = !!creditCheck.overageCost;
 
-    // Create video record
+    // Deduct credit immediately (fail-closed: if payment fails, we don't generate)
+    await creditManager.deductCredit(user.id, isOverage);
+
+    // Create video record in 'pending' state
     const { data: video, error } = await supabase
       .from("videos")
       .insert({
         user_id: user.id,
-        status: "pending",
-        input_type: url ? "url" : "manual",
-        input_url: url,
-        custom_prompt: customPrompt,
-        platform: platform.toUpperCase(),
-        resolution,
-        // is_overage is not in the db schema provided in the previous messages, 
-        // but the spec included it. I will omit it to avoid errors with the DB schema
-        // unless I am supposed to add it. I'll include it in metadata if needed.
+        status: "scraping",
+        url: url,
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    // Deduct credit immediately (fail-closed: if payment fails, we don't generate)
-    await creditManager.deductCredit(user.id, isOverage);
+    // Next.js (if not using waitUntil) requires us to await the process to finish
+    // However, we only need to await up to Fal.ai submission, not the final render.
 
-    // Call Fal.ai logic here instead of videoQueue.add (which isn't implemented in the new pivot yet)
-    // For now, returning success so the UI can proceed.
-    // We would typically dispatch the generation job here.
-    
-    return NextResponse.json({
-      success: true,
-      videoId: video.id,
-      status: "pending",
-      isOverage,
-      overageCost: creditCheck.overageCost,
-      remainingVideos: creditCheck.remainingVideos - 1,
-    });
+    let product;
+    try {
+      product = await scrapeProduct(url);
+      await supabase.from("videos").update({ status: "generating_prompt", product_data: product as any }).eq('id', video.id);
+    } catch (err: any) {
+      console.warn(`Scrape failed: ${err.message}`);
+      await supabase.from("videos").update({
+        status: "scrape_failed",
+        error: "Couldn't auto-import this product. Enter the title, description, and an image manually to continue."
+      }).eq('id', video.id);
+      return NextResponse.json({ error: "Scrape failed", videoId: video.id }, { status: 400 });
+    }
+
+    let concepts: VideoConcept[];
+    try {
+      const apiKey = process.env.GEMINI_API_KEY || '';
+      concepts = await generateVideoConcepts(product, apiKey, 3);
+      await supabase.from("videos").update({ concepts: concepts as any }).eq('id', video.id);
+    } catch (err: any) {
+      console.error(`Prompt generation failed: ${err.message}`);
+      await supabase.from("videos").update({ status: "prompt_failed", error: err.message }).eq('id', video.id);
+      return NextResponse.json({ error: "Prompt generation failed", videoId: video.id }, { status: 500 });
+    }
+
+    // Submit the first variant (variant 0) to MiniMax
+    const activeVariant = concepts[0];
+    const baseUrl = process.env.PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    const webhookUrl = `${baseUrl}/api/webhooks/fal/${video.id}`;
+
+    try {
+      const result = await submitVideo(
+        activeVariant.hailuo_prompt,
+        webhookUrl,
+        String(activeVariant.duration_seconds),
+        false // standard tier
+      );
+
+      await supabase.from("videos").update({
+        status: "submitted_to_minimax",
+        active_variant_index: 0,
+        fal_request_id: result.request_id,
+        fal_model: result.model
+      }).eq('id', video.id);
+
+      return NextResponse.json({
+        success: true,
+        videoId: video.id,
+        status: "submitted_to_minimax",
+        isOverage,
+        overageCost: creditCheck.overageCost,
+        remainingVideos: creditCheck.remainingVideos - 1,
+      });
+    } catch (err: any) {
+      console.error(`Fal submission failed: ${err.message}`);
+      await supabase.from("videos").update({ status: "failed", error: err.message }).eq('id', video.id);
+      return NextResponse.json({ error: "Video submission failed", videoId: video.id }, { status: 500 });
+    }
 
   } catch (error: any) {
     console.error("Video generation error:", error);

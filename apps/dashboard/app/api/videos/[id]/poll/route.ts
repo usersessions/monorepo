@@ -1,68 +1,73 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { queryVideoTask, getVideoFileUrl } from '@/services/minimax'
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { pollVideoResult, MiniMaxSubmitError, extractVideoUrl } from "@/services/minimax-new";
 
-type Ctx = { params: Promise<{ id: string }> }
-
-/**
- * POST /api/videos/[id]/poll
- *
- * Checks MiniMax task status for a single video and updates the DB row.
- * Called client-side while the video page is open and status === 'generating'.
- * Returns the updated video row so the UI can re-render without a full refetch.
- */
-export async function POST(_req: Request, context: Ctx) {
-  const { id } = await context.params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-
-  // Fetch the video — must belong to this user
-  const { data: video } = await supabase
-    .from('videos')
-    .select('id, status, fal_request_id, user_id')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!video) return NextResponse.json({ error: 'not found' }, { status: 404 })
-
-  // Nothing to do if already terminal
-  if (video.status === 'ready' || video.status === 'failed') {
-    return NextResponse.json({ status: video.status })
-  }
-
-  const taskId = video.fal_request_id
-  if (!taskId) {
-    return NextResponse.json({ status: 'generating', message: 'No task_id yet' })
-  }
-
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const task = await queryVideoTask(taskId)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (task.status === 'Success' && task.file_id) {
-      const videoUrl = await getVideoFileUrl(task.file_id)
-      await supabase
-        .from('videos')
-        .update({ status: 'ready', video_url: videoUrl })
-        .eq('id', id)
-      return NextResponse.json({ status: 'ready', video_url: videoUrl })
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (task.status === 'Fail') {
-      await supabase
-        .from('videos')
-        .update({ status: 'failed' })
-        .eq('id', id)
-      return NextResponse.json({ status: 'failed', reason: task.err_msg ?? 'MiniMax generation failed' })
+    // Await params if using Next.js 15
+    const { id } = await Promise.resolve(params);
+
+    const { data: video, error } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !video) {
+      return NextResponse.json({ error: "Video not found" }, { status: 404 });
     }
 
-    // Still Queueing or Processing
-    return NextResponse.json({ status: 'generating', minimax_status: task.status })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Poll error'
-    return NextResponse.json({ status: 'error', message: msg }, { status: 502 })
+    // Only the owner can view their video status
+    if (video.user_id !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Safety net: If status is 'submitted_to_minimax' but webhook hasn't arrived,
+    // we manually poll Fal.ai.
+    if (video.status === 'submitted_to_minimax' && video.fal_request_id) {
+      try {
+        const result = await pollVideoResult(video.fal_request_id, video.fal_model);
+        if (result) {
+          const videoUrl = extractVideoUrl(result);
+          // Update database
+          await supabase.from("videos").update({
+            status: "completed",
+            video_url: videoUrl
+          }).eq("id", video.id);
+          
+          video.status = "completed";
+          video.video_url = videoUrl;
+        }
+      } catch (err: any) {
+        await supabase.from("videos").update({
+          status: "failed",
+          error: err.message
+        }).eq("id", video.id);
+        
+        video.status = "failed";
+        video.error = err.message;
+      }
+    }
+
+    return NextResponse.json({
+      id: video.id,
+      status: video.status,
+      url: video.url,
+      concepts: video.concepts,
+      active_variant_index: video.active_variant_index,
+      video_url: video.video_url,
+      error: video.error,
+      created_at: video.created_at,
+    });
+  } catch (err: any) {
+    console.error("Poll error:", err);
+    return NextResponse.json({ error: "Failed to fetch job status" }, { status: 500 });
   }
 }
