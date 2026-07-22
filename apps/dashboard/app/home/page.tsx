@@ -29,7 +29,7 @@ export default function HomePage() {
 
         <div className="flex flex-col items-center" style={{ gap: 'var(--space-md)' }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2.5rem', maxWidth: 640, lineHeight: 1.15 }}>
-            Turn your landing page into a video ad.
+            Turn your product page into a video ad.
           </h1>
           <p className="font-sans-body" style={{ maxWidth: 520 }}>
             Paste a URL, get a high-converting video ad in two minutes. We extract your product positioning, write the script, and generate the final video with voiceovers and captions.
