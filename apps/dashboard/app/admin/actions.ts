@@ -32,7 +32,7 @@ export async function setPlan(formData: FormData) {
   const { user } = await requireAdmin()
   const targetUserId = String(formData.get('userId') ?? '')
   const plan = String(formData.get('plan') ?? '')
-  if (!targetUserId || !['free', 'founder', 'agency'].includes(plan)) return
+  if (!targetUserId || !['free', 'starter', 'pro', 'agency'].includes(plan)) return
 
   const db = createServiceClient()
   await db.from('profiles').update({ plan }).eq('id', targetUserId)

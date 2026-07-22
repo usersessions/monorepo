@@ -40,7 +40,7 @@ export default async function AdminUsersPage({
             <form action={setPlan} className="flex" style={{ gap: 'var(--space-xs)' }}>
               <input type="hidden" name="userId" value={u.id} />
               <select name="plan" defaultValue={u.plan} className="input-field" style={{ width: 'auto' }}>
-                {['free', 'founder', 'agency'].map((p) => <option key={p} value={p}>{p}</option>)}
+                {['free', 'starter', 'pro', 'agency'].map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
               <button className="btn-ghost" type="submit">Set plan</button>
             </form>
