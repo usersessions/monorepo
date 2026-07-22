@@ -43,6 +43,17 @@ export default async function AdminUsagePage({
     db.from('profiles').select('*', { count: 'exact', head: true }),
   ])
 
+  // ---- Video generation stats (post-pivot product surface, from the videos table) ----
+  const [{ data: videos7 }, { count: videosTotal }, { count: videosReady }, { count: videosFailed }] = await Promise.all([
+    db.from('videos').select('user_id, status, created_at').gte('created_at', sevenDaysAgo).limit(50_000),
+    db.from('videos').select('*', { count: 'exact', head: true }),
+    db.from('videos').select('*', { count: 'exact', head: true }).in('status', ['ready', 'completed']),
+    db.from('videos').select('*', { count: 'exact', head: true }).in('status', ['failed', 'scrape_failed', 'prompt_failed']),
+  ])
+  const videoUsers7 = new Set((videos7 ?? []).map((v: { user_id: string }) => v.user_id))
+  const videos7Count = (videos7 ?? []).length
+  const videoSuccessRate = (videosTotal ?? 0) > 0 ? Math.round(((videosReady ?? 0) / (videosTotal ?? 1)) * 100) : null
+
   const tableMissing = (m?: string) => m && /could not find the table|does not exist|schema cache/i.test(m)
   if ((err7 && !tableMissing(err7.message)) || (err30 && !tableMissing(err30.message))) {
     throw new Error(`Failed to load feature events (${err7?.message ?? err30?.message})`)
@@ -131,6 +142,30 @@ export default async function AdminUsagePage({
         Real usage from feature_events, so we can prune dead features after the 30-day freeze
         monitoring window. All-time-honest — empty states show zero, never a fabricated number.
       </p>
+
+      {/* Video generation — same source of truth as the user dashboards (videos table) */}
+      <div className="grid grid-cols-1 md:grid-cols-4" style={{ gap: 'var(--space-md)' }}>
+        <div className="card">
+          <p className="font-mono-label">Videos (all time)</p>
+          <p className="font-serif-metric" style={{ fontSize: '2rem' }}>{videosTotal ?? 0}</p>
+          <p className="font-mono-micro">{videos7Count} in last 7 days</p>
+        </div>
+        <div className="card">
+          <p className="font-mono-label">Videos ready</p>
+          <p className="font-serif-metric" style={{ fontSize: '2rem' }}>{videosReady ?? 0}</p>
+          <p className="font-mono-micro">status ready/completed</p>
+        </div>
+        <div className="card">
+          <p className="font-mono-label">Videos failed</p>
+          <p className="font-serif-metric" style={{ fontSize: '2rem' }}>{videosFailed ?? 0}</p>
+          <p className="font-mono-micro">incl. scrape/prompt failures</p>
+        </div>
+        <div className="card">
+          <p className="font-mono-label">Video success rate</p>
+          <p className="font-serif-metric" style={{ fontSize: '2rem' }}>{videoSuccessRate === null ? '—' : `${videoSuccessRate}%`}</p>
+          <p className="font-mono-micro">{videoUsers7.size} generating users (7d)</p>
+        </div>
+      </div>
 
       {rowsMissing ? (
         <div className="card" style={{ borderColor: 'var(--amber)' }}>
