@@ -51,28 +51,7 @@ body {
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
   }
-  :root, .dark {
-    --background: var(--ink);
-    --foreground: var(--paper);
-    --card: var(--ink-2);
-    --card-foreground: var(--paper);
-    --popover: var(--ink-2);
-    --popover-foreground: var(--paper);
-    --primary: var(--primary);
-    --primary-foreground: var(--paper);
-    --secondary: var(--border);
-    --secondary-foreground: var(--paper);
-    --muted: var(--ink-2);
-    --muted-foreground: var(--muted);
-    --accent: var(--primary-dim);
-    --accent-foreground: var(--paper);
-    --destructive: var(--red);
-    --destructive-foreground: var(--ink);
-    --border: var(--border);
-    --input: var(--border);
-    --ring: var(--primary);
-    --radius: var(--rounded-md);
-  }
+
 
   body {
     @apply bg-background text-foreground;
