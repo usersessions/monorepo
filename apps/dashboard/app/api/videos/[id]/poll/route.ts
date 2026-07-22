@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { pollVideoResult, MiniMaxSubmitError, extractVideoUrl } from "@/services/minimax-new";
+import { queryTaskStatus, getVideoUrl } from "@/services/minimax-client";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,12 +30,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Safety net: If status is 'submitted_to_minimax' but webhook hasn't arrived,
-    // we manually poll Fal.ai.
+    // we manually poll MiniMax API.
     if (video.status === 'submitted_to_minimax' && video.fal_request_id) {
       try {
-        const result = await pollVideoResult(video.fal_request_id, video.fal_model);
-        if (result) {
-          const videoUrl = extractVideoUrl(result);
+        const result = await queryTaskStatus(video.fal_request_id);
+        if (result.status === "Success" && result.file_id) {
+          const videoUrl = await getVideoUrl(result.file_id);
           // Update database
           await supabase.from("videos").update({
             status: "completed",
@@ -44,6 +44,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           
           video.status = "completed";
           video.video_url = videoUrl;
+        } else if (result.status === "Fail") {
+          throw new Error(`MiniMax task failed: ${result.err_msg || "Unknown error"}`);
         }
       } catch (err: any) {
         await supabase.from("videos").update({

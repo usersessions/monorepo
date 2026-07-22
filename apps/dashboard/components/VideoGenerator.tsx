@@ -14,14 +14,18 @@ export function VideoGenerator() {
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 640 }}>
-      <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+      <div className="flex gap-2">
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://your-product-page.com"
-          style={{ flex: 1, padding: 8 }}
+          className="flex-1 p-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
-        <button onClick={() => scrape.scrape(url)} disabled={scrape.loading || !url}>
+        <button 
+          onClick={() => scrape.scrape(url)} 
+          disabled={scrape.loading || !url}
+          className="py-2 px-4 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+        >
           {scrape.loading ? 'Scraping…' : 'Preview'}
         </button>
       </div>
@@ -30,7 +34,11 @@ export function VideoGenerator() {
       {scrape.product && (
         <>
           <ProductPreview product={scrape.product} />
-          <button onClick={() => gen.suggestPrompt(scrape.product!)} disabled={gen.busy}>
+          <button 
+            onClick={() => gen.suggestPrompt(scrape.product!)} 
+            disabled={gen.busy}
+            className="w-full py-2 px-4 bg-secondary text-secondary-foreground rounded-md disabled:opacity-50 border border-border hover:bg-secondary/80"
+          >
             {gen.busy ? 'Thinking…' : 'Suggest prompt with AI'}
           </button>
           <textarea
@@ -38,11 +46,12 @@ export function VideoGenerator() {
             onChange={(e) => gen.setPrompt(e.target.value)}
             rows={5}
             placeholder="Describe the video you want…"
-            style={{ padding: 8 }}
+            className="w-full p-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500"
           />
           <button
             onClick={() => gen.generate(scrape.product!.title, scrape.product!.url)}
             disabled={gen.busy || !gen.prompt}
+            className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
           >
             Generate video
           </button>

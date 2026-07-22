@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { creditManager } from "@/services/credits";
 import { scrapeProduct, ScrapeError } from "@/services/scraper-new";
 import { generateVideoConcepts, VideoConcept } from "@/services/prompt-engine";
-import { submitVideo, MiniMaxSubmitError } from "@/services/minimax-new";
+import { submitVideo, MiniMaxError } from "@/services/minimax-client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,21 +90,21 @@ export async function POST(req: NextRequest) {
     // Submit the first variant (variant 0) to MiniMax
     const activeVariant = concepts[0];
     const baseUrl = process.env.PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-    const webhookUrl = `${baseUrl}/api/webhooks/fal/${video.id}`;
+    const webhookUrl = `${baseUrl}/api/webhooks/minimax/${video.id}`;
 
     try {
       const result = await submitVideo(
         activeVariant.hailuo_prompt,
-        webhookUrl,
-        String(activeVariant.duration_seconds),
-        false // standard tier
+        6, // duration
+        true, // enhancePrompt
+        webhookUrl
       );
 
       await supabase.from("videos").update({
         status: "submitted_to_minimax",
         active_variant_index: 0,
-        fal_request_id: result.request_id,
-        fal_model: result.model
+        fal_request_id: result.task_id, // Storing task_id in the existing field for now
+        fal_model: "MiniMax-Hailuo-2.3"
       }).eq('id', video.id);
 
       return NextResponse.json({
