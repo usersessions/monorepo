@@ -8,7 +8,6 @@ import { onboardingLabel } from '@/lib/onboarding'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/components/CommandPalette'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
-import { ProductSwitcher } from '@/components/ProductSwitcher'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { HelpWidget } from '@/components/HelpWidget'
 
@@ -21,20 +20,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const [
     { data: profile },
-    { count: productCount },
     { count: videoCount },
-    { data: products },
     { count: unreadCount },
   ] = await Promise.all([
     supabase.from('profiles').select('role, plan, full_name, email').eq('id', user.id).single(),
-    supabase.from('products').select('*', { count: 'exact', head: true }),
     supabase.from('videos').select('*', { count: 'exact', head: true }),
-    supabase.from('products').select('id, name').order('name').limit(20),
     supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('read', false),
   ])
 
   const onboardingFlags = [
-    (productCount ?? 0) > 0, // product added
     (videoCount ?? 0) > 0, // first video generated
   ]
   const onboarding = { done: onboardingFlags.filter(Boolean).length, total: onboardingFlags.length }
@@ -42,7 +36,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const displayName = profile?.full_name ?? profile?.email ?? user.email ?? ''
   const email = profile?.email ?? user.email ?? ''
   const initial = displayName.trim().charAt(0).toUpperCase() || '·'
-  const productSlots = limitsFor(profile?.plan).productSlots
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
@@ -72,7 +65,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             ['Overview', '/'],
             ['Generate', '/generate'],
             ['Videos', '/videos'],
-            ['Products', '/products'],
             ['Settings', '/settings'],
           ].map(([label, href]) => (
             <Link key={href} href={href} className="font-mono-label" style={{ color: 'var(--paper)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
@@ -104,8 +96,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         >
           usersessions
         </Link>
-
-        <ProductSwitcher products={products ?? []} slotsTotal={productSlots} />
 
         <SidebarNav
           isAdmin={profile?.role === 'admin'}
