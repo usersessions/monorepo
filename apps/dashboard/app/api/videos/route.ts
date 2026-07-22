@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateMiniMaxVideo } from '@/services/minimax'
+import { submitVideo } from '@/services/minimax-client'
 
 // TODO(pivot): requires `videos` table migration (0037_videos) before this returns data.
 export async function GET() {
@@ -29,8 +29,10 @@ export async function POST(req: Request) {
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   try {
-    const { task_id } = await generateMiniMaxVideo({ prompt: body.prompt })
-    await supabase.from('videos').update({ fal_request_id: task_id, status: 'generating' }).eq('id', video.id)
+    const baseUrl = process.env.PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    const webhookUrl = `${baseUrl}/api/webhooks/minimax/${video.id}`;
+    const result = await submitVideo(body.prompt, 6, true, webhookUrl);
+    await supabase.from('videos').update({ fal_request_id: result.task_id, status: 'generating' }).eq('id', video.id)
   } catch {
     // fail-soft: video stays queued; the regenerate endpoint can retry
   }
