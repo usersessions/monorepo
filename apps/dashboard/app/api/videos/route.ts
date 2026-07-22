@@ -33,8 +33,8 @@ export async function POST(req: Request) {
     const webhookUrl = `${baseUrl}/api/webhooks/minimax/${video.id}`;
     const result = await submitVideo(body.prompt, 6, true, webhookUrl);
     await supabase.from('videos').update({ fal_request_id: result.task_id, status: 'generating' }).eq('id', video.id)
-  } catch {
-    // fail-soft: video stays queued; the regenerate endpoint can retry
+  } catch (err: any) {
+    await supabase.from('videos').update({ status: 'failed', error: err.message || 'Submission failed' }).eq('id', video.id)
   }
   return NextResponse.json({ video }, { status: 201 })
 }

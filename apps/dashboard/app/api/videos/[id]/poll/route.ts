@@ -31,18 +31,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Safety net: If status is 'submitted_to_minimax' but webhook hasn't arrived,
     // we manually poll MiniMax API.
-    if (video.status === 'submitted_to_minimax' && video.fal_request_id) {
+    if (video.status === 'generating' && video.fal_request_id) {
       try {
         const result = await queryTaskStatus(video.fal_request_id);
         if (result.status === "Success" && result.file_id) {
           const videoUrl = await getVideoUrl(result.file_id);
           // Update database
           await supabase.from("videos").update({
-            status: "completed",
+            status: "ready",
             video_url: videoUrl
           }).eq("id", video.id);
           
-          video.status = "completed";
+          video.status = "ready";
           video.video_url = videoUrl;
         } else if (result.status === "Fail") {
           throw new Error(`MiniMax task failed: ${result.err_msg || "Unknown error"}`);

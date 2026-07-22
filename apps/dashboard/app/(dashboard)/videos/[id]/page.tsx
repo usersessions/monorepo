@@ -96,7 +96,22 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
       {video.video_url ? (
         <VideoPlayer src={video.video_url} poster={video.thumbnail_url} />
       ) : (
-        <p style={{ color: 'var(--muted)' }}>Still generating — check back shortly.</p>
+        <div className="flex flex-col items-start gap-4">
+          <p style={{ color: 'var(--muted)' }}>
+            {video.status === 'failed' ? 'Video generation failed.' : 'Still generating — check back shortly.'}
+          </p>
+          {(video.status === 'failed' || video.status === 'queued') && (
+            <button 
+              className="btn-primary" 
+              onClick={async () => {
+                setVideo(v => v ? { ...v, status: 'generating' } : null)
+                await fetch(`/api/videos/${id}/regenerate`, { method: 'POST' })
+              }}
+            >
+              Retry Generation
+            </button>
+          )}
+        </div>
       )}
       <details>
         <summary className="font-mono-micro">Prompt</summary>
