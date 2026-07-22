@@ -13,15 +13,10 @@ export async function GET() {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
 
-  const [profile, products, campaigns, submissions, scores, queries, checks, notifications, integrations] =
+  const [profile, videos, notifications, integrations] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-      supabase.from('products').select('*'),
-      supabase.from('campaigns').select('*'),
-      supabase.from('submissions').select('*'),
-      supabase.from('distribution_scores').select('*'),
-      supabase.from('visibility_queries').select('*'),
-      supabase.from('visibility_checks').select('*'),
+      supabase.from('videos').select('*'),
       supabase.from('notifications').select('*'),
       supabase.from('integrations').select('kind, created_at'), // webhook URLs excluded: secrets, not personal data
     ])
@@ -29,12 +24,7 @@ export async function GET() {
   const payload = {
     exported_at: new Date().toISOString(),
     profile: profile.data ?? null,
-    products: products.data ?? [],
-    campaigns: campaigns.data ?? [],
-    submissions: submissions.data ?? [],
-    distribution_scores: scores.data ?? [],
-    visibility_queries: queries.data ?? [],
-    visibility_checks: checks.data ?? [],
+    videos: videos.data ?? [],
     notifications: notifications.data ?? [],
     integrations: integrations.data ?? [],
   }

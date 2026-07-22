@@ -9,11 +9,10 @@ const WEBHOOK_KINDS = [
 
 // Honest statuses only (BUILD_SPEC trust rule): nothing below is ever shown as Connected.
 const COMING_SOON = [
-  { name: 'Google Analytics', note: 'Deferred by design — every listing URL already carries UTM tags, so referrals show in your own GA today.' },
-  { name: 'Google Search Console', note: 'Indexation attribution, planned post-validation.' },
-  { name: 'Zapier', note: 'Trigger automations on campaign completion and dead-link alerts.' },
-  { name: 'Public API', note: 'Programmatic access to campaigns, listings, and scores.' },
-  { name: 'Notion export', note: 'Push campaign reports into your workspace.' },
+  { name: 'Google Analytics', note: 'Deferred by design — UTM tags can be added to your ad destinations manually.' },
+  { name: 'Zapier', note: 'Trigger automations on video generation completion and failures.' },
+  { name: 'Public API', note: 'Programmatic access to video generation and models.' },
+  { name: 'Notion export', note: 'Push generated videos and transcripts into your workspace.' },
 ]
 
 export default async function IntegrationsPage({
@@ -43,7 +42,7 @@ export default async function IntegrationsPage({
       <header className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem' }}>Integrations</h1>
         <p className="font-sans-body">
-          Send dead-link alerts and campaign updates where your team already looks.{' '}
+          Send generation status updates and alerts where your team already looks.{' '}
           <Link href="/settings" style={{ color: 'var(--primary)', textDecoration: 'none' }}>← Back to settings</Link>
         </p>
       </header>

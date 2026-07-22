@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation'
 
 const GO: Record<string, string> = {
   o: '/',
-  c: '/campaigns',
-  l: '/listings',
-  p: '/platforms',
+  v: '/videos',
   a: '/analytics',
   n: '/notifications',
   s: '/settings',

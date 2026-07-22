@@ -86,7 +86,7 @@ export function PushToggle() {
     <div className="card card--dense flex flex-col" style={{ gap: 'var(--space-xs)' }}>
       <p className="font-mono-label">Device push notifications</p>
       <p className="font-mono-micro">
-        Get a native notification when a competitor scan completes or a listing changes state.
+        Get a native notification when your video ad completes generating or when you reach a monthly limit.
       </p>
       <div>
         <button className="btn-ghost" onClick={enabled ? disable : enable} disabled={busy}>

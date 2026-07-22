@@ -19,15 +19,11 @@ export async function computeInsights(): Promise<Insight[]> {
     { count: failed24 },
     { count: signupsToday },
     { count: signupsWeek },
-    { count: queuedResubs },
-    { count: pendingAdapters },
   ] = await Promise.all([
     db.from('cron_logs').select('job_name, status, ran_at').order('ran_at', { ascending: false }).limit(200),
     db.from('cron_logs').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('ran_at', dayAgo),
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
-    db.from('resubmission_queue').select('*', { count: 'exact', head: true }).eq('status', 'queued'),
-    db.from('adapter_runs').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
   ])
 
   const insights: Insight[] = []
@@ -47,13 +43,6 @@ export async function computeInsights(): Promise<Insight[]> {
     insights.push({ id: 'cron-failures', severity: 'critical', text: `${failed24} cron run${failed24 === 1 ? '' : 's'} failed in the last 24h.` })
   }
 
-  const depth = (queuedResubs ?? 0) + (pendingAdapters ?? 0)
-  if (depth > 50) insights.push({ id: 'queue-depth', severity: 'critical', text: `Queue depth at ${depth} — investigate resubmissions and adapter reviews.` })
-  else if (depth > 10) insights.push({ id: 'queue-depth', severity: 'warning', text: `Queue depth rising: ${depth} items pending.` })
-
-  if ((pendingAdapters ?? 0) > 20) {
-    insights.push({ id: 'adapter-backlog', severity: 'warning', text: `${pendingAdapters} adapter runs pending review.`, href: '/admin/adapters' })
-  }
 
   const avgDaily = (signupsWeek ?? 0) / 7
   if ((signupsToday ?? 0) >= 5 && (signupsToday ?? 0) > avgDaily * 2) {

@@ -16,6 +16,6 @@ export async function POST(_req: Request, context: Ctx) {
     await supabase.from('videos').update({ fal_request_id: task_id, status: 'generating', video_url: null }).eq('id', id)
     return NextResponse.json({ ok: true })
   } catch {
-    return NextResponse.json({ error: 'resubmission failed' }, { status: 502 })
+    return NextResponse.json({ error: 'regeneration failed' }, { status: 502 })
   }
 }

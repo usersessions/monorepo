@@ -12,7 +12,6 @@ import AdminAlertFeed from '@/components/admin/AdminAlertFeed'
 import QuickActionsBar from '@/components/admin/QuickActionsBar'
 import AdminInsights from '@/components/admin/sections/AdminInsights'
 import CronSection from '@/components/admin/sections/CronSection'
-import PlatformHealthSection from '@/components/admin/sections/PlatformHealthSection'
 import SystemHealthSection from '@/components/admin/sections/SystemHealthSection'
 
 // List prices (BUILD_SPEC §11). MRR here is an estimate computed from active paid
@@ -48,8 +47,6 @@ export default async function AdminSystemPage({
   const prevRangeStart = new Date(Date.now() - 2 * rangeMs)
 
   const [
-    { count: pendingAdapters },
-    { count: queuedResubs },
     { count: userCount },
     { count: founderCount },
     { count: agencyCount },
@@ -57,11 +54,8 @@ export default async function AdminSystemPage({
     { count: signupsYesterday },
     { count: signupsRange },
     { count: signupsPrevRange },
-    { count: runningCampaigns },
     { data: rangeProfiles },
   ] = await Promise.all([
-    db.from('adapter_runs').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
-    db.from('resubmission_queue').select('*', { count: 'exact', head: true }).eq('status', 'queued'),
     db.from('profiles').select('*', { count: 'exact', head: true }),
     db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'founder').eq('subscription_status', 'active'),
     db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'agency').eq('subscription_status', 'active'),
@@ -69,7 +63,6 @@ export default async function AdminSystemPage({
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStart.toISOString()).lt('created_at', todayStart.toISOString()),
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', rangeStart.toISOString()),
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', prevRangeStart.toISOString()).lt('created_at', rangeStart.toISOString()),
-    db.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'running'),
     db.from('profiles').select('created_at').gte('created_at', rangeStart.toISOString()).limit(5000),
   ])
 
@@ -95,9 +88,6 @@ export default async function AdminSystemPage({
     { label: 'Signups today', value: signupsToday ?? 0, delta: deltaPct(signupsToday ?? 0, signupsYesterday ?? 0), period: 'day' },
     { label: `Signups, ${range}`, value: signupsRange ?? 0, delta: deltaPct(signupsRange ?? 0, signupsPrevRange ?? 0), period: range, spark },
     { label: 'Users', value: userCount ?? 0, delta: deltaPct(userCount ?? 0, usersPrev), period: range },
-    { label: 'Adapter runs pending review', value: pendingAdapters ?? 0, delta: null, period: '24h' },
-    { label: 'Resubmissions queued', value: queuedResubs ?? 0, delta: null, period: '24h' },
-    { label: 'Active campaigns', value: runningCampaigns ?? 0, delta: null, period: range },
   ]
 
   return (
@@ -139,10 +129,6 @@ export default async function AdminSystemPage({
 
       <Suspense fallback={<SkeletonTable rows={5} />}>
         <CronSection />
-      </Suspense>
-
-      <Suspense fallback={<SkeletonTable rows={4} />}>
-        <PlatformHealthSection />
       </Suspense>
     </div>
   )

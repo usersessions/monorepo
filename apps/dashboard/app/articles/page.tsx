@@ -4,7 +4,7 @@ import { MarketingFooter } from '@/components/MarketingFooter'
 
 export const metadata = {
   title: 'Guides — usersessions',
-  description: 'Long-form guides on distribution, directory submissions and AI visibility for founders. Get your product found.',
+  description: 'Long-form guides on distribution, AI video ad generation and AI visibility for founders. Get your product found.',
 }
 
 export default function ArticlesPage() {
@@ -15,7 +15,7 @@ export default function ArticlesPage() {
       </Link>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', margin: 'var(--space-xl) 0 var(--space-sm)' }}>Guides</h1>
       <p className="font-sans-body" style={{ marginBottom: 'var(--space-xl)' }}>
-        Distribution, directory submissions and AI visibility — written for founders who ship.
+        Distribution, AI video ad generation and AI visibility — written for founders who ship.
       </p>
 
       <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>

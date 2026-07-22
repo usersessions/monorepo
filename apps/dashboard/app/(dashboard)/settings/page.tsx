@@ -197,7 +197,7 @@ export default async function SettingsPage({
 
       {/* Integrations */}      <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Integrations</h2>
-        <p className="font-sans-body">Send dead-link alerts and campaign updates to Slack or Discord.</p>
+        <p className="font-sans-body">Send generation status updates and alerts to Slack or Discord.</p>
         <Link
           href="/settings/integrations"
           className="font-mono-micro"
@@ -216,19 +216,19 @@ export default async function SettingsPage({
             {
               id: 'notif_weekly_digest',
               label: 'Weekly digest',
-              description: 'A summary of your distribution score, new listings, and any issues.',
+              description: 'A summary of your videos generated, ad performance, and account limits.',
               defaultChecked: profile?.notif_weekly_digest ?? true,
             },
             {
               id: 'notif_link_alerts',
-              label: 'Dead link alerts',
-              description: 'Email when a listing goes dead and after it is resubmitted.',
+              label: 'Generation alerts',
+              description: 'Email when a video generation completes or fails.',
               defaultChecked: profile?.notif_link_alerts ?? true,
             },
             {
               id: 'notif_new_platforms',
-              label: 'New platforms',
-              description: 'When a new submission target is added to your network.',
+              label: 'New features',
+              description: 'When new video models or features are added.',
               defaultChecked: profile?.notif_new_platforms ?? true,
             },
           ].map((pref) => (
@@ -284,7 +284,7 @@ export default async function SettingsPage({
         <h2 className="font-mono-label" style={{ color: 'var(--red)' }}>Danger zone</h2>
         <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
           <p className="font-sans-label" style={{ color: 'var(--paper)' }}>Export your data</p>
-          <p className="font-mono-micro">Download everything we hold about you as JSON — profile, products, campaigns, listings, scores.</p>
+          <p className="font-mono-micro">Download everything we hold about you as JSON — profile, videos, and notifications.</p>
           <a className="font-mono-micro" style={{ color: 'var(--primary)', textDecoration: 'none' }} href="/api/account/export">
             Download export →
           </a>
@@ -292,7 +292,7 @@ export default async function SettingsPage({
         <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
           <p className="font-sans-label" style={{ color: 'var(--paper)' }}>Delete account</p>
           <p className="font-mono-micro">
-            Permanent. Removes your profile, products, campaigns, listings, and scores. Listings already published on external platforms stay on those platforms.
+            Permanent. Removes your profile, videos, and notifications. Videos already downloaded to your device stay yours.
           </p>
           <form action="/api/account/delete" method="post" className="flex" style={{ gap: 'var(--space-sm)', alignItems: 'center', flexWrap: 'wrap' }}>
             <input
@@ -315,7 +315,7 @@ export default async function SettingsPage({
       <section className="card flex flex-col" style={{ gap: 'var(--space-sm)' }}>
         <h2 className="font-mono-label">Session</h2>
         <p className="font-sans-body">
-          Sign out of this device. Your products, listings, and scores stay exactly where they are.
+          Sign out of this device. Your videos and settings stay exactly where they are.
         </p>
         <form action="/auth/signout" method="post">
           <button className="btn-ghost" type="submit">

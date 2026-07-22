@@ -110,7 +110,7 @@ export default async function AdminCompliancePage() {
       <div className="card card--dense">
         <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Data retention</p>
         <p className="font-sans-body">
-          Account deletion cascades through profiles (products, campaigns, submissions, queues, tickets).
+          Account deletion cascades through profiles (videos, notifications, tickets).
           Revenue events and admin audit logs are append-only and retained for financial and security accountability.
           GDPR deletion requests above must be completed within 30 days of receipt.
         </p>

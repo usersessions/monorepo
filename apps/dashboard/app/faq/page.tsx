@@ -3,7 +3,7 @@ import { MarketingFooter } from '@/components/MarketingFooter'
 
 export const metadata = {
   title: 'FAQ — usersessions',
-  description: 'How usersessions works: submissions in your own browser, verified listings, AI visibility tracking, pricing and cancellation.',
+  description: 'How usersessions works: generate AI video ads from URLs, pricing, and cancellation.',
 }
 
 const FAQS: { q: string; a: string }[] = [

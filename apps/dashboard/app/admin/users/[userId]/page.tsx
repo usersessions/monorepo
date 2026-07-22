@@ -24,12 +24,11 @@ export default async function AdminViewAsPage({
 
   await audit(admin.id, 'view_as', userId, null)
 
-  const [{ data: products }, { count: campaignCount }, { data: latestScore }, { data: recentSubs }] =
+  const [{ data: products }, { count: videoCount }, { data: recentVideos }] =
     await Promise.all([
       db.from('products').select('name, url').eq('user_id', userId),
-      db.from('campaigns').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      db.from('distribution_scores').select('score, computed_at').eq('user_id', userId).order('computed_at', { ascending: false }).limit(1).maybeSingle(),
-      db.from('submissions').select('platform_id, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
+      db.from('videos').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      db.from('videos').select('id, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
     ])
 
   return (
@@ -42,12 +41,8 @@ export default async function AdminViewAsPage({
 
       <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 'var(--space-md)' }}>
         <div className="card card--dense">
-          <p className="font-mono-label">Distribution Score</p>
-          <p className="font-serif-metric">{latestScore?.score ?? '—'}</p>
-        </div>
-        <div className="card card--dense">
-          <p className="font-mono-label">Campaigns</p>
-          <p className="font-serif-metric">{campaignCount ?? 0}</p>
+          <p className="font-mono-label">Videos</p>
+          <p className="font-serif-metric">{videoCount ?? 0}</p>
         </div>
         <div className="card card--dense">
           <p className="font-mono-label">Plan</p>
@@ -67,12 +62,12 @@ export default async function AdminViewAsPage({
       </div>
 
       <div className="card card--dense">
-        <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Recent submissions</p>
-        {(recentSubs ?? []).map((s, i) => (
+        <p className="font-mono-label" style={{ marginBottom: 'var(--space-md)' }}>Recent videos</p>
+        {(recentVideos ?? []).map((v, i) => (
           <div key={i} className="flex" style={{ gap: 'var(--space-md)', borderTop: '1px solid var(--border)', padding: 'var(--space-sm) 0' }}>
-            <span className="font-mono-data" style={{ flex: 1 }}>{s.platform_id}</span>
-            <span className="font-mono-data">{s.status}</span>
-            <span className="font-mono-micro">{new Date(s.created_at).toISOString().slice(0, 10)}</span>
+            <span className="font-mono-data" style={{ flex: 1 }}>{v.id}</span>
+            <span className="font-mono-data">{v.status}</span>
+            <span className="font-mono-micro">{new Date(v.created_at).toISOString().slice(0, 10)}</span>
           </div>
         ))}
       </div>

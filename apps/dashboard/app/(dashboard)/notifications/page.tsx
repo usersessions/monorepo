@@ -55,7 +55,7 @@ export default async function NotificationsPage({
       <div className="card card--dense" aria-live="polite">
         {!notifications || notifications.length === 0 ? (
           <p className="font-sans-body">
-            All caught up. We will notify you when your listings go live, go dead, or when AI mentions you.
+            All caught up. We will notify you when your video generation completes.
           </p>
         ) : (
           notifications.map((n) => (

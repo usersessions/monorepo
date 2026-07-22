@@ -4,13 +4,10 @@ export const ADMIN_NAV = [
   { label: 'Users', href: '/admin/users' },
   { label: 'Billing', href: '/admin/billing' },
   { label: 'Support', href: '/admin/support' },
-  { label: 'Adapters', href: '/admin/adapters' },
   { label: 'Data quality', href: '/admin/data-quality' },
   { label: 'Flags', href: '/admin/flags' },
   { label: 'Compliance', href: '/admin/compliance' },
   { label: 'Audit log', href: '/admin/audit' },
   { label: 'Usage', href: '/admin/usage' },
-  { label: 'Platform requests', href: '/admin/platform-requests' },
   { label: 'Settings', href: '/admin/settings' },
-  { label: 'Dogfood campaign', href: '/admin/dogfood' },
 ] as const

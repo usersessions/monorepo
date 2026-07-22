@@ -8,10 +8,9 @@ import { createClient } from '@/lib/supabase/server'
 export default async function OnboardingPage() {
   const supabase = await createClient()
 
-  const [{ count: productCount }, { count: campaignCount }, { count: liveCount }] = await Promise.all([
+  const [{ count: productCount }, { count: videoCount }] = await Promise.all([
     supabase.from('products').select('*', { count: 'exact', head: true }),
-    supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-    supabase.from('submissions').select('*', { count: 'exact', head: true }).in('status', ['live', 'indexed']),
+    supabase.from('videos').select('*', { count: 'exact', head: true }),
   ])
 
   const steps = [
@@ -23,19 +22,19 @@ export default async function OnboardingPage() {
     },
     {
       title: '2. Approve the prompt',
-      done: (campaignCount ?? 0) > 0,
+      done: (videoCount ?? 0) > 0,
       body: 'Our AI drafts a concise, high-converting video prompt based on your product. You get full control to edit every word before anything runs.',
       cta: null,
     },
     {
       title: '3. Generate',
-      done: (liveCount ?? 0) > 0,
+      done: (videoCount ?? 0) > 0,
       body: 'We send the prompt to MiniMax. In about a minute, you get a beautiful 10-second cinematic video ad of your product.',
       cta: null,
     },
     {
       title: '4. Download & Post',
-      done: (liveCount ?? 0) > 0,
+      done: (videoCount ?? 0) > 0,
       body: 'Download the HD MP4 file. It\'s yours to use on TikTok, Instagram Reels, YouTube Shorts, or anywhere else.',
       cta: { label: 'Open your Overview →', href: '/' },
     },

@@ -22,7 +22,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   const samples: number[] = []
   for (let i = 0; i < 3; i++) {
     const t0 = Date.now()
-    await db.from('platforms').select('id', { head: true, count: 'exact' })
+    await db.from('profiles').select('id', { head: true, count: 'exact' })
     samples.push(Date.now() - t0)
   }
   samples.sort((a, b) => a - b)
@@ -30,16 +30,14 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   const p95 = samples[samples.length - 1]
 
   const dayAgo = new Date(Date.now() - 864e5).toISOString()
-  const [{ count: queuedResubs }, { count: pendingAdapters }, { count: cronOk }, { count: cronFailed }] = await Promise.all([
-    db.from('resubmission_queue').select('*', { count: 'exact', head: true }).eq('status', 'queued'),
-    db.from('adapter_runs').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
+  const [{ count: cronOk }, { count: cronFailed }] = await Promise.all([
     db.from('cron_logs').select('*', { count: 'exact', head: true }).eq('status', 'ok').gte('ran_at', dayAgo),
     db.from('cron_logs').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('ran_at', dayAgo),
   ])
 
   const cronTotal = (cronOk ?? 0) + (cronFailed ?? 0)
   const errorRate = cronTotal > 0 ? ((cronFailed ?? 0) / cronTotal) * 100 : 0
-  const depth = (queuedResubs ?? 0) + (pendingAdapters ?? 0)
+  const depth = 0 // Future: video generation queue depth
 
   const apiStatus: HealthStatus = p95 < 500 ? 'live' : p95 <= 1000 ? 'pending' : 'dead'
   const dbStatus: HealthStatus = p50 < 250 ? 'live' : p50 <= 1000 ? 'pending' : 'dead'
@@ -61,12 +59,12 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     queue: {
       status: queueStatus,
       value: String(depth),
-      sub: `Resubmissions: ${queuedResubs ?? 0} · Adapter reviews: ${pendingAdapters ?? 0}`,
+      sub: `Video generation queue: ${depth}`,
     },
     extension: {
       status: extStatus,
       value: extVersion,
-      sub: `Pending adapter reviews: ${pendingAdapters ?? 0} · Cron error rate 24h: ${errorRate.toFixed(1)}%`,
+      sub: `Cron error rate 24h: ${errorRate.toFixed(1)}%`,
     },
   }
 }

@@ -21,3 +21,8 @@ DROP TABLE IF EXISTS "public"."platform_requests" CASCADE;
 DROP TABLE IF EXISTS "public"."agent_computer_use_sessions" CASCADE;
 DROP TABLE IF EXISTS "public"."surface_status" CASCADE;
 DROP TABLE IF EXISTS "public"."intelligence_briefings" CASCADE;
+DROP TABLE IF EXISTS "public"."platforms" CASCADE;
+DROP TABLE IF EXISTS "public"."campaigns" CASCADE;
+DROP TABLE IF EXISTS "public"."submissions" CASCADE;
+DROP TABLE IF EXISTS "public"."adapters" CASCADE;
+DROP TABLE IF EXISTS "public"."resubmission_queue" CASCADE;

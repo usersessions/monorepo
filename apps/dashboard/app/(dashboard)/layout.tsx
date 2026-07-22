@@ -22,25 +22,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [
     { data: profile },
     { count: productCount },
-    { count: campaignCount },
-    { count: liveCount },
+    { count: videoCount },
     { data: products },
     { count: unreadCount },
   ] = await Promise.all([
     supabase.from('profiles').select('role, plan, full_name, email').eq('id', user.id).single(),
     supabase.from('products').select('*', { count: 'exact', head: true }),
-    supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-    supabase
-      .from('submissions')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['live', 'indexed']),
+    supabase.from('videos').select('*', { count: 'exact', head: true }),
     supabase.from('products').select('id, name').order('name').limit(20),
     supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('read', false),
   ])
 
   const onboardingFlags = [
     (productCount ?? 0) > 0, // product added
-    (liveCount ?? 0) > 0, // first video generated
+    (videoCount ?? 0) > 0, // first video generated
   ]
   const onboarding = { done: onboardingFlags.filter(Boolean).length, total: onboardingFlags.length }
 

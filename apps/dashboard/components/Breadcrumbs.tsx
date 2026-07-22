@@ -5,11 +5,8 @@ import { usePathname } from 'next/navigation'
 
 const LABELS: Record<string, string> = {
   onboarding: 'Get started',
-  campaigns: 'Campaigns',
-  listings: 'Listings',
-  platforms: 'Platforms',
+  videos: 'Videos',
   analytics: 'Analytics',
-  competitors: 'Competitors',
   notifications: 'Notifications',
   settings: 'Settings',
   integrations: 'Integrations',
