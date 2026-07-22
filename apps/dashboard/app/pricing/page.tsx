@@ -10,6 +10,36 @@ import { Switch } from "@/components/ui/switch";
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [hoveredPlan, setHoveredPlan] = useState<PlanId | null>(null);
+  const [isProcessing, setIsProcessing] = useState<PlanId | null>(null);
+
+  const handleCheckout = async (planId: PlanId) => {
+    if (planId === "free") {
+      window.location.href = "/videos";
+      return;
+    }
+    if (planId === "agency") {
+      window.location.href = "/support";
+      return;
+    }
+    
+    setIsProcessing(planId);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, billingCycle: isAnnual ? "annual" : "monthly" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      alert("Checkout successful (or redirected to Paystack in prod).");
+      window.location.href = "/settings";
+    } catch (err: any) {
+      alert("Checkout failed: " + err.message);
+    } finally {
+      setIsProcessing(null);
+    }
+  };
 
   const plans = Object.values(PLANS);
 
@@ -22,11 +52,11 @@ export default function PricingPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-4xl font-bold sm:text-5xl lg:text-6xl">
-            Simple, profitable pricing
+            Ad creation at scale
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every plan is designed to be profitable. No hidden fees. No surprises.
-            Pay for what you use, upgrade when you grow.
+            Every plan is designed to generate positive ROI on your ad spend. No hidden fees.
+            Pay for the videos you generate, upgrade when you scale.
           </p>
         </motion.div>
 
@@ -148,16 +178,18 @@ export default function PricingPage() {
 
                 {/* CTA */}
                 <Button 
+                  onClick={() => handleCheckout(plan.id as PlanId)}
+                  disabled={isProcessing === plan.id}
                   className={`w-full h-12 rounded-xl ${
                     plan.popular 
-                      ? "bg-primary hover:bg-primary/90" 
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
                       : plan.id === "free"
-                      ? "bg-secondary hover:bg-secondary/90"
-                      : "bg-background border-2 border-border hover:border-primary"
+                      ? "bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                      : "bg-background border-2 border-border hover:border-primary text-foreground"
                   }`}
-                  variant={plan.id === "free" ? "default" : plan.popular ? "default" : "outline"}
+                  variant={plan.id === "free" ? "secondary" : plan.popular ? "default" : "outline"}
                 >
-                  {plan.cta}
+                  {isProcessing === plan.id ? "Processing..." : plan.cta}
                 </Button>
               </motion.div>
             ))}

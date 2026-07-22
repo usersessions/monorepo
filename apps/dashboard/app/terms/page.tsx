@@ -7,7 +7,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: '1. The service',
     body: [
-      'usersessions is a distribution engine for software products. It helps you submit listings to third-party directories and launch platforms via our browser extension, verifies that listings remain live, and measures whether AI assistants mention your product. The extension performs assisted automation in your own browser: you approve all copy before anything is submitted, and steps such as CAPTCHAs and email confirmations remain yours to complete.',
+      'usersessions is an AI video generation platform. It helps you turn product landing pages into video advertisements using AI models. We extract positioning data from the URLs you provide and generate video frames, voiceovers, and captions based on that data.',
     ],
   },
   {
@@ -32,47 +32,41 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: '5. Acceptable use',
     body: [
-      'You may only submit products you own or are authorised to represent. You are responsible for complying with the terms of each third-party platform you submit to. You must not use the service to distribute misleading, unlawful, or infringing content, and you must not attempt to abuse, overload, or reverse-engineer the service.',
+      'You may only submit product URLs you own or are authorized to represent. You are responsible for the videos you generate and ensuring they do not contain misleading, unlawful, or infringing content. You must not attempt to abuse, overload, or reverse-engineer the service or the underlying AI models.',
     ],
   },
   {
-    title: '6. The extension',
+    title: '6. Your content and intellectual property',
     body: [
-      'The extension runs in your browser using your own platform accounts and sessions. We do not create accounts on your behalf and we do not collect your browsing history. Rate limits and pacing exist to keep submissions respectful of third-party platforms; you agree not to circumvent them.',
+      'You retain all rights to the product URLs and information you provide. You also own the full commercial rights to the videos generated through the service. You grant us a limited licence to store the video files and process the inputs via third-party AI providers (Google and MiniMax) to operate the service.',
     ],
   },
   {
-    title: '7. Your content',
+    title: '7. Disclaimers',
     body: [
-      'You retain all rights to the product information and listing copy you provide or approve. You grant us the limited licence needed to operate the service: storing your listings, submitting your approved copy to the platforms you choose, and displaying your data back to you.',
+      'We do not control the third-party AI models (Google Gemini and MiniMax) that generate the videos. We cannot guarantee the exact visual output of any video generation request. The service is provided on an as-is basis.',
     ],
   },
   {
-    title: '8. Disclaimers',
-    body: [
-      'We do not control third-party platforms. We cannot guarantee that any platform will accept a listing, keep it live, or that any AI assistant will recommend your product. Scores and metrics are computed from real observed data and are provided for information, not as a guarantee of outcomes. The service is provided on an as-is basis.',
-    ],
-  },
-  {
-    title: '9. Liability',
+    title: '8. Liability',
     body: [
       'To the maximum extent permitted by law, our total liability arising out of the service is limited to the amount you paid us in the twelve months before the claim arose.',
     ],
   },
   {
-    title: '10. Termination',
+    title: '9. Termination',
     body: [
       'You can stop using the service and delete your account at any time by contacting support. We may suspend or terminate accounts that violate these terms, with notice where practical.',
     ],
   },
   {
-    title: '11. Changes',
+    title: '10. Changes',
     body: [
       'We may update these terms as the product evolves. If a change is material, we will notify you by email or in the dashboard before it takes effect. Continuing to use the service after a change means you accept the updated terms.',
     ],
   },
   {
-    title: '12. Contact',
+    title: '11. Contact',
     body: ['Questions about these terms: support@usersessions.io.'],
   },
 ]

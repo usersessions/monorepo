@@ -8,56 +8,49 @@ const SECTIONS: { title: string; body: string[] }[] = [
     title: '1. What we collect',
     body: [
       'Account data: your email address and, if you provide it, your name.',
-      'Product data: the product URLs, titles, descriptions, and listing copy you provide or approve.',
-      'Usage data: campaign and submission results, listing statuses, computed scores, and whether you edited AI-generated copy (used to improve copy quality).',
+      'Product data: the product URLs you provide for video generation.',
+      'Usage data: video generation history, edited captions, and usage metrics.',
       'Payment data: subscriptions are processed by Paystack. We store your plan, subscription status, and billing references. We never see or store your full card number.',
     ],
   },
   {
-    title: '2. The browser extension',
+    title: '2. Service providers',
     body: [
-      'The extension reads the content of a page only when you click Analyze on that page. It does not collect your browsing history, does not run on pages you have not asked it to, and requests only the minimum permissions needed to fill listing forms you approve.',
-      'Your sign-in token is stored locally in the extension to connect it to your dashboard account. It is sent only to our own API.',
+      'We use Supabase (database, authentication), Vercel (hosting), Paystack (payments), Google (optional OAuth sign-in), Google Gemini (extracting product positioning), MiniMax (generating video content), and Resend (transactional email). Each processes data only to provide its function.',
     ],
   },
   {
-    title: '3. Service providers',
-    body: [
-      'We use Supabase (database, authentication), Vercel (hosting), Paystack (payments), Google (optional OAuth sign-in), Google Gemini (generating listing copy from the product data you provide), and Resend (transactional email such as digests and notifications). Each processes data only to provide its function.',
-    ],
-  },
-  {
-    title: '4. Cookies',
+    title: '3. Cookies',
     body: [
       'We use cookies only to keep you signed in. There are no advertising or cross-site tracking cookies.',
     ],
   },
   {
-    title: '5. Retention and deletion',
+    title: '4. Retention and deletion',
     body: [
-      'We keep your data while your account is active. Contact support to export your data or delete your account; deletion removes your profile, products, campaigns, submissions, and scores.',
+      'We keep your data while your account is active. Contact support to export your data or delete your account; deletion removes your profile, URLs, and generated videos.',
     ],
   },
   {
-    title: '6. Security',
+    title: '5. Security',
     body: [
       'Data is encrypted in transit, access is scoped per user at the database level (row-level security), and administrative actions are logged to an append-only audit log.',
     ],
   },
   {
-    title: '7. Your rights',
+    title: '6. Your rights',
     body: [
       'You can access, correct, export, or delete your personal data at any time by contacting support@usersessions.io. If you are in a jurisdiction with specific privacy rights (such as the GDPR), we honour those rights.',
     ],
   },
   {
-    title: '8. Changes',
+    title: '7. Changes',
     body: [
       'If we materially change this policy, we will notify you by email or in the dashboard before the change takes effect.',
     ],
   },
   {
-    title: '9. Contact',
+    title: '8. Contact',
     body: ['Privacy questions: support@usersessions.io.'],
   },
 ]

@@ -3,16 +3,16 @@ import { MarketingFooter } from '@/components/MarketingFooter'
 
 const PLAN = [
   {
-    step: '1. Install',
-    copy: 'Add the extension. It works in your own browser, your own session, your own accounts.',
+    step: '1. Paste',
+    copy: 'Give us your product URL. We extract the branding, positioning, and target audience.',
   },
   {
-    step: '2. Launch',
-    copy: 'Approve every word of your listing copy, then we submit to the platforms that matter.',
+    step: '2. Generate',
+    copy: 'Our AI models write the script, generate the video, and add the voiceover.',
   },
   {
-    step: '3. Watch',
-    copy: 'See where you are live, and whether AI assistants actually recommend you.',
+    step: '3. Post',
+    copy: 'Download the final ad with optimized auto-captions, ready for TikTok or Reels.',
   },
 ]
 
@@ -29,18 +29,16 @@ export default function HomePage() {
 
         <div className="flex flex-col items-center" style={{ gap: 'var(--space-md)' }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2.5rem', maxWidth: 640, lineHeight: 1.15 }}>
-            You shipped it in a weekend. You have zero users.
+            Turn your landing page into a video ad.
           </h1>
           <p className="font-sans-body" style={{ maxWidth: 520 }}>
-            Building was never the hard part. usersessions lists your product everywhere AI assistants
-            and humans discover software, verifies every listing, and tracks whether AI actually
-            recommends you.
+            Paste a URL, get a high-converting video ad in two minutes. We extract your product positioning, write the script, and generate the final video with voiceovers and captions.
           </p>
         </div>
 
         <div className="flex flex-col items-center" style={{ gap: 'var(--space-sm)' }}>
           <Link href="/signup" className="btn-primary" style={{ textDecoration: 'none' }}>
-            Get your product found
+            Generate your first ad
           </Link>
           <Link href="/pricing" className="font-mono-micro" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
             See pricing →

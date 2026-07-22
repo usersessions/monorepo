@@ -9,43 +9,31 @@ export const metadata = {
 const FAQS: { q: string; a: string }[] = [
   {
     q: 'What does usersessions actually do?',
-    a: 'It gets your product listed everywhere AI assistants and humans discover software — AI tool indexes and startup launch platforms — then monitors whether those listings stay live and whether AI assistants mention you. The plan is three steps: Install the extension, Launch (approve your copy, we submit everywhere), Watch (see where you are live and whether AI recommends you).',
+    a: 'It turns a landing page URL into a high-converting video ad. You paste your URL, we extract your positioning, write a script, generate the video, and provide auto-captions so you can post immediately to TikTok, Instagram Reels, or YouTube Shorts.',
   },
   {
-    q: 'Is this automated spam?',
-    a: 'No, by design. Submissions run in your own browser, with your own accounts. There is no automated account creation, no proxies, no link farms. You handle CAPTCHAs and email confirmations yourself — the extension does the tedious form-filling and tracking. Assisted automation, never 100% hands-off.',
+    q: 'What AI models do you use?',
+    a: 'We use Google Gemini Pro to extract product positioning and write the script, and the MiniMax Video-01 model to generate the actual high-definition video frames.',
   },
   {
-    q: 'Do I control what gets submitted?',
-    a: 'Completely. AI-generated listing copy is shown to you word by word before anything is submitted, and every field is editable. Nothing is ever posted without your approval.',
+    q: 'Do I own the rights to the generated videos?',
+    a: 'Yes. You retain full commercial rights to every video generated under your account. You can use them in paid social campaigns, on your landing pages, or anywhere else without attribution.',
   },
   {
-    q: 'What is the Distribution Score?',
-    a: 'A 0–100 score computed from your verified listings: platform coverage, average platform quality, link survival and indexation. It is computed from real data only — no estimates, no fabricated numbers — and its history is append-only, so trends are honest.',
-  },
-  {
-    q: 'What is AI Visibility?',
-    a: 'Weekly checks of your category queries across ChatGPT, Perplexity and Gemini, recording verbatim whether the assistant mentions your product. Weeks where you are not mentioned are shown exactly as that — never smoothed over.',
-  },
-  {
-    q: 'What happens when a listing goes dead?',
-    a: 'Our nightly checker verifies your listings. A listing is only marked removed after failing continuously for 48 hours — a single transient failure never triggers an alert. Paid plans queue an automatic resubmission; free plans get notified and can resubmit manually from the Listings page.',
+    q: 'Are the captions editable?',
+    a: 'Yes. After the video generates, the auto-captions are displayed on the video page. You can edit the text directly before downloading or copying it to post.',
   },
   {
     q: 'How much does it cost?',
-    a: 'Free covers 1 product and your first 3 submissions. Founder is $39/month (or $390/year — two months free) with full monitoring and auto-resubmission. Agency is $199/month with 15 client workspaces and white-label reports. All prices in USD, cancel anytime from Settings, 14-day money-back guarantee.',
+    a: 'The Free plan covers your first 3 videos per month. Starter is $39/month for 15 videos, and Pro is $99/month for 50 videos. All prices are in USD. You can cancel anytime from Settings.',
   },
   {
     q: 'How do I cancel?',
-    a: 'Settings → Plan & billing → Cancel subscription. Auto-renew turns off immediately and your plan stays active until the end of the paid period. Your data stays intact either way.',
+    a: 'Go to Settings → Plan & billing → Cancel subscription. Auto-renew turns off immediately, and your plan stays active until the end of the current billing period.',
   },
   {
     q: 'Can I export or delete my data?',
-    a: 'Yes, both, self-service. Settings → Danger zone gives you a one-click JSON export of everything we hold about you, and permanent account deletion. Listings already published on external platforms remain on those platforms — they are yours.',
-  },
-  {
-    q: 'Do you use my Google Analytics or Search Console?',
-    a: 'Not yet, by choice. Every listing URL we submit carries UTM tags, so referral traffic already shows up attributed in your own analytics. Direct integrations are planned after our measurement approach is validated — we would rather ship them right than early.',
+    a: 'Yes, self-service. Settings → Danger zone gives you a one-click JSON export of your profile and history, and an option for permanent account deletion.',
   },
 ]
 

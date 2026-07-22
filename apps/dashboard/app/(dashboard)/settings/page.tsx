@@ -32,12 +32,12 @@ export default async function SettingsPage({
       ? await listTransactions(profile.paystack_customer_code)
       : []
 
-  const [{ count: productCount }, { count: launchesThisMonth }, { count: visibilityQueryCount }] =
-    await Promise.all([
-      supabase.from('products').select('*', { count: 'exact', head: true }),
-      supabase.from('campaigns').select('*', { count: 'exact', head: true }),
-      supabase.from('visibility_queries').select('*', { count: 'exact', head: true }),
-    ])
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+  
+  const { count: videosThisMonth } = await supabase
+    .from('videos')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', startOfMonth)
 
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)', maxWidth: 640 }}>
@@ -126,16 +126,10 @@ export default async function SettingsPage({
 
         {/* Usage meters */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
-          <UsageMeter label="Products" used={productCount ?? 0} total={limits.productSlots} />
-          <UsageMeter
-            label="Launches this month"
-            used={launchesThisMonth ?? 0}
-            total={limits.launchesPerProductPerMonth * Math.max(productCount ?? 1, 1)}
-          />
-          <UsageMeter
-            label="Visibility queries tracked"
-            used={visibilityQueryCount ?? 0}
-            total={limits.visibilityQueriesPerProduct * Math.max(productCount ?? 1, 1)}
+          <UsageMeter 
+            label="Videos generated this month" 
+            used={videosThisMonth ?? 0} 
+            total={limits.videosPerMonth} 
           />
         </div>
 
