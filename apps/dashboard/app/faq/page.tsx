@@ -13,7 +13,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What AI models do you use?',
-    a: 'We use Google Gemini Pro to extract product positioning and write the script, and the MiniMax Video-01 model to generate the actual high-definition video frames.',
+    a: 'We use a combination of proprietary AI systems optimized for video ad generation. Our technology handles everything from reading your product page to producing the final video — no model selection or prompt engineering required on your part.',
   },
   {
     q: 'Do I own the rights to the generated videos?',
@@ -25,7 +25,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'How much does it cost?',
-    a: 'The Free plan covers your first 3 videos per month. Starter is $39/month for 15 videos, and Pro is $99/month for 50 videos. All prices are in USD. You can cancel anytime from Settings.',
+    a: 'The Free plan covers your first 3 videos per month. Starter is $19/month for 15 videos, Pro is $49/month for 50 videos, and Agency is $149/month for 200 videos. All prices in USD. Annual billing saves 20%. You can cancel anytime from Settings.',
   },
   {
     q: 'How do I cancel?',

@@ -5,20 +5,28 @@ export const metadata: Metadata = { title: 'Support — usersessions' }
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: 'The extension says “not connected”',
-    a: 'Open the dashboard in the same browser while signed in — the extension picks up your session automatically within a few seconds. If it still shows not connected, reload the dashboard tab once.',
+    q: 'My video is stuck in "Queued" or "Generating"',
+    a: 'Video generation typically takes 1–3 minutes. If it stays queued for longer, open the video page and click "Retry Generation". This re-submits your prompt directly to our generation engine.',
   },
   {
     q: 'My sign-in link never arrived',
     a: 'Check spam and promotions folders first. The resend button on the sign-in page has a short cooldown — wait for it, then resend. Corporate mail filters occasionally delay links by a few minutes.',
   },
   {
-    q: 'A campaign finished but the dashboard shows nothing',
-    a: 'Open the extension popup: if it shows “retry sync”, click it — your results are stored safely and will sync. This usually means the dashboard tab was signed out when the run finished.',
+    q: 'The video was generated but it looks wrong',
+    a: 'You can edit the prompt from the video page and click "Retry Generation" to generate a new version using your updated prompt. Each retry creates a new video so your originals are preserved.',
+  },
+  {
+    q: 'My plan credits are not updating after upgrading',
+    a: 'Credits update in real time based on your plan. If your Overview still shows the wrong number, sign out and back in, or contact us — we will get it corrected immediately.',
   },
   {
     q: 'Billing, upgrades, and cancellations',
     a: 'Manage your plan from Settings → Plan & billing. For anything involving a charge — refunds, failed payments, plan changes mid-cycle — email us and a human will sort it out.',
+  },
+  {
+    q: 'How do I download my videos?',
+    a: 'Open any completed video from your Videos library. There is a download button directly on the video player. All videos are MP4 format optimised for TikTok, Instagram Reels, and YouTube Shorts.',
   },
 ]
 

@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { Check, Sparkles, Zap, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PLANS, PlanId } from "@/lib/tiers";
-import { Switch } from "@/components/ui/switch";
 
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -62,11 +61,37 @@ export default function PricingPage() {
 
         {/* Billing Toggle */}
         <div className="mt-8 flex items-center justify-center gap-3">
-          <span className={`text-sm ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+          <span className={`text-sm ${!isAnnual ? "text-foreground font-medium" : "text-muted-foreground"}`}>
             Monthly
           </span>
-          <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
-          <span className={`text-sm ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isAnnual}
+            onClick={() => setIsAnnual(!isAnnual)}
+            style={{
+              width: 44,
+              height: 24,
+              borderRadius: 999,
+              border: 'none',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'background 0.2s',
+              background: isAnnual ? 'var(--primary, #6366f1)' : 'var(--border, #374151)',
+            }}
+          >
+            <span style={{
+              position: 'absolute',
+              top: 3,
+              left: isAnnual ? 23 : 3,
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: '#fff',
+              transition: 'left 0.2s',
+            }} />
+          </button>
+          <span className={`text-sm ${isAnnual ? "text-foreground font-medium" : "text-muted-foreground"}`}>
             Annual
           </span>
           {isAnnual && (

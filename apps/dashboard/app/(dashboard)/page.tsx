@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { limitsFor } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,7 @@ export default async function OverviewPage() {
   let creditsLeft = 0
 
   if (user) {
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
     const { count: totalCount } = await supabase
       .from('videos')
       .select('*', { count: 'exact', head: true })
@@ -23,18 +25,22 @@ export default async function OverviewPage() {
       .eq('user_id', user.id)
       .in('status', ['ready', 'completed'])
 
+    const { count: usedThisMonth } = await supabase
+      .from('videos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', startOfMonth)
+
     const { data: profile } = await supabase
       .from('profiles')
-      .select('videos_limit_this_month, videos_used_this_month')
+      .select('plan')
       .eq('id', user.id)
       .single()
 
+    const planLimits = limitsFor(profile?.plan)
     generatedCount = totalCount || 0
     readyCount = completedCount || 0
-    
-    if (profile) {
-      creditsLeft = (profile.videos_limit_this_month || 0) - (profile.videos_used_this_month || 0)
-    }
+    creditsLeft = Math.max(0, planLimits.videosPerMonth - (usedThisMonth || 0))
   }
 
   const stats = [
