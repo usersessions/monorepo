@@ -87,10 +87,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Prompt generation failed", videoId: video.id }, { status: 500 });
     }
 
-    // Submit the first variant (variant 0) to MiniMax
+    // Submit the first variant (variant 0) to MiniMax.
+    // Only send a callback URL when it is publicly reachable — MiniMax
+    // challenge-validates callback_url at submit time and rejects the whole
+    // submission if it cannot reach it. Without a callback the poll route
+    // recovers the result.
     const activeVariant = concepts[0];
-    const baseUrl = process.env.PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-    const webhookUrl = `${baseUrl}/api/webhooks/minimax/${video.id}`;
+    const baseUrl = process.env.PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+    const webhookUrl = baseUrl ? `${baseUrl}/api/webhooks/minimax/${video.id}` : undefined;
 
     try {
       const result = await submitVideo(

@@ -48,8 +48,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (body.status === "success" && body.file_id) {
       try {
         const videoUrl = await getVideoUrl(body.file_id);
+        // 'ready' is the unified terminal status (the poll route also writes 'ready').
         await supabase.from("videos").update({
-          status: "completed",
+          status: "ready",
           video_url: videoUrl
         }).eq("id", id);
       } catch (err: any) {

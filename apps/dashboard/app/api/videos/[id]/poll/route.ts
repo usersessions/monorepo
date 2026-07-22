@@ -29,9 +29,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Safety net: If status is 'submitted_to_minimax' but webhook hasn't arrived,
-    // we manually poll MiniMax API.
-    if (video.status === 'generating' && video.fal_request_id) {
+    // Safety net: if the webhook hasn't arrived, we manually poll the MiniMax API.
+    // Covers both in-flight statuses used by the two generation paths
+    // ('generating' from /api/videos and 'submitted_to_minimax' from /api/videos/generate).
+    const inFlight = video.status === 'generating' || video.status === 'submitted_to_minimax';
+    if (inFlight && video.fal_request_id) {
       try {
         const result = await queryTaskStatus(video.fal_request_id);
         if (result.status === "Success" && result.file_id) {
