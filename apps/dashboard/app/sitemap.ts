@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { ARTICLES } from '@/lib/articles'
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.usersessions.io'
 
 const PUBLIC_PATHS = ['/', '/home', '/pricing', '/signup', '/login', '/support', '/terms', '/privacy', '/articles', '/faq']
 

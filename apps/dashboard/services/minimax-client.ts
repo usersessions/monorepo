@@ -10,8 +10,8 @@
  * Auth: Authorization: Bearer <MINIMAX_API_KEY>
  */
 
-const MINIMAX_API_BASE = "https://api.minimax.io/v1";
-const MODEL = "MiniMax-Hailuo-2.3";
+const MINIMAX_API_BASE = process.env.MINIMAX_BASE_URL || "https://api.minimaxi.chat/v1";
+const MODEL = process.env.VIDEO_MODEL || "MiniMax-Hailuo-2.3-Fast";
 
 export class MiniMaxError extends Error {
   constructor(message: string, public statusCode?: number) {
