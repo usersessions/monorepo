@@ -1,13 +1,46 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-/** Overview — video product pivot. TODO(pivot): wire real stats once the `videos` table lands. */
-export default function OverviewPage() {
+export default async function OverviewPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let generatedCount = 0
+  let readyCount = 0
+  let creditsLeft = 0
+
+  if (user) {
+    const { count: totalCount } = await supabase
+      .from('videos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      
+    const { count: completedCount } = await supabase
+      .from('videos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .in('status', ['ready', 'completed'])
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('videos_limit_this_month, videos_used_this_month')
+      .eq('id', user.id)
+      .single()
+
+    generatedCount = totalCount || 0
+    readyCount = completedCount || 0
+    
+    if (profile) {
+      creditsLeft = (profile.videos_limit_this_month || 0) - (profile.videos_used_this_month || 0)
+    }
+  }
+
   const stats = [
-    { label: 'Videos generated', value: '—' },
-    { label: 'Videos ready', value: '—' },
-    { label: 'Credits left', value: '—' },
+    { label: 'Videos generated', value: generatedCount.toString() },
+    { label: 'Videos ready', value: readyCount.toString() },
+    { label: 'Credits left', value: creditsLeft.toString() },
   ]
   return (
     <div className="flex flex-col" style={{ gap: 'var(--space-lg)' }}>
