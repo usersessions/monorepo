@@ -19,7 +19,7 @@ export default function PricingPage() {
       return;
     }
     if (planId === "agency") {
-      window.location.href = "/support";
+      window.location.href = "/contact";
       return;
     }
 

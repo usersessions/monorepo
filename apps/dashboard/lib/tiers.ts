@@ -154,9 +154,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     name: "Agency",
     tagline: "For agencies managing multiple clients",
     price: {
-      monthly: 14900,     // $149.00
-      annual: 143000,     // $119.16/month billed annually
-      annualDiscount: "Save 20%",
+      monthly: 0,         // Custom — negotiated per client
+      annual: 0,          // Custom — negotiated per client
+      annualDiscount: "Custom",
     },
     limits: {
       videosPerMonth: 200,
