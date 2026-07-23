@@ -49,12 +49,9 @@ export async function initializeTransaction(input: {
   planCode: string
   userId: string
   callbackUrl: string
+  secretKey: string
 }): Promise<{ authorizationUrl: string } | { error: string }> {
-  const secret = process.env.PAYSTACK_SECRET_KEY
-  if (!secret) {
-    console.error('[Billing] Missing PAYSTACK_SECRET_KEY')
-    return { error: 'missing_secret_key' }
-  }
+  const secret = input.secretKey
 
   try {
     // Paystack's transaction/initialize requires an explicit amount even when a

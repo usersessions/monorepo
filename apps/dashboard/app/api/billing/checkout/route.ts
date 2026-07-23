@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PLANS, PlanId } from '@/lib/tiers'
 import { initializeTransaction } from '@/lib/billing/paystack'
+import { getEnvVar } from '@/lib/cf-env'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,27 +16,33 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { planId, billingCycle = 'monthly' }: { planId: PlanId; billingCycle: 'monthly' | 'annual' } = body
 
-    // Validate plan — free is not purchasable; agency routes to /support on the frontend
+    // Validate plan — free is not purchasable; agency routes to /contact on the frontend
     if (!PLANS[planId] || planId === 'free') {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
 
-    // Resolve Paystack plan code from env vars explicitly for Cloudflare bundler compatibility
-    // Using hardcoded fallbacks based on the provided Cloudflare screenshot to guarantee it works
-    let paystackPlanCode = undefined;
+    // Resolve Paystack plan code using CF-aware env helper (handles Cloudflare Worker bindings)
+    let paystackPlanCode: string | undefined
     if (planId === 'starter') {
-      paystackPlanCode = billingCycle === 'annual' 
-        ? (process.env.PAYSTACK_PLAN_STARTER_ANNUAL || 'PLN_hnmf9lejvqrtjyi')
-        : (process.env.PAYSTACK_PLAN_STARTER_MONTHLY || 'PLN_enjmtzib9iu9ld4');
+      paystackPlanCode = billingCycle === 'annual'
+        ? await getEnvVar('PAYSTACK_PLAN_STARTER_ANNUAL')
+        : await getEnvVar('PAYSTACK_PLAN_STARTER_MONTHLY')
     } else if (planId === 'pro') {
-      paystackPlanCode = billingCycle === 'annual' 
-        ? (process.env.PAYSTACK_PLAN_PRO_ANNUAL || 'PLN_bix9km6ubnr204y')
-        : (process.env.PAYSTACK_PLAN_PRO_MONTHLY || 'PLN_hkld9ablhk6t487');
+      paystackPlanCode = billingCycle === 'annual'
+        ? await getEnvVar('PAYSTACK_PLAN_PRO_ANNUAL')
+        : await getEnvVar('PAYSTACK_PLAN_PRO_MONTHLY')
     }
 
     if (!paystackPlanCode) {
-      console.error(`[Billing] Missing env var for ${planId} ${billingCycle}`)
+      console.error(`[Billing] Missing Paystack plan code for ${planId} ${billingCycle}`)
       return NextResponse.json({ error: 'Plan not configured' }, { status: 500 })
+    }
+
+    // Read secret key via CF-aware helper
+    const secretKey = await getEnvVar('PAYSTACK_SECRET_KEY')
+    if (!secretKey) {
+      console.error('[Billing] Missing PAYSTACK_SECRET_KEY')
+      return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 })
     }
 
     // Fetch the profile email as fallback (auth.users email is canonical)
@@ -51,8 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Build the callback URL Paystack redirects to after the customer pays.
-    // The webhook handles the actual plan/credit update — this just closes the Paystack popup.
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://usersessions.io'
+    const siteUrl = await getEnvVar('NEXT_PUBLIC_SITE_URL') ?? 'https://usersessions.io'
     const callbackUrl = `${siteUrl}/settings?billing=success`
 
     // Initialize a Paystack transaction (returns an authorization_url to redirect the user to)
@@ -61,6 +67,7 @@ export async function POST(req: NextRequest) {
       planCode: paystackPlanCode,
       userId: user.id,
       callbackUrl,
+      secretKey,
     })
 
     if ('error' in result) {
