@@ -5,11 +5,9 @@
 export type CronJob = { name: string; schedule: string; description: string; path: string }
 
 export const CRON_JOBS: CronJob[] = [
-  { name: 'link-check', schedule: '0 3 * * *', description: 'Verify live listings; start 48h grace windows on failures', path: '/api/cron/link-check' },
-  { name: 'platform-quality', schedule: '0 4 * * *', description: 'Recompute Platform Quality Scores', path: '/api/cron/platform-quality' },
-  { name: 'competitor-scan', schedule: '0 5 * * *', description: 'Scan tracked competitors', path: '/api/cron/competitor-scan' },
-  { name: 'ai-visibility', schedule: '0 2 * * 0', description: 'Weekly AI visibility measurement', path: '/api/cron/ai-visibility' },
-  { name: 'weekly-digest', schedule: '0 9 * * 1', description: 'Send weekly digest emails', path: '/api/cron/weekly-digest' },
+  // Post-pivot there are no scheduled jobs: the legacy jobs were removed with
+  // their routes, and monthly credit resets happen lazily per-user inside
+  // CreditManager.ensureFreshCredits — no scheduler required.
 ]
 
 // Minimal 5-field cron matcher — supports numbers and '*' only, which covers every

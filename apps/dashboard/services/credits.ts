@@ -9,13 +9,15 @@ const supabaseAdmin = createClient(
 
 export class CreditManager {
   // ==========================================================
-  // MONTHLY RESET (Cron job — runs 1st of every month at 00:00 UTC)
+  // MONTHLY RESET (bulk)
+  // Credits reset lazily per-user (see ensureFreshCredits) — no scheduler
+  // needed. This bulk method remains for manual/admin use and includes
+  // free-plan users.
   // ==========================================================
   async resetMonthlyCredits(): Promise<number> {
     const { data: users, error } = await supabaseAdmin
       .from("profiles")
       .select("*")
-      .neq("plan", "free")
       .or("monthly_reset_at.lt.now(),monthly_reset_at.is.null");
 
     if (error) {
@@ -54,6 +56,42 @@ export class CreditManager {
   }
 
   // ==========================================================
+  // LAZY MONTHLY RESET (no cron needed)
+  // If the user's last reset was in a previous UTC month (or never), reset
+  // their counters in place. Applies to every plan, including free.
+  // ==========================================================
+  private needsMonthlyReset(user: { monthly_reset_at: string | null }): boolean {
+    const now = new Date();
+    const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    if (!user.monthly_reset_at) return true;
+    return new Date(user.monthly_reset_at).getTime() < monthStart;
+  }
+
+  private async ensureFreshCredits<T extends Record<string, any>>(user: T): Promise<T> {
+    if (!this.needsMonthlyReset(user as any)) return user;
+
+    const plan = getPlanConfig(user.plan as PlanId);
+    const updates = {
+      videos_used_this_month: 0,
+      videos_limit_this_month: plan.limits.videosPerMonth,
+      overage_videos_this_month: 0,
+      overage_cost_this_month: 0,
+      monthly_reset_at: new Date().toISOString(),
+    };
+
+    await supabaseAdmin.from("profiles").update(updates).eq("id", user.id);
+    await supabaseAdmin.from("credit_transactions").insert({
+      user_id: user.id,
+      type: "plan_renewal",
+      videos_amount: plan.limits.videosPerMonth,
+      videos_balance_after: plan.limits.videosPerMonth,
+      description: `Monthly credit reset for ${plan.name} plan`,
+    });
+
+    return { ...user, ...updates };
+  }
+
+  // ==========================================================
   // CHECK BEFORE GENERATION
   // ==========================================================
   async checkGenerationAllowed(params: {
@@ -76,12 +114,15 @@ export class CreditManager {
 
     if (error || !user) throw new Error("User not found");
 
+    // Lazy monthly reset — replaces the old scheduler.
+    Object.assign(user, await this.ensureFreshCredits(user));
+
     // Check if trial expired
     if (user.trial_ends_at && new Date() > new Date(user.trial_ends_at)) {
       // Downgrade to free
       await supabaseAdmin
         .from("profiles")
-        .update({ plan: "free", videos_limit_this_month: 2 })
+        .update({ plan: "free", videos_limit_this_month: PLANS.free.limits.videosPerMonth })
         .eq("id", params.userId);
         
       return {
@@ -246,6 +287,9 @@ export class CreditManager {
       .single();
       
     if (error || !user) throw new Error("User not found");
+
+    // Lazy monthly reset so dashboards show renewed credits immediately.
+    Object.assign(user, await this.ensureFreshCredits(user));
 
     const plan = getPlanConfig(user.plan as PlanId);
     const limit = user.videos_limit_this_month || 0;
