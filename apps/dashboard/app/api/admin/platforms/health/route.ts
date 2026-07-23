@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin-api'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 // Latest platform_health snapshots (client-side refresh consumers).
 export async function GET() {
   const user = await requireAdminApi()

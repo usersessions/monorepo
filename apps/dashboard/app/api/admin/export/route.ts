@@ -3,6 +3,10 @@ import { audit } from '@/lib/admin'
 import { requireAdminApi } from '@/lib/admin-api'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 const LIMIT = 5000
 
 const DATASETS: Record<string, { table: string; columns: string; order: string }> = {

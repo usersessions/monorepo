@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { creditManager } from "@/services/credits";
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();

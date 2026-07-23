@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js"; // use service role for webhook
 import { getVideoUrl } from "@/services/minimax-client";
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await Promise.resolve(params);

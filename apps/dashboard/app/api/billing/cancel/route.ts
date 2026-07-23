@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { disableSubscription, findActiveSubscription } from '@/lib/billing/paystack'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/billing/cancel — session-authenticated auto-renew cancellation.
  * Uses the paystack_email_token captured by the webhook (BUILD_SPEC §11).

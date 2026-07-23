@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 /**
  * GET /api/account/export — data portability (GDPR Art. 20 / CCPA).
  * Uses the RLS-scoped client so the export can only ever contain the

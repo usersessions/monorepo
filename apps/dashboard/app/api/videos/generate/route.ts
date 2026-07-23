@@ -5,6 +5,10 @@ import { scrapeProduct, ScrapeError } from "@/services/scraper-new";
 import { generateVideoConcepts, VideoConcept } from "@/services/prompt-engine";
 import { submitVideo, MiniMaxError } from "@/services/minimax-client";
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();

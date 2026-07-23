@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 /**
  * POST /api/account/delete — permanent account deletion (GDPR Art. 17 / CCPA).
  * Requires the literal confirmation string. Deleting the auth user cascades

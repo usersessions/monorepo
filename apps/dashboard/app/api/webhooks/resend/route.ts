@@ -2,6 +2,10 @@ import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Resend event webhook (svix-signed): logs sent / delivered / opened / clicked /
  * bounced / complained into email_events, powering the deliverability targets

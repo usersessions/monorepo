@@ -4,6 +4,10 @@ import { requireAdminApi } from '@/lib/admin-api'
 import { AUTO_DISMISS_MS, type AlertSeverity } from '@/lib/alerts'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 // Undismissed alerts, with auto-dismiss windows applied at read time.
 export async function GET() {
   const user = await requireAdminApi()

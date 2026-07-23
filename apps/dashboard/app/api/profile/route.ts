@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { authenticateBearer } from '@/lib/auth/bearer'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Founder profile for the extension. Signup data (name, email) is reused so
  * users never re-type what they already gave us. Bearer-only: the extension

@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { creditManager } from "@/services/credits";
 import crypto from "crypto";
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!;
 const WEBHOOK_SECRET = process.env.PAYSTACK_WEBHOOK_SECRET!;
 

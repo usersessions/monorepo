@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { submitVideo } from '@/services/minimax-client'
 import { creditManager } from '@/services/credits'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 // TODO(pivot): requires `videos` table migration (0037_videos) before this returns data.
 export async function GET() {
   const supabase = await createClient()

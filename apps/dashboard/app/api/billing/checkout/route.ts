@@ -4,6 +4,10 @@ import { PLANS, PlanId } from '@/lib/tiers'
 import { initializeTransaction } from '@/lib/billing/paystack'
 import { getEnvVar } from '@/lib/cf-env'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()

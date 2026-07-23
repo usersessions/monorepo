@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { generateVideoPrompt } from '@/services/gemini'
 import type { ScrapedProduct } from '@/types/product'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 /** Repurposed from /api/ai/copy — drafts a text-to-video prompt; founder edits/approves before generating. */
 export async function POST(req: Request) {
   const supabase = await createClient()

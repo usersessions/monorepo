@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PLANS, type PlanId } from "@/lib/tiers";
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 // Keep in sync with COST_PER_VIDEO in lib/tiers.ts (Gemini + MiniMax + storage + bandwidth).
 const COST_PER_VIDEO_USD = 0.37;
 

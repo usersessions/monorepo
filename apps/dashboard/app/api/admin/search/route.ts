@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin-api'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Force dynamic: Supabase URL is a runtime env var on Cloudflare, not a build var.
+export const dynamic = 'force-dynamic'
+
+
 export type SearchResult = { category: string; id: string; label: string; href: string }
 
 // Global admin search across users, products (campaign proxy), platforms, tickets.
