@@ -228,12 +228,12 @@ export function canGenerateVideo(params: {
 
   // Check video count
   if (params.videosUsedThisMonth >= limits.videosPerMonth) {
-    // Offer overage at $2/video (expensive to push upgrades)
+    // Offer overage at $3/video (matches deductCredit in services/credits.ts)
     const overageCount = params.bulkCount || 1;
     return {
       allowed: true,
       reason: "overage",
-      overageCost: overageCount * 200, // $2.00 per overage video in cents
+      overageCost: overageCount * 300, // $3.00 per overage video in cents
     };
   }
 

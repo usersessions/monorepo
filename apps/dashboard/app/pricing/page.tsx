@@ -11,6 +11,8 @@ export default function PricingPage() {
   const [hoveredPlan, setHoveredPlan] = useState<PlanId | null>(null);
   const [isProcessing, setIsProcessing] = useState<PlanId | null>(null);
 
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
   const handleCheckout = async (planId: PlanId) => {
     if (planId === "free") {
       window.location.href = "/videos";
@@ -20,8 +22,9 @@ export default function PricingPage() {
       window.location.href = "/support";
       return;
     }
-    
+
     setIsProcessing(planId);
+    setCheckoutError(null);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -29,16 +32,21 @@ export default function PricingPage() {
         body: JSON.stringify({ planId, billingCycle: isAnnual ? "annual" : "monthly" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      
-      alert("Checkout successful (or redirected to Paystack in prod).");
-      window.location.href = "/settings";
+      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+
+      // Redirect to the Paystack-hosted payment page
+      if (data.authorizationUrl) {
+        window.location.href = data.authorizationUrl;
+      } else {
+        throw new Error("No payment URL returned");
+      }
     } catch (err: any) {
-      alert("Checkout failed: " + err.message);
+      setCheckoutError(err.message ?? "Something went wrong. Please try again.");
     } finally {
       setIsProcessing(null);
     }
   };
+
 
   const plans = Object.values(PLANS);
 
@@ -46,10 +54,16 @@ export default function PricingPage() {
     <main className="min-h-screen bg-background">
       {/* Hero */}
       <section className="pt-32 pb-16 text-center">
+        {checkoutError && (
+          <div className="mx-auto mb-6 max-w-md rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {checkoutError}
+          </div>
+        )}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
+
           <h1 className="text-4xl font-bold sm:text-5xl lg:text-6xl">
             Ad creation at scale
           </h1>

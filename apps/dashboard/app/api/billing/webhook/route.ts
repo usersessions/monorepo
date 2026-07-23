@@ -3,6 +3,7 @@ import { disableSubscription, planIdFromCode, verifyWebhookSignature } from '@/l
 import { sendEmail } from '@/lib/email/resend'
 import { dataTable, escapeHtml, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
+import { creditManager } from '@/services/credits'
 
 /**
  * Paystack webhook (BUILD_SPEC §11): signature-verified (HMAC-SHA512 over the raw body),
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
             ...(plan ? { plan } : {}),
           })
           .eq('id', userId)
+        // Immediately sync credits to the new plan (do not wait for lazy monthly reset)
+        if (plan) await creditManager.handlePlanChange(userId, plan).catch(console.error)
         await db.from('revenue_events').insert({
           user_id: userId,
           event_type: 'payment_succeeded',
@@ -123,6 +126,8 @@ export async function POST(request: Request) {
             ...(plan ? { plan } : {}),
           })
           .eq('id', userId)
+        // Immediately sync credits to the new plan (do not wait for lazy monthly reset)
+        if (plan) await creditManager.handlePlanChange(userId, plan).catch(console.error)
         await db.from('revenue_events').insert({
           user_id: userId,
           event_type: 'subscription_created',
@@ -144,6 +149,8 @@ export async function POST(request: Request) {
           .from('profiles')
           .update({ subscription_status: 'cancelled', plan: 'free' })
           .eq('paystack_subscription_code', code)
+        // Immediately reset credits to free tier
+        if (target?.id) await creditManager.handlePlanChange(target.id, 'free').catch(console.error)
         if (target?.id) {
           await db.from('revenue_events').insert({
             user_id: target.id,
