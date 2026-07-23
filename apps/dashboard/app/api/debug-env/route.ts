@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 
 // Temporary debug route — delete after confirming env vars are visible on Cloudflare
-export const runtime = 'edge'
-
 export async function GET() {
   return NextResponse.json({
     hasSecret: !!process.env.PAYSTACK_SECRET_KEY,
