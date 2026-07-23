@@ -21,15 +21,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve Paystack plan code from env vars explicitly for Cloudflare bundler compatibility
+    // Using hardcoded fallbacks based on the provided Cloudflare screenshot to guarantee it works
     let paystackPlanCode = undefined;
     if (planId === 'starter') {
       paystackPlanCode = billingCycle === 'annual' 
-        ? process.env.PAYSTACK_PLAN_STARTER_ANNUAL 
-        : process.env.PAYSTACK_PLAN_STARTER_MONTHLY;
+        ? (process.env.PAYSTACK_PLAN_STARTER_ANNUAL || 'PLN_hnmf9lejvqrtjyi')
+        : (process.env.PAYSTACK_PLAN_STARTER_MONTHLY || 'PLN_enjmtzib9iu9ld4');
     } else if (planId === 'pro') {
       paystackPlanCode = billingCycle === 'annual' 
-        ? process.env.PAYSTACK_PLAN_PRO_ANNUAL 
-        : process.env.PAYSTACK_PLAN_PRO_MONTHLY;
+        ? (process.env.PAYSTACK_PLAN_PRO_ANNUAL || 'PLN_bix9km6ubnr204y')
+        : (process.env.PAYSTACK_PLAN_PRO_MONTHLY || 'PLN_hkld9ablhk6t487');
     }
 
     if (!paystackPlanCode) {

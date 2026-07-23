@@ -32,10 +32,13 @@ export function planCode(key: PaidPlanKey): string | null {
 /** Reverse mapping: Paystack plan_code → our PlanId, for webhook processing. */
 export function planIdFromCode(code: string | null | undefined): 'starter' | 'pro' | 'agency' | null {
   if (!code) return null
-  if (code === process.env.PAYSTACK_PLAN_STARTER_MONTHLY || code === process.env.PAYSTACK_PLAN_STARTER_ANNUAL)
-    return 'starter'
-  if (code === process.env.PAYSTACK_PLAN_PRO_MONTHLY || code === process.env.PAYSTACK_PLAN_PRO_ANNUAL)
-    return 'pro'
+  
+  const starterCodes = [process.env.PAYSTACK_PLAN_STARTER_MONTHLY, process.env.PAYSTACK_PLAN_STARTER_ANNUAL, 'PLN_hnmf9lejvqrtjyi', 'PLN_enjmtzib9iu9ld4']
+  const proCodes = [process.env.PAYSTACK_PLAN_PRO_MONTHLY, process.env.PAYSTACK_PLAN_PRO_ANNUAL, 'PLN_bix9km6ubnr204y', 'PLN_hkld9ablhk6t487']
+  
+  if (starterCodes.includes(code)) return 'starter'
+  if (proCodes.includes(code)) return 'pro'
+  
   if (code === process.env.PAYSTACK_PLAN_AGENCY_MONTHLY || code === process.env.PAYSTACK_PLAN_AGENCY_ANNUAL)
     return 'agency'
   return null
