@@ -5,10 +5,9 @@
 export type CronJob = { name: string; schedule: string; description: string; path: string }
 
 export const CRON_JOBS: CronJob[] = [
-  // Post-pivot: the legacy jobs (link-check, platform-quality, competitor-scan,
-  // ai-visibility, weekly-digest) were removed with their routes. Schedules here
-  // mirror the Cloudflare Cron Triggers in workers/cron/wrangler.jsonc.
-  { name: 'reset-credits', schedule: '0 0 1 * *', description: 'Reset monthly video credits for paid plans', path: '/api/cron/reset-credits' },
+  // Post-pivot there are no scheduled jobs: the legacy jobs were removed with
+  // their routes, and monthly credit resets happen lazily per-user inside
+  // CreditManager.ensureFreshCredits — no scheduler required.
 ]
 
 // Minimal 5-field cron matcher — supports numbers and '*' only, which covers every
