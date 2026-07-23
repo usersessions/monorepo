@@ -5,11 +5,10 @@
 export type CronJob = { name: string; schedule: string; description: string; path: string }
 
 export const CRON_JOBS: CronJob[] = [
-  { name: 'link-check', schedule: '0 3 * * *', description: 'Verify live listings; start 48h grace windows on failures', path: '/api/cron/link-check' },
-  { name: 'platform-quality', schedule: '0 4 * * *', description: 'Recompute Platform Quality Scores', path: '/api/cron/platform-quality' },
-  { name: 'competitor-scan', schedule: '0 5 * * *', description: 'Scan tracked competitors', path: '/api/cron/competitor-scan' },
-  { name: 'ai-visibility', schedule: '0 2 * * 0', description: 'Weekly AI visibility measurement', path: '/api/cron/ai-visibility' },
-  { name: 'weekly-digest', schedule: '0 9 * * 1', description: 'Send weekly digest emails', path: '/api/cron/weekly-digest' },
+  // Post-pivot: the legacy jobs (link-check, platform-quality, competitor-scan,
+  // ai-visibility, weekly-digest) were removed with their routes. Schedules here
+  // mirror the Cloudflare Cron Triggers in workers/cron/wrangler.jsonc.
+  { name: 'reset-credits', schedule: '0 0 1 * *', description: 'Reset monthly video credits for paid plans', path: '/api/cron/reset-credits' },
 ]
 
 // Minimal 5-field cron matcher — supports numbers and '*' only, which covers every

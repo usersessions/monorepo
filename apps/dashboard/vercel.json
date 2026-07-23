@@ -1,7 +1,0 @@
-{
-  "installCommand": "cd ../.. && pnpm install --filter dashboard...",
-  "buildCommand": "cd ../.. && pnpm --filter dashboard build",
-  "crons": [
-    { "path": "/api/cron/weekly-digest", "schedule": "0 8 * * 1" }
-  ]
-}

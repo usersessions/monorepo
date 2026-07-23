@@ -1,0 +1,14 @@
+{
+  "name": "usersessions-cron",
+  "main": "index.ts",
+  "compatibility_date": "2025-05-05",
+  "triggers": {
+    "crons": ["0 0 1 * *"]
+  },
+  "vars": {
+    "BASE_URL": "https://usersessions.io"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
