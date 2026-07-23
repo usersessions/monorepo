@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL ?? 'hello@usersessions.io'
+    const adminEmail = process.env.ADMIN_EMAIL ?? 'info@usersessions.io'
 
     await sendEmail({
       to: adminEmail,

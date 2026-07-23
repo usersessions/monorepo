@@ -103,8 +103,8 @@ export default function ContactPage() {
                 <p className="text-sm font-medium">Prefer email or a call?</p>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4 text-primary" />
-                  <a href="mailto:hello@usersessions.io" className="hover:text-foreground transition-colors">
-                    hello@usersessions.io
+                  <a href="mailto:info@usersessions.io" className="hover:text-foreground transition-colors">
+                    info@usersessions.io
                   </a>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
