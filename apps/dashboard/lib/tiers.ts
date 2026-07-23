@@ -110,7 +110,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       "All formats: TikTok, Instagram, Facebook",
       "Email support",
     ],
-    cta: "Start Free Trial",
+    cta: "Upgrade to Starter",
     popular: true,
   },
 
@@ -146,7 +146,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       "3 team seats",
       "Priority support",
     ],
-    cta: "Start Free Trial",
+    cta: "Upgrade to Pro",
   },
 
   agency: {

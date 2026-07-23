@@ -20,13 +20,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
 
-    // Resolve Paystack plan code from env vars
-    // e.g. PAYSTACK_PLAN_STARTER_MONTHLY, PAYSTACK_PLAN_PRO_ANNUAL, etc.
-    const planEnvKey = `PAYSTACK_PLAN_${planId.toUpperCase()}_${billingCycle.toUpperCase()}`
-    const paystackPlanCode = process.env[planEnvKey]
+    // Resolve Paystack plan code from env vars explicitly for Cloudflare bundler compatibility
+    let paystackPlanCode = undefined;
+    if (planId === 'starter') {
+      paystackPlanCode = billingCycle === 'annual' 
+        ? process.env.PAYSTACK_PLAN_STARTER_ANNUAL 
+        : process.env.PAYSTACK_PLAN_STARTER_MONTHLY;
+    } else if (planId === 'pro') {
+      paystackPlanCode = billingCycle === 'annual' 
+        ? process.env.PAYSTACK_PLAN_PRO_ANNUAL 
+        : process.env.PAYSTACK_PLAN_PRO_MONTHLY;
+    }
 
     if (!paystackPlanCode) {
-      console.error(`[Billing] Missing env var: ${planEnvKey}`)
+      console.error(`[Billing] Missing env var for ${planId} ${billingCycle}`)
       return NextResponse.json({ error: 'Plan not configured' }, { status: 500 })
     }
 
