@@ -39,10 +39,10 @@ FEW-SHOT "GOD-TIER" EXAMPLES (Study these for rhythm and syntax):
 
 OUTPUT ONLY THE FINAL PROMPT TEXT. Do not explain your category choice.
 
-Product: \${product.title}
-Description: \${product.description ?? 'n/a'}
-Site: \${product.site_name ?? product.url}
-\`.trim()
+Product: ${product.title}
+Description: ${product.description ?? 'n/a'}
+Site: ${product.site_name ?? product.url}
+`.trim()
 
   try {
     const res = await fetch(
