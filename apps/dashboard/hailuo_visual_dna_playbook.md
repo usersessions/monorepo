@@ -359,3 +359,73 @@ To stop the scroll without a single word of text or dialogue, you have to bypass
 
 10. The Elastic Snap-Back
 * The Action: The product (or a piece of it) is stretched to an impossible, tension-filled extreme. A highly textured resistance band, a shoe sole, or a heavy fabric is pulled taut, vibrating under the strain, before violently snapping back to its original, perfect shape.
+
+---
+---
+# PHASE 7: Advanced Category Specific God-Tier Prompts
+
+## Beauty & Skincare Physics
+
+### Selection 1: The Extreme Macro ASMR Peel
+**Applied to:** A Premium "Rubberizing" or Hydrating Face Mask.
+**The Psychology:** Hooks through anticipation and tension release. Simulates a tactile sensation, making the viewer "feel" the hydration.
+
+**The Formula:**
+`[Extreme Macro Probe Lens Angle] + [Viscous/Elastic Material Under Tension] + [Slow, Continuous Pulling Action] + [Satisfying Texture Reveal] + [Surface Tension/Micro-Ripple Physics] + [Soft, Dewy Lighting]`
+
+**God-Tier MiniMax Prompt:**
+> Extreme macro probe lens tracking shot. A thick, rubberized black charcoal mask is being peeled slowly and continuously from a pristine, clear glass surface (simulating flawless skin). The camera focus is locked on the exact leading edge of the pull. The material stretches with intense elastic tension, creating visible micro-ripples and tiny pockets of air beneath the mask as it lifts. The surface underneath is instantly revealed as ultra-glossy, dewy, hydrated skin-texture. Warm, directional softbox lighting highlights the sharp contrast between the matte rubber mask and the reflective, moist skin. A solitary, thick droplet of leftover gel forms and drips satisfyingly from the edge of the lifted mask due to gravity physics.
+
+### Selection 2: The Viscous Smear
+**Applied to:** A Full-Coverage Liquid Foundation or Rich Night Cream.
+**The Psychology:** Pure visual satisfaction. The brain loves watching thick, resistant materials being forced into perfect, thin, smooth surfaces.
+
+**The Formula:**
+`[Top-Down Orthographic Angle] + [Pristine Base Surface] + [Viscous Material Snot/Dollop Impact] + [Aggressive Acrylic/Glass Smashing Force] + [Fluid Spreading Physics/Spider-webbing] + [High-Contrast Texture/Color Finish]`
+
+**God-Tier MiniMax Prompt:**
+> High-speed, top-down 90-degree flat lay shot looking at a pristine white marble slab. A heavy, viscous dollop of opaque, beige liquid foundation snot drops onto the marble. Before it can settle, an invisible, clear acrylic sheet violently smashes down onto the dollop. The foundation explodes outward, creating a perfectly circular, expanding spider-web pattern as it spreads thin between the acrylic and marble due to high-pressure fluid dynamics. Microscopic pigment particles swirl within the spreading liquid. The camera racks focus as the foundation settles into a velvety, matte finish, perfectly coating the surface in 120 frames. Crisp, cool studio lighting maximizes the texture contrast.
+
+### Selection 3: The Alchemic Match-Cut
+**Applied to:** A Rose-Infused Luxury Facial Oil/Serum.
+**The Psychology:** Translates "ingredients to results" visually without a single word. Creates visual intrigue.
+
+**The Formula:**
+`[Dolly-In Kinetic Momentum] + [Raw Ingredient State] + [Impact/Transformation Point] + [Finished Product/Serum State] + [Viscosity/Ripple Dynamics] + [Volumetric Ethereal Lighting]`
+
+**God-Tier MiniMax Prompt:**
+> Fast dolly-in toward a single, dew-covered heavy dark red rose blooming against a misty background. The camera maintains kinetic momentum as the rose appears to fall toward a hard, glossy white surface. At the exact frame of impact, there is a seamless alchemic match-cut transition: the rose disappears, replaced by a clear glass pipette releasing a thick, viscous stream of pink, translucent facial serum. The serum hits the surface, forming heavy ribbons and complex ripples due to its rich, oily viscosity, rather than breaking. The impact zone forms a defined pool of rich oil bubbles. Soft, diffuse volumetric lighting highlights the transparency and premium gold flecks within the liquid serum.
+
+---
+
+## Consumer Tech Physics
+
+### Selection 1: The Exploded Isometric Snap (Hook #2)
+**Applied to:** True Wireless Earbuds (TWS).
+**The Psychology:** Satisfies the viewer’s need for order while instantly showcasing complex internal engineering.
+
+**The Formula:**
+`[Macro Probe Lens Dolly-Out] + [Floating Hyper-Detailed Components] + [Dynamic Magnetic Kinetic Snap Action] + [Material/Texture Variety] + [Strobe-to-Steady Lighting Transition]`
+
+**God-Tier MiniMax Prompt:**
+> Extreme macro probe lens begins inside an object and dollies-out rapidly. Floating in a dark, stark studio void are hundreds of hyper-detailed components of a true wireless earbud—a copper voice coil, a shimmering driver diaphragm, micro-circuit boards, a tiny lithium battery, and glossy black outer shells—all hovering in perfect isometric formation. Suddenly, a powerful visual magnetic force causes all parts to snap together instantly and violently with satisfying kinetic physics. The single, completed, matte black earbud with polished steel accents rotates smoothly 180 degrees. Initial rapid strobe lighting settles into a steady, cool blue LED glow emanating from the earbud indicator light, highlighting the seamless geometry against a reflective obsidian floor.
+
+### Selection 2: The Imminent Collision (Hook #8)
+**Applied to:** A Rugged, Waterproof Smartphone.
+**The Psychology:** Triggers the "flinch reflex." Verifies durability by raw physics.
+
+**The Formula:**
+`[High-Speed Dynamic Tracking Shot] + [High-Tension Subject Momentum] + [Violent Environmental Physics Interaction] + [Rugged Material Focus] + [Dramatic Hard-Angle Lighting]`
+
+**God-Tier MiniMax Prompt:**
+> High-speed camera dynamic tracking shot. A sleek, rugged smartphone, with matte silicone edges and a reinforced glass screen, falls end-over-end toward a jagged, wet concrete surface. The camera captures the rapid spinning motion. The smartphone corner strikes the concrete violently in ultra-slow motion. Instead of shattering, the impact causes micro-particles of dust and sharp drops of water to explode outward chaotically due to kinetic force. The phone bounces subtly once. Focusing tightly on the screen, it is revealed to be completely flawless and unscratched. Harsh, high-contrast construction site spotlights cast deep, dramatic shadows, emphasizing the resilience of the textured materials and the surrounding damp ground.
+
+### Selection 3: The Sudden Illumination (Hook #9)
+**Applied to:** A High-End Gaming Monitor.
+**The Psychology:** Utilizes the contrast between complete darkness and intense, vibrant light to reset the viewer's attention.
+
+**The Formula:**
+`[Pitch Black Opening Frame] + [Sudden Rapid Volumetric Screen Blast] + [Extreme Close-Up Macro Textures] + [High-Fidelity Liquid/Color Display Physics] + [Silhouette Lighting]`
+
+**God-Tier MiniMax Prompt:**
+> The frame begins in total, pitch blackness. Suddenly, with explosive speed, a ultra-widescreen gaming monitor flashes to life, projecting a blinding, vibrant sequence of a neon-colored car racing through a rainy cyberpunk city. The intense volumetric light from the screen cuts through heavy fog in the room, creating visible god rays. The camera is an extreme close-up, focusing on the monitor's matte black bezel texture and the glass screen. High-definition liquid display physics are visible as millions of vibrant individual pixels react rapidly to the cinematic action, reflecting perfectly off the glossy black desk below, which features scattered matte plastic gaming accessories. The back of the monitor remains in deep silhouette.
