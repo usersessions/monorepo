@@ -15,4 +15,4 @@ BEGIN
     END IF;
 END $$;
 
-ALTER TABLE profiles ADD CONSTRAINT profiles_plan_check CHECK (plan IN ('free', 'starter', 'pro', 'agency'));
+ALTER TABLE profiles ADD CONSTRAINT profiles_plan_check CHECK (plan IN ('free', 'starter', 'pro', 'agency', 'founder'));
