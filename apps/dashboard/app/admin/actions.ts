@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { audit, requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
 
@@ -40,47 +41,6 @@ export async function setPlan(formData: FormData) {
   revalidatePath('/admin/users')
 }
 
-/**
- * Adapter review (BUILD_SPEC §7): approve records the reviewer and stages a 10% rollout row;
- * the actual rollout mechanics are extension-side. Reject records the reviewer and closes the run.
- */
-export async function reviewAdapterRun(formData: FormData) {
-  const { user } = await requireAdmin()
-  const runId = String(formData.get('runId') ?? '')
-  const decision = String(formData.get('decision') ?? '')
-  if (!runId || !['approve', 'reject'].includes(decision)) return
-
-  const db = createServiceClient()
-  const { data: run } = await db.from('adapter_runs').select('*').eq('id', runId).maybeSingle()
-  if (!run || run.status !== 'pending_review') return
-
-  await db
-    .from('adapter_runs')
-    .update({
-      status: decision === 'approve' ? 'passed' : 'failed',
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq('id', runId)
-
-  if (decision === 'approve') {
-    await db.from('adapter_runs').insert({
-      platform_id: run.platform_id,
-      run_type: 'staged_rollout',
-      status: 'passed',
-      proposed_diff: run.proposed_diff,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-    })
-  }
-
-  await audit(user.id, decision === 'approve' ? 'adapter_approve_stage_10pct' : 'adapter_reject', null, {
-    runId,
-    platformId: run.platform_id,
-  })
-  revalidatePath('/admin/adapters')
-}
-
 /** Suspend a user: blocks API access and future sign-ins. Admins can never be suspended. */
 export async function suspendUser(formData: FormData) {
   const { user } = await requireAdmin()
@@ -109,18 +69,29 @@ export async function unsuspendUser(formData: FormData) {
 }
 
 /**
- * Platform request status transitions. Notifying the requester by email is a documented
- * deferral (no existing template/schema for this notification type) — status + audit-log
- * only for now.
+ * Force delete a user permanently. Admin-only; admins can never be deleted.
+ * Requires typing the target's exact email as confirmation. The audit entry is
+ * written BEFORE the deletion so the trail survives the cascade — deleting the
+ * auth user cascades through profiles into every user-owned table (videos,
+ * transactions, etc.), same as the GDPR self-delete route.
  */
-export async function setPlatformRequestStatus(formData: FormData) {
+export async function forceDeleteUser(formData: FormData) {
   const { user } = await requireAdmin()
-  const requestId = String(formData.get('requestId') ?? '')
-  const status = String(formData.get('status') ?? '')
-  if (!requestId || !['pending', 'under_review', 'approved', 'rejected', 'shipped'].includes(status)) return
+  const targetUserId = String(formData.get('userId') ?? '')
+  const confirmEmail = String(formData.get('confirmEmail') ?? '').trim().toLowerCase()
+  if (!targetUserId) return
 
   const db = createServiceClient()
-  await db.from('platform_requests').update({ status, updated_at: new Date().toISOString() }).eq('id', requestId)
-  await audit(user.id, 'platform_request_status', null, { requestId, status })
-  revalidatePath('/admin/platform-requests')
+  const { data: target } = await db.from('profiles').select('email, role').eq('id', targetUserId).maybeSingle()
+  if (!target || target.role === 'admin') return
+  if (!target.email || target.email.toLowerCase() !== confirmEmail) return
+
+  await audit(user.id, 'user_force_delete', targetUserId, { email: target.email })
+  const { error } = await db.auth.admin.deleteUser(targetUserId)
+  if (error) {
+    await audit(user.id, 'user_force_delete_failed', targetUserId, { email: target.email, error: error.message })
+    return
+  }
+  revalidatePath('/admin/users')
+  redirect('/admin/users')
 }

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { audit, requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { limitsFor } from '@/lib/tiers'
-import { setPlan, setSubscriptionStatus } from '../../actions'
+import { forceDeleteUser, setPlan, setSubscriptionStatus } from '../../actions'
 
 export default async function AdminViewAsPage({
   params,
@@ -98,6 +98,22 @@ export default async function AdminViewAsPage({
           ))
         )}
       </div>
+
+      {/* Danger zone — force delete (admins can never be deleted) */}
+      {target.role !== 'admin' && (
+        <div className="card card--dense flex flex-col" style={{ gap: 'var(--space-sm)', borderColor: 'var(--red)' }}>
+          <p className="font-mono-label" style={{ color: 'var(--red)' }}>Danger zone</p>
+          <p className="font-sans-body">
+            Force delete permanently removes this user, their videos, and all account data via
+            cascade. This cannot be undone. Type the user’s email exactly to confirm.
+          </p>
+          <form action={forceDeleteUser} className="flex" style={{ gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
+            <input type="hidden" name="userId" value={target.id} />
+            <input name="confirmEmail" placeholder={target.email ?? 'user email'} className="input-field" style={{ minWidth: 260 }} required />
+            <button className="btn-ghost" style={{ color: 'var(--red)' }} type="submit">Force delete user</button>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
