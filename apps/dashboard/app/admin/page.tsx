@@ -14,10 +14,12 @@ import AdminInsights from '@/components/admin/sections/AdminInsights'
 import CronSection from '@/components/admin/sections/CronSection'
 import SystemHealthSection from '@/components/admin/sections/SystemHealthSection'
 
-// List prices (BUILD_SPEC §11). MRR here is an estimate computed from active paid
-// plan rows — annual subscribers are counted at monthly list price. Paystack is
-// the billing source of truth; this view is directional, and labeled as such.
-const PLAN_PRICE_USD = { founder: 39, agency: 199 } as const
+import { PLANS, type PlanId } from '@/lib/tiers'
+
+// MRR here is an estimate computed from active paid plan rows using the current
+// plan list prices — annual subscribers are counted at monthly list price.
+// Paystack is the billing source of truth; this view is directional.
+const PAID_PLANS: PlanId[] = ['starter', 'pro', 'agency']
 
 const RANGES = { '24h': 864e5, '7d': 7 * 864e5, '30d': 30 * 864e5, '90d': 90 * 864e5 } as const
 type Range = keyof typeof RANGES
@@ -48,7 +50,8 @@ export default async function AdminSystemPage({
 
   const [
     { count: userCount },
-    { count: founderCount },
+    { count: starterCount },
+    { count: proCount },
     { count: agencyCount },
     { count: signupsToday },
     { count: signupsYesterday },
@@ -57,7 +60,8 @@ export default async function AdminSystemPage({
     { data: rangeProfiles },
   ] = await Promise.all([
     db.from('profiles').select('*', { count: 'exact', head: true }),
-    db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'founder').eq('subscription_status', 'active'),
+    db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'starter').eq('subscription_status', 'active'),
+    db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'pro').eq('subscription_status', 'active'),
     db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'agency').eq('subscription_status', 'active'),
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
     db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStart.toISOString()).lt('created_at', todayStart.toISOString()),
@@ -66,8 +70,9 @@ export default async function AdminSystemPage({
     db.from('profiles').select('created_at').gte('created_at', rangeStart.toISOString()).limit(5000),
   ])
 
-  const paid = (founderCount ?? 0) + (agencyCount ?? 0)
-  const mrr = (founderCount ?? 0) * PLAN_PRICE_USD.founder + (agencyCount ?? 0) * PLAN_PRICE_USD.agency
+  const planCounts: Record<PlanId, number> = { free: 0, starter: starterCount ?? 0, pro: proCount ?? 0, agency: agencyCount ?? 0 }
+  const paid = PAID_PLANS.reduce((sum, p) => sum + planCounts[p], 0)
+  const mrr = PAID_PLANS.reduce((sum, p) => sum + planCounts[p] * (PLANS[p].price.monthly / 100), 0)
   const conversion = userCount ? Math.round((paid / userCount) * 1000) / 10 : 0
 
   // 7-point signup sparkline across the selected range.

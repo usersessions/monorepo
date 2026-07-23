@@ -1,19 +1,22 @@
 import { requireAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// List prices (BUILD_SPEC §11). MRR is an estimate from active paid plan rows;
-// Paystack is the billing source of truth. Revenue figures come from real
-// revenue_events written by the webhook — nothing here is fabricated.
-const PLAN_PRICE_USD = { founder: 39, agency: 199 } as const
+import { PLANS, type PlanId } from '@/lib/tiers'
+
+// MRR is an estimate from active paid plan rows priced from PLANS; Paystack is
+// the billing source of truth. Revenue figures come from real revenue_events
+// written by the webhook — nothing here is fabricated.
+const PAID_PLANS: PlanId[] = ['starter', 'pro', 'agency']
 
 export default async function AdminBillingPage() {
   await requireAdmin()
   const db = createServiceClient()
   const since30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
 
-  const [{ count: founderCount }, { count: agencyCount }, { data: events }, { data: paidProfiles }] =
+  const [{ count: starterCount }, { count: proCount }, { count: agencyCount }, { data: events }, { data: paidProfiles }] =
     await Promise.all([
-      db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'founder').eq('subscription_status', 'active'),
+      db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'starter').eq('subscription_status', 'active'),
+      db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'pro').eq('subscription_status', 'active'),
       db.from('profiles').select('*', { count: 'exact', head: true }).eq('plan', 'agency').eq('subscription_status', 'active'),
       db
         .from('revenue_events')
@@ -35,13 +38,12 @@ export default async function AdminBillingPage() {
   const cancelled30 = recent.filter((e) => e.event_type === 'subscription_cancelled' && e.created_at >= since30).length
   const revenue30 = succeeded30.reduce((sum, e) => sum + Number(e.amount ?? 0), 0)
   const currencies = [...new Set(succeeded30.map((e) => e.currency).filter(Boolean))]
-  const mrr = (founderCount ?? 0) * PLAN_PRICE_USD.founder + (agencyCount ?? 0) * PLAN_PRICE_USD.agency
+  const planCounts: Record<PlanId, number> = { free: 0, starter: starterCount ?? 0, pro: proCount ?? 0, agency: agencyCount ?? 0 }
+  const mrr = PAID_PLANS.reduce((sum, p) => sum + planCounts[p] * (PLANS[p].price.monthly / 100), 0)
 
+  // Checkout charges amounts straight from PLANS — no Paystack plan codes needed.
   const envChecks: [string, boolean][] = [
     ['PAYSTACK_SECRET_KEY', Boolean(process.env.PAYSTACK_SECRET_KEY)],
-    ['PAYSTACK_PLAN_FOUNDER_MONTHLY', Boolean(process.env.PAYSTACK_PLAN_FOUNDER_MONTHLY)],
-    ['PAYSTACK_PLAN_FOUNDER_ANNUAL', Boolean(process.env.PAYSTACK_PLAN_FOUNDER_ANNUAL)],
-    ['PAYSTACK_PLAN_AGENCY_MONTHLY', Boolean(process.env.PAYSTACK_PLAN_AGENCY_MONTHLY)],
   ]
 
   return (
