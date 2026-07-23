@@ -32,7 +32,14 @@ export default function PricingPage() {
         body: JSON.stringify({ planId, billingCycle: isAnnual ? "annual" : "monthly" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = `/login?redirect=/pricing`;
+          return;
+        }
+        throw new Error(data.error ?? "Checkout failed");
+      }
 
       // Redirect to the Paystack-hosted payment page
       if (data.authorizationUrl) {
