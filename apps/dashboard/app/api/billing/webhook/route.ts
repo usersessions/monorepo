@@ -5,6 +5,10 @@ import { dataTable, escapeHtml, renderEmail } from '@/lib/email/template'
 import { createServiceClient } from '@/lib/supabase/server'
 import { creditManager } from '@/services/credits'
 
+// Force dynamic so Next.js never tries to statically collect this route at
+// build time (Supabase URL is a runtime env var on Cloudflare, not a build var).
+export const dynamic = 'force-dynamic'
+
 /**
  * Paystack webhook (BUILD_SPEC §11): signature-verified (HMAC-SHA512 over the raw body),
  * handles charge.success, subscription.create, subscription.disable, invoice.payment_failed.
@@ -23,6 +27,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'INVALID_PAYLOAD' }, { status: 400 })
   }
 
+  // Initialized here (not at module level) so it only runs at request time,
+  // not during Next.js static page-data collection at build time.
   const db = createServiceClient()
   const data = (event.data ?? {}) as {
     metadata?: { user_id?: string }
